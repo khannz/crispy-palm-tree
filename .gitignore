@@ -1,0 +1,8 @@
+ifcfg-*
+*tmp*
+*.yaml
+swag
+*docs.go
+*.json
+*.conf
+route-tun*
