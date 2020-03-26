@@ -49,17 +49,24 @@
 ```json
 {
   "jobUUID": "7a7aebea-4e05-45b9-8d11-c4115dbdd4a2",
-  "realServersData": {
-    "1.1.1.1": "11",
-    "2.2.2.2": "22"
-  },
-  "realServersCommands": {
-      "1.1.1.1:11": "#!/bin/bash\nifconfig lo:10 9.9.9.9 netmask 255.255.255.255 -arp up\nifconfig tun100 up\nsysctl -w net.ipv4.conf.tun100.rp_filter=0\nsysctl -w net.ipv4.conf.all.rp_filter=0\nnet.ipv4.ip_forward = 0\niptables -t nat -A PREROUTING -i tun100 -p tcp -d 1.1.1.1 --dport 11 -j DNAT --to-destination 9.9.9.9:999",
-      "2.2.2.2:22": "#!/bin/bash\nifconfig lo:10 9.9.9.9 netmask 255.255.255.255 -arp up\nifconfig tun100 up\nsysctl -w net.ipv4.conf.tun100.rp_filter=0\nsysctl -w net.ipv4.conf.all.rp_filter=0\nnet.ipv4.ip_forward = 0\niptables -t nat -A PREROUTING -i tun100 -p tcp -d 2.2.2.2 --dport 22 -j DNAT --to-destination 9.9.9.9:999"
-  },
+  "realServers": [
+    "1.1.1.1:11",
+    "2.2.2.2:22"
+  ],
+  "realServersCommands": [
+      {
+          "realServer": "1.1.1.1:11",
+          "bashCommand": "#!/bin/bash\nifconfig lo:10 9.9.9.9 netmask 255.255.255.255 -arp up\nifconfig tun100 up\nsysctl -w net.ipv4.conf.tun100.rp_filter=0\nsysctl -w net.ipv4.conf.all.rp_filter=0\nnet.ipv4.ip_forward = 0\niptables -t nat -A PREROUTING -i tun100 -p tcp -d 1.1.1.1 --dport 11 -j DNAT --to-destination 9.9.9.9:999"      
+      },
+      {
+          "realServer": "2.2.2.2:22",
+          "bashCommand": "#!/bin/bash\nifconfig lo:10 9.9.9.9 netmask 255.255.255.255 -arp up\nifconfig tun100 up\nsysctl -w net.ipv4.conf.tun100.rp_filter=0\nsysctl -w net.ipv4.conf.all.rp_filter=0\nnet.ipv4.ip_forward = 0\niptables -t nat -A PREROUTING -i tun100 -p tcp -d 2.2.2.2 --dport 22 -j DNAT --to-destination 9.9.9.9:999"
+      }
+  ],
   "serviceIP": "9.9.9.9",
   "servicePort": "999",
   "healthcheckType": "tcp",
-  "jobCompletedSuccessfully": true
+  "jobCompletedSuccessfully": true,
+  "extraInfo": "new nwb created"
 }
 ```

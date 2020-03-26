@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 
@@ -18,7 +18,7 @@ import (
 
 const restAPIlogName = "restAPI"
 
-// @title Netcon agent swagger
+// @title NLB service swagger
 // @version 1.0.1
 // @description create/delete nlb service.
 // @Tags New nlb service
@@ -28,24 +28,40 @@ const restAPIlogName = "restAPI"
 // @contact.name Ivan Tikhonov
 // @contact.email sdn@sberbank.ru
 
-type nwbResponse struct {
-	State string `json:"state"`
+// RealServer ...
+type RealServer struct {
+	RealServer  string `json:"realServer"`
+	BashCommand string `json:"bashCommand"`
+}
+
+// UniversalResponse ...
+type UniversalResponse struct {
+	JobUUID                  string       `json:"jobUUID,omitempty"`
+	RealServers              []string     `json:"realServers,omitempty"`
+	RealServersCommands      []RealServer `json:"realServersCommands,omitempty"`
+	ServiceIP                string       `json:"serviceIP,omitempty"`
+	ServicePort              string       `json:"servicePort,omitempty"`
+	HealthcheckType          string       `json:"healthcheckType,omitempty"`
+	JobCompletedSuccessfully bool         `json:"jobCompletedSuccessfully,omitempty"`
+	ExtraInfo                string       `json:"extraInfo,omitempty"`
 }
 
 // NewBalanceInfo ...
 type NewBalanceInfo struct {
-	JobUUID         string         `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
-	ServiceIP       string         `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
-	ServicePort     int            `json:"servicePort" validate:"min=1,max=20000" example:"1111"`
-	RealServersData map[string]int `json:"realServersData" validate:"gt=0,dive,keys,ipv4,endkeys,min=1,max=20000"`
+	JobUUID         string   `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP       string   `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort     string   `json:"servicePort" validate:"min=1,max=20000" example:"1111"`
+	RealServers     []string `json:"realServers"`
+	HealthcheckType string   `json:"healthcheckType,omitempty"`
 }
 
 // RemoveBalanceInfo ...
 type RemoveBalanceInfo struct {
-	JobUUID         string         `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
-	ServiceIP       string         `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
-	ServicePort     int            `json:"servicePort" validate:"min=1,max=20000" example:"1111"`
-	RealServersData map[string]int `json:"realServersData" validate:"gt=0,dive,keys,ipv4,endkeys,min=1,max=20000"`
+	JobUUID         string   `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP       string   `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort     string   `json:"servicePort" validate:"min=1,max=20000" example:"1111"`
+	RealServers     []string `json:"realServers"`
+	HealthcheckType string   `json:"healthcheckType,omitempty"`
 }
 
 // RestAPIstruct restapi entity
@@ -96,9 +112,9 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 // @Param incomeJSON body application.NewBalanceInfo true "Expected json"
 // @Accept json
 // @Produce json
-// @Success 200 {object} application.nwbResponse "If all okay"
-// @Failure 400 {object} application.nwbResponse "Bad request"
-// @Failure 500 {object} application.nwbResponse "Internal error"
+// @Success 200 {object} application.UniversalResponse "If all okay"
+// @Failure 400 {object} application.UniversalResponse "Bad request"
+// @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /newnetworkbalance [post]
 func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Request) {
 	newNWBRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
@@ -124,8 +140,18 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		rError := &nwbResponse{State: "can't unmarshal income nwb request"}
-		json.NewEncoder(w).Encode(rError)
+		rError := &UniversalResponse{
+			JobUUID:                  newNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't unmarshal income nwb request: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": newNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
 		return
 	}
 
@@ -144,14 +170,24 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		}).Errorf("validate fail for income nwb request: %v", stringValidateError)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		rError := &nwbResponse{State: stringValidateError}
-		json.NewEncoder(w).Encode(rError)
+		rError := &UniversalResponse{
+			JobUUID:                  newNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't validate income nwb request: " + stringValidateError,
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": newNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
 		return
 	}
-	servicePort, realServersData := newNWBRequest.convertDataForNWBService()
+	realServersMap := newNWBRequest.convertDataForNWBService()
 	err = restAPI.balancerFacade.NewNWBService(newNWBRequest.ServiceIP,
-		servicePort,
-		realServersData,
+		newNWBRequest.ServicePort,
+		realServersMap,
 		newNWBRequestUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -161,8 +197,18 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		rError := &nwbResponse{State: "can't create new nwb, got internal error: " + err.Error()}
-		json.NewEncoder(w).Encode(rError)
+		rError := &UniversalResponse{
+			JobUUID:                  newNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't create new nwb, got internal error: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": newNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
 		return
 	}
 
@@ -171,10 +217,26 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		"event uuid": newNWBRequestUUID,
 	}).Info("new nwb created")
 
-	nwbCreated := nwbResponse{State: "new nwb created"}
+	nwbCreated := UniversalResponse{
+		JobUUID:     newNWBRequestUUID,
+		RealServers: newNWBRequest.RealServers,
+		// RealServersCommands      []RealServer `json:"realServersCommands,omitempty"`
+		ServiceIP:                newNWBRequest.ServiceIP,
+		ServicePort:              newNWBRequest.ServicePort,
+		HealthcheckType:          newNWBRequest.HealthcheckType,
+		JobCompletedSuccessfully: true,
+		ExtraInfo:                "new nwb created",
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(nwbCreated)
+	err = json.NewEncoder(w).Encode(nwbCreated)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": newNWBRequestUUID,
+		}).Errorf("can't response by request: %v", err)
+	}
 }
 
 // removeNWBRequest godoc
@@ -184,9 +246,9 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 // @Param incomeJSON body application.RemoveBalanceInfo true "Expected json"
 // @Accept json
 // @Produce json
-// @Success 200 {object} application.nwbResponse "If all okay"
-// @Failure 400 {object} application.nwbResponse "Bad request"
-// @Failure 500 {object} application.nwbResponse "Internal error"
+// @Success 200 {object} application.UniversalResponse "If all okay"
+// @Failure 400 {object} application.UniversalResponse "Bad request"
+// @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /removenetworkbalance [post]
 func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Request) {
 	removeNWBRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
@@ -212,8 +274,18 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		rError := &nwbResponse{State: "can't unmarshal income remove nwb request"}
-		json.NewEncoder(w).Encode(rError)
+		rError := &UniversalResponse{
+			JobUUID:                  removeNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't unmarshal income nwb request: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": removeNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
 		return
 	}
 
@@ -232,14 +304,24 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		}).Errorf("validate fail for income remove nwb request: %v", stringValidateError)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		rError := &nwbResponse{State: stringValidateError}
-		json.NewEncoder(w).Encode(rError)
+		rError := &UniversalResponse{
+			JobUUID:                  removeNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't validate income nwb request: " + stringValidateError,
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": removeNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
 		return
 	}
-	servicePort, realServersData := removeNWBRequest.convertDataForNWBService()
+	realServersMap := removeNWBRequest.convertDataForNWBService()
 	err = restAPI.balancerFacade.RemoveNWBService(removeNWBRequest.ServiceIP,
-		servicePort,
-		realServersData,
+		removeNWBRequest.ServicePort,
+		realServersMap,
 		removeNWBRequestUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -249,8 +331,18 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		rError := &nwbResponse{State: "can't remove old nwb, got internal error: " + err.Error()}
-		json.NewEncoder(w).Encode(rError)
+		rError := &UniversalResponse{
+			JobUUID:                  removeNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't create new nwb, got internal error: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": removeNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
 		return
 	}
 
@@ -259,28 +351,43 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		"event uuid": removeNWBRequestUUID,
 	}).Info("nwb removed")
 
-	nwbCreated := nwbResponse{State: "nwb removed"}
+	nwbRemoved := UniversalResponse{
+		JobUUID:     removeNWBRequestUUID,
+		RealServers: removeNWBRequest.RealServers,
+		// RealServersCommands      []RealServer `json:"realServersCommands,omitempty"`
+		ServiceIP:                removeNWBRequest.ServiceIP,
+		ServicePort:              removeNWBRequest.ServicePort,
+		HealthcheckType:          removeNWBRequest.HealthcheckType,
+		JobCompletedSuccessfully: true,
+		ExtraInfo:                "nwb removed",
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(nwbCreated)
+	err = json.NewEncoder(w).Encode(nwbRemoved)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": removeNWBRequestUUID,
+		}).Errorf("can't response by request: %v", err)
+	}
 }
 
-func (newNWBRequest *NewBalanceInfo) convertDataForNWBService() (string, map[string]string) {
-	servicePort := strconv.Itoa(newNWBRequest.ServicePort)
-	realServiceData := map[string]string{}
-	for k, v := range newNWBRequest.RealServersData {
-		realServiceData[k] = strconv.Itoa(v)
+func (newNWBRequest *NewBalanceInfo) convertDataForNWBService() map[string]string {
+	realServiceMap := map[string]string{}
+	for _, d := range newNWBRequest.RealServers {
+		realServerSlice := strings.Split(d, ":")
+		realServiceMap[realServerSlice[0]] = realServerSlice[1]
 	}
-	return servicePort, realServiceData
+	return realServiceMap
 }
 
-func (removeNWBRequest *RemoveBalanceInfo) convertDataForNWBService() (string, map[string]string) {
-	servicePort := strconv.Itoa(removeNWBRequest.ServicePort)
-	realServiceData := map[string]string{}
-	for k, v := range removeNWBRequest.RealServersData {
-		realServiceData[k] = strconv.Itoa(v)
+func (removeNWBRequest *RemoveBalanceInfo) convertDataForNWBService() map[string]string {
+	realServiceMap := map[string]string{}
+	for _, d := range removeNWBRequest.RealServers {
+		realServerSlice := strings.Split(d, ":")
+		realServiceMap[realServerSlice[0]] = realServerSlice[1]
 	}
-	return servicePort, realServiceData
+	return realServiceMap
 }
 
 func (newNWBRequest *NewBalanceInfo) validateIncomeRequest() error {
