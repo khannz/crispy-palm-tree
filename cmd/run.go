@@ -52,9 +52,10 @@ var rootCmd = &cobra.Command{
 			"keepalived config path":                  pathToKeepalivedConfig,
 			"keepalived daemon configured files path": pathToKeepalivedDConfigConfigured,
 			"keepalived daemon enabled files path":    pathToKeepalivedDConfigEnabled,
+			"mock mode":                               viperConfig.GetBool(mockMode),
 		}).Info("")
 
-		if isColdStart() {
+		if isColdStart() && !viperConfig.GetBool(mockMode) {
 			err := checkPrerequisites(pathToKeepalivedDConfigConfigured, pathToKeepalivedDConfigEnabled, pathToKeepalivedConfig)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
@@ -83,6 +84,7 @@ var rootCmd = &cobra.Command{
 		// tunnel maker start
 		tunnelMaker := portadapter.NewTunnelFileMaker(viperConfig.GetString(pathToIfcfgTunnelFilesName),
 			viperConfig.GetString(sysctlConfigsPathName),
+			viperConfig.GetBool(mockMode),
 			logging)
 		// tunnel maker end
 		// keepaliver maker start
@@ -91,6 +93,7 @@ var rootCmd = &cobra.Command{
 			pathToKeepalivedConfig,
 			pathToKeepalivedDConfigConfigured,
 			pathToKeepalivedDConfigEnabled,
+			viperConfig.GetBool(mockMode),
 			logging)
 		// keepaliver maker end
 		facade := application.NewBalancerFacade(nwConfig, tunnelMaker, keepalivedCustomizer, uuidGenerator, logging)

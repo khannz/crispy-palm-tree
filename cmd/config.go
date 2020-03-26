@@ -32,6 +32,7 @@ const (
 	defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/nw-pr-lb/network-scripts/"
 	defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/nw-pr-lb/sysctl.d/"
 	defaultKeepalivedConfigPath   = "/home/thevan/dev/goDev/prom/nw-pr-lb/keepalived/"
+	defaultMockMode               = true
 )
 
 // Config names
@@ -50,6 +51,7 @@ const (
 	pathToIfcfgTunnelFilesName = "path-to-ifcfg-tunnel-files"
 	sysctlConfigsPathName      = "sysctl-configs-path"
 	keepalivedConfigPathName   = "keepalived-config-path"
+	mockMode                   = "mock-mode"
 )
 
 // // For builds with ldflags
@@ -86,6 +88,8 @@ func init() {
 	pflag.String(pathToIfcfgTunnelFilesName, defaultPathToIfcfgTunnelFiles, "path to ifcfg tunnel files")
 	pflag.String(sysctlConfigsPathName, defaultSysctlConfigsPath, "sysctl config path")
 	pflag.String(keepalivedConfigPathName, defaultKeepalivedConfigPath, "keepalived config path")
+
+	pflag.Bool(mockMode, defaultMockMode, "Mock mode. No commands will be executed")
 
 	pflag.Parse()
 	viperConfig.BindPFlags(pflag.CommandLine)

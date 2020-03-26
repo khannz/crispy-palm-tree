@@ -54,6 +54,7 @@ type KeepalivedCustomizer struct {
 	pathToKeepalivedConfig            string
 	pathToKeepalivedDConfigConfigured string
 	pathToKeepalivedDConfigEnabled    string
+	isMockMode                        bool
 	logging                           *logrus.Logger
 }
 
@@ -63,6 +64,7 @@ func NewKeepalivedCustomizer(techInterface,
 	pathToKeepalivedConfig,
 	pathToKeepalivedDConfigConfigured,
 	pathToKeepalivedDConfigEnabled string,
+	isMockMode bool,
 	logging *logrus.Logger) *KeepalivedCustomizer {
 	return &KeepalivedCustomizer{
 		techInterface:                     techInterface,
@@ -70,6 +72,7 @@ func NewKeepalivedCustomizer(techInterface,
 		pathToKeepalivedConfig:            pathToKeepalivedConfig,
 		pathToKeepalivedDConfigConfigured: pathToKeepalivedDConfigConfigured,
 		pathToKeepalivedDConfigEnabled:    pathToKeepalivedDConfigEnabled,
+		isMockMode:                        isMockMode,
 		logging:                           logging,
 	}
 }
@@ -338,6 +341,13 @@ func (keepalivedCustomizer *KeepalivedCustomizer) getKeepalivedconfigFileName(se
 
 // ReloadKeepalived ...
 func (keepalivedCustomizer *KeepalivedCustomizer) ReloadKeepalived(requestUUID string) error {
+	if keepalivedCustomizer.isMockMode {
+		keepalivedCustomizer.logging.WithFields(logrus.Fields{
+			"entity":     tunnelFileMakerEntityName,
+			"event uuid": requestUUID,
+		}).Info("mock of execute reload for keepalived")
+		return nil
+	}
 	args := []string{"reload", "keepalived"}
 	stdout, stderr, exitCode, err := executor.Execute("/usr/bin/systemctl", "", args)
 	if err != nil {
