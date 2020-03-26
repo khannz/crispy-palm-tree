@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/domain"
 	"github.com/sirupsen/logrus"
 	"github.com/thevan4/go-billet/executor"
 )
@@ -365,4 +366,115 @@ func (keepalivedCustomizer *KeepalivedCustomizer) ReloadKeepalived(requestUUID s
 		"event uuid": requestUUID,
 	}).Debugf("result of execute systemctl reload command: stdout: %v, stderr: %v, exitCode: %v", string(stdout), string(stderr), exitCode)
 	return nil
+}
+
+// GetInfoAboutAllNWBServices ...
+func (keepalivedCustomizer *KeepalivedCustomizer) GetInfoAboutAllNWBServices(requestUUID string) ([]domain.ServiceInfo, error) {
+	files, err := ioutil.ReadDir(keepalivedCustomizer.pathToKeepalivedDConfigConfigured)
+	if err != nil {
+		return nil, fmt.Errorf("read dir %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured, err)
+	}
+	errors := []error{}
+	servicesInfo := []domain.ServiceInfo{}
+	for _, fileName := range files {
+		dataBytes, err := ioutil.ReadFile(keepalivedCustomizer.pathToKeepalivedDConfigConfigured + fileName.Name())
+		if err != nil {
+			errors = append(errors, fmt.Errorf("can't read file %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured+fileName.Name(), err))
+			continue
+		}
+		serviceInfo, err := getServiceInfoByKeepalivedConfigDFileData(string(dataBytes), requestUUID)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("can't get service info: %v", err))
+			continue
+		}
+		servicesInfo = append(servicesInfo, *serviceInfo)
+	}
+	return servicesInfo, combineErrors(errors)
+}
+
+func getServiceInfoByKeepalivedConfigDFileData(fileData, requestUUID string) (*domain.ServiceInfo, error) {
+	serviceIP, servicePort, err := getRealServiceIPAndPort(fileData)
+	if err != nil {
+		return nil, fmt.Errorf("can't get service ip and port: %v", err)
+	}
+
+	realServersData, err := getRealServersData(fileData)
+	if err != nil {
+		return nil, fmt.Errorf("can't get real servers data: %v", err)
+	}
+
+	healthcheckType, err := getHealthcheckType(fileData)
+	if err != nil {
+		return nil, fmt.Errorf("can't get healthcheckType: %v", err)
+	}
+
+	serviceInfo := &domain.ServiceInfo{
+		ServiceIP:       serviceIP,
+		ServicePort:     servicePort,
+		RealServers:     realServersData,
+		HealthcheckType: healthcheckType,
+	}
+
+	return serviceInfo, nil
+}
+
+func getRealServiceIPAndPort(fileData string) (string, string, error) {
+	re := regexp.MustCompile(`virtual_server (.*.) (.*.) {`)
+	finded := re.FindAllStringSubmatch(fileData, -1)
+	if len(finded) >= 1 {
+		allWithGroups := finded[len(finded)-1]
+		if len(allWithGroups) >= 3 {
+			return allWithGroups[1], allWithGroups[2], nil
+		}
+	}
+	return "", "", fmt.Errorf("can't find service ip and port, finded elements: %v", len(finded))
+}
+
+func getRealServersData(fileData string) ([]string, error) {
+	realServersData := []string{}
+
+	re := regexp.MustCompile(`real_server (.*.) (.*.) {`)
+	finded := re.FindAllStringSubmatch(fileData, -1)
+	if len(finded) >= 1 {
+		for _, allWithGroups := range finded {
+			if !(len(allWithGroups) >= 3) {
+				return realServersData, fmt.Errorf("can't find real server ip and port, regexp finded elements: %v of 3 needed", len(allWithGroups))
+			}
+			realServerData := getRealServerIPAndPortByRegexpData(allWithGroups)
+			realServersData = append(realServersData, realServerData)
+		}
+	} else {
+		return realServersData, fmt.Errorf("can't find real server ip and port, finded elements: %v", len(finded))
+	}
+
+	return realServersData, nil
+}
+
+func getRealServerIPAndPortByRegexpData(regexpData []string) string {
+	realServerIP := regexpData[1]
+	realServerPort := regexpData[2]
+	return realServerIP + ":" + realServerPort
+}
+
+func getHealthcheckType(fileData string) (string, error) {
+	re := regexp.MustCompile(` {\n  (.*.) {\n`)
+	finded := re.FindAllStringSubmatch(fileData, -1)
+	if len(finded) >= 1 {
+		allWithGroups := finded[len(finded)-1]
+		healthcheckType, err := chooseHealtcheckType(allWithGroups[1])
+		if err != nil {
+			return "", fmt.Errorf("can't choose healtcheck type: %v", err)
+		}
+		return healthcheckType, nil
+	}
+	return "", fmt.Errorf("can't healthcheck data, finded elements: %v", len(finded))
+}
+
+func chooseHealtcheckType(rawHealthcheck string) (string, error) {
+	switch rawHealthcheck {
+	case "TCP_CHECK":
+		return "tcp", nil
+	default:
+		return "", fmt.Errorf("unknown healtchecktype: %v", rawHealthcheck)
+	}
 }
