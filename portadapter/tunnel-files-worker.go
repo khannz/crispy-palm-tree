@@ -30,16 +30,19 @@ MTU=9000
 type TunnelFileMaker struct {
 	pathToIfcfgTunnelFiles string
 	sysctlConfFilePath     string
+	isMockMode             bool
 	logging                *logrus.Logger
 }
 
 // NewTunnelFileMaker ...
 func NewTunnelFileMaker(pathToIfcfgTunnelFiles string,
 	sysctlConfFilePath string,
+	isMockMode bool,
 	logging *logrus.Logger) *TunnelFileMaker {
 	return &TunnelFileMaker{
 		pathToIfcfgTunnelFiles: pathToIfcfgTunnelFiles,
 		sysctlConfFilePath:     sysctlConfFilePath,
+		isMockMode:             isMockMode,
 		logging:                logging,
 	}
 }
@@ -152,12 +155,17 @@ func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFiles(realServersData map[
 }
 
 // ExecuteCommandForTunnels ...
-func (tunnelFileMaker *TunnelFileMaker) ExecuteCommandForTunnels(newTunnels []string, arg string, newNWBRequestUUID string) error {
+func (tunnelFileMaker *TunnelFileMaker) ExecuteCommandForTunnels(newTunnels []string,
+	arg string,
+	newNWBRequestUUID string) error {
+	if tunnelFileMaker.isMockMode {
+		tunnelFileMaker.logging.WithFields(logrus.Fields{
+			"entity":     tunnelFileMakerEntityName,
+			"event uuid": newNWBRequestUUID,
+		}).Infof("mock of execute ip command for tunnels %v", newTunnels)
+		return nil
+	}
 	for _, newTunnel := range newTunnels {
-		// tunnelFileMaker.logging.WithFields(logrus.Fields{
-		// 	"entity":     tunnelFileMakerEntityName,
-		// 	"event uuid": newNWBRequestUUID,
-		// }).Debugf("mock of execute ip command for tunnel %v", newTunnel)
 		args := []string{"link", "set", "dev", newTunnel, arg}
 		stdout, stderr, exitCode, err := executor.Execute("/usr/sbin/ip", "", args)
 		if err != nil {
@@ -189,6 +197,7 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveCreatedTunnelFiles(createdTunnelFi
 			}).Errorf("can't remove tunnel file %v, got error: %v", tunnelFile, err)
 		}
 	}
+	// TODO: execute command for remove
 	return nil
 }
 
