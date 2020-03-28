@@ -11,6 +11,7 @@ import (
 
 	// Need for httpSwagger
 	_ "git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/docs"
+	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/domain"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -44,6 +45,19 @@ type UniversalResponse struct {
 	HealthcheckType          string       `json:"healthcheckType,omitempty"`
 	JobCompletedSuccessfully bool         `json:"jobCompletedSuccessfully,omitempty"`
 	ExtraInfo                string       `json:"extraInfo,omitempty"`
+}
+
+// GetAllServicesRequest ...
+type GetAllServicesRequest struct {
+	JobUUID string `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+}
+
+// GetAllServicesResponse ...
+type GetAllServicesResponse struct {
+	JobUUID                  string              `json:"jobUUID"`
+	JobCompletedSuccessfully bool                `json:"jobCompletedSuccessfully"`
+	AllServices              []UniversalResponse `json:"allServices,omitempty"`
+	ExtraInfo                string              `json:"extraInfo,omitempty"`
 }
 
 // NewBalanceInfo ...
@@ -97,6 +111,7 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIs
 func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.HandleFunc("/newnetworkbalance", restAPI.newNWBRequest).Methods("POST")
 	restAPI.router.HandleFunc("/removenetworkbalance", restAPI.removeNWBRequest).Methods("POST")
+	restAPI.router.HandleFunc("/networkservicesinfo", restAPI.getNWBServices).Methods("POST")
 	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
 
 	err := restAPI.server.ListenAndServe()
@@ -105,6 +120,129 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	}
 }
 
+////
+// getNWBServices godoc
+// @tags Network balance services
+// @Summary Get nlb services
+// @Description Make network balance service easier ;)
+// @Param incomeJSON body application.GetAllServicesRequest true "Expected json"
+// @Accept json
+// @Produce json
+// @Success 200 {object} application.GetAllServicesResponse "If all okay"
+// @Failure 400 {object} application.GetAllServicesResponse "Bad request"
+// @Failure 500 {object} application.GetAllServicesResponse "Internal error"
+// @Router /networkservicesinfo [post]
+func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Request) {
+	newGetNWBRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": newGetNWBRequestUUID,
+	}).Info("got new get nwb request")
+
+	var err error
+	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
+	buf.ReadFrom(r.Body)
+	bytesFromBuf := buf.Bytes()
+
+	newGetNWBRequest := &GetAllServicesRequest{} // maybe use pointer here?
+
+	err = json.Unmarshal(bytesFromBuf, newGetNWBRequest)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": newGetNWBRequestUUID,
+		}).Errorf("can't unmarshal income get nwb request: %v", err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &GetAllServicesResponse{
+			JobUUID:                  newGetNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't unmarshal income get nwb request: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": newGetNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": newGetNWBRequestUUID,
+	}).Infof("change job uuid from %v to %v", newGetNWBRequestUUID, newGetNWBRequest.JobUUID)
+	newGetNWBRequestUUID = newGetNWBRequest.JobUUID
+
+	nwbServices, err := restAPI.balancerFacade.GetNWBServices(newGetNWBRequestUUID)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": newGetNWBRequestUUID,
+		}).Errorf("can't get all nwb services, got error: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		rError := &GetAllServicesResponse{
+			JobUUID:                  newGetNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't get all nwb services, got internal error: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": newGetNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+	allNWBServicesResponse := transformDomainServicesInfoToResponseData(nwbServices)
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": newGetNWBRequestUUID,
+	}).Info("job get services is done")
+
+	var extraInfo string
+	if len(allNWBServicesResponse) == 0 {
+		extraInfo = "No services here"
+	}
+	getNwbServicesResponse := GetAllServicesResponse{
+		JobUUID:                  newGetNWBRequestUUID,
+		JobCompletedSuccessfully: true,
+		AllServices:              allNWBServicesResponse,
+		ExtraInfo:                extraInfo,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(getNwbServicesResponse)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": newGetNWBRequestUUID,
+		}).Errorf("can't response by request: %v", err)
+	}
+}
+
+func transformDomainServicesInfoToResponseData(nwbServices []domain.ServiceInfo) []UniversalResponse {
+	universalResponses := []UniversalResponse{}
+	for _, nwbService := range nwbServices {
+		universalResponse := UniversalResponse{
+			RealServers:              nwbService.RealServers,
+			ServiceIP:                nwbService.ServiceIP,
+			ServicePort:              nwbService.ServicePort,
+			HealthcheckType:          nwbService.HealthcheckType,
+			JobCompletedSuccessfully: true,
+		}
+		universalResponses = append(universalResponses, universalResponse)
+	}
+	return universalResponses
+}
+
+////
 // newNWBRequest godoc
 // @tags Network balance services
 // @Summary Create nlb service

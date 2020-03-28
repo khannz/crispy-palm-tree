@@ -1,6 +1,8 @@
 package application
 
 import (
+	"fmt"
+
 	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/domain"
 	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/usecase"
 	"github.com/sirupsen/logrus"
@@ -41,4 +43,14 @@ func (balancerFacade *BalancerFacade) NewNWBService(serviceIP, servicePort strin
 func (balancerFacade *BalancerFacade) RemoveNWBService(serviceIP, servicePort string, realServersData map[string]string, newNWBRequestUUID string) error {
 	removeNWBService := usecase.NewRemoveNlbService(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
 	return removeNWBService.RemoveNWBService(serviceIP, servicePort, realServersData, newNWBRequestUUID)
+}
+
+// GetNWBServices ...
+func (balancerFacade *BalancerFacade) GetNWBServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {
+	getNWBServices := usecase.NewGetNlbServices(balancerFacade.NetworkConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.Logging)
+	nwbServices, err := getNWBServices.GetAllNWBServices(getNWBServicesUUID)
+	if err != nil {
+		return nil, fmt.Errorf("can't get nwb services: %v", err)
+	}
+	return nwbServices, nil
 }
