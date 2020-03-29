@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 
@@ -29,32 +29,32 @@ const restAPIlogName = "restAPI"
 // @contact.name Ivan Tikhonov
 // @contact.email sdn@sberbank.ru
 
-// RealServer ...
-type RealServer struct {
-	RealServer  string `json:"realServer"`
-	BashCommand string `json:"bashCommand"`
+// ServerApplication ...
+type ServerApplication struct {
+	ServerIP           string `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
+	ServerPort         string `json:"port" validate:"required" example:"1111"`
+	ServerBashCommands string `json:"bashCommands,omitempty"`
 }
 
 // UniversalResponse ...
 type UniversalResponse struct {
-	JobUUID                  string       `json:"jobUUID,omitempty"`
-	RealServers              []string     `json:"realServers,omitempty"`
-	RealServersCommands      []RealServer `json:"realServersCommands,omitempty"`
-	ServiceIP                string       `json:"serviceIP,omitempty"`
-	ServicePort              string       `json:"servicePort,omitempty"`
-	HealthcheckType          string       `json:"healthcheckType,omitempty"`
-	JobCompletedSuccessfully bool         `json:"jobCompletedSuccessfully,omitempty"`
-	ExtraInfo                string       `json:"extraInfo,omitempty"`
+	ID                       string              `json:"id,omitempty"`
+	ApplicationServers       []ServerApplication `json:"applicationServers,omitempty"`
+	ServiceIP                string              `json:"serviceIP,omitempty"`
+	ServicePort              string              `json:"servicePort,omitempty"`
+	HealthcheckType          string              `json:"healthcheckType,omitempty"`
+	JobCompletedSuccessfully bool                `json:"jobCompletedSuccessfully"`
+	ExtraInfo                string              `json:"extraInfo,omitempty"`
 }
 
 // GetAllServicesRequest ...
 type GetAllServicesRequest struct {
-	JobUUID string `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ID string `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 }
 
 // GetAllServicesResponse ...
 type GetAllServicesResponse struct {
-	JobUUID                  string              `json:"jobUUID"`
+	ID                       string              `json:"id"`
 	JobCompletedSuccessfully bool                `json:"jobCompletedSuccessfully"`
 	AllServices              []UniversalResponse `json:"allServices,omitempty"`
 	ExtraInfo                string              `json:"extraInfo,omitempty"`
@@ -62,20 +62,20 @@ type GetAllServicesResponse struct {
 
 // NewBalanceInfo ...
 type NewBalanceInfo struct {
-	JobUUID         string   `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
-	ServiceIP       string   `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
-	ServicePort     string   `json:"servicePort" validate:"min=1,max=20000" example:"1111"`
-	RealServers     []string `json:"realServers"`
-	HealthcheckType string   `json:"healthcheckType,omitempty"`
+	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
+	HealthcheckType    string              `json:"healthcheckType,omitempty"`
+	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
 // RemoveBalanceInfo ...
 type RemoveBalanceInfo struct {
-	JobUUID         string   `json:"jobUUID" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
-	ServiceIP       string   `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
-	ServicePort     string   `json:"servicePort" validate:"min=1,max=20000" example:"1111"`
-	RealServers     []string `json:"realServers"`
-	HealthcheckType string   `json:"healthcheckType,omitempty"`
+	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
+	HealthcheckType    string              `json:"healthcheckType,omitempty"`
+	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
 // RestAPIstruct restapi entity
@@ -157,7 +157,7 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		rError := &GetAllServicesResponse{
-			JobUUID:                  newGetNWBRequestUUID,
+			ID:                       newGetNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't unmarshal income get nwb request: " + err.Error(),
 		}
@@ -174,8 +174,8 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": newGetNWBRequestUUID,
-	}).Infof("change job uuid from %v to %v", newGetNWBRequestUUID, newGetNWBRequest.JobUUID)
-	newGetNWBRequestUUID = newGetNWBRequest.JobUUID
+	}).Infof("change job uuid from %v to %v", newGetNWBRequestUUID, newGetNWBRequest.ID)
+	newGetNWBRequestUUID = newGetNWBRequest.ID
 
 	nwbServices, err := restAPI.balancerFacade.GetNWBServices(newGetNWBRequestUUID)
 	if err != nil {
@@ -186,7 +186,7 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		rError := &GetAllServicesResponse{
-			JobUUID:                  newGetNWBRequestUUID,
+			ID:                       newGetNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't get all nwb services, got internal error: " + err.Error(),
 		}
@@ -210,7 +210,7 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 		extraInfo = "No services here"
 	}
 	getNwbServicesResponse := GetAllServicesResponse{
-		JobUUID:                  newGetNWBRequestUUID,
+		ID:                       newGetNWBRequestUUID,
 		JobCompletedSuccessfully: true,
 		AllServices:              allNWBServicesResponse,
 		ExtraInfo:                extraInfo,
@@ -228,18 +228,40 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 }
 
 func transformDomainServicesInfoToResponseData(nwbServices []domain.ServiceInfo) []UniversalResponse {
-	universalResponses := []UniversalResponse{}
+	UniversalResponses := []UniversalResponse{}
 	for _, nwbService := range nwbServices {
-		universalResponse := UniversalResponse{
-			RealServers:              nwbService.RealServers,
+		UniversalResponse := UniversalResponse{
+			ApplicationServers:       transformDomainApplicationServersToRestApplicationServers(nwbService.ApplicationServers),
 			ServiceIP:                nwbService.ServiceIP,
 			ServicePort:              nwbService.ServicePort,
 			HealthcheckType:          nwbService.HealthcheckType,
 			JobCompletedSuccessfully: true,
+			ExtraInfo:                transformSliceToString(nwbService.ExtraInfo),
 		}
-		universalResponses = append(universalResponses, universalResponse)
+		UniversalResponses = append(UniversalResponses, UniversalResponse)
 	}
-	return universalResponses
+	return UniversalResponses
+}
+
+func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []domain.ApplicationServer) []ServerApplication {
+	applicationServers := []ServerApplication{}
+	for _, domainApplicationServer := range domainApplicationServers {
+		applicationServer := ServerApplication{
+			ServerIP:           domainApplicationServer.ServerIP,
+			ServerPort:         domainApplicationServer.ServerPort,
+			ServerBashCommands: domainApplicationServer.ServerBashCommands,
+		}
+		applicationServers = append(applicationServers, applicationServer)
+	}
+	return applicationServers
+}
+
+func transformSliceToString(slice []string) string {
+	var resultString string
+	for _, el := range slice {
+		resultString += "\n" + el
+	}
+	return resultString
 }
 
 ////
@@ -279,7 +301,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		rError := &UniversalResponse{
-			JobUUID:                  newNWBRequestUUID,
+			ID:                       newNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't unmarshal income nwb request: " + err.Error(),
 		}
@@ -296,8 +318,8 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": newNWBRequestUUID,
-	}).Infof("change job uuid from %v to %v", newNWBRequestUUID, newNWBRequest.JobUUID)
-	newNWBRequestUUID = newNWBRequest.JobUUID
+	}).Infof("change job uuid from %v to %v", newNWBRequestUUID, newNWBRequest.ID)
+	newNWBRequestUUID = newNWBRequest.ID
 
 	validateError := newNWBRequest.validateIncomeRequest()
 	if validateError != nil {
@@ -309,7 +331,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		rError := &UniversalResponse{
-			JobUUID:                  newNWBRequestUUID,
+			ID:                       newNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't validate income nwb request: " + stringValidateError,
 		}
@@ -322,10 +344,10 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	realServersMap := newNWBRequest.convertDataForNWBService()
+	applicationServersMap := newNWBRequest.convertDataForNWBService()
 	err = restAPI.balancerFacade.NewNWBService(newNWBRequest.ServiceIP,
 		newNWBRequest.ServicePort,
-		realServersMap,
+		applicationServersMap,
 		newNWBRequestUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -336,7 +358,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		rError := &UniversalResponse{
-			JobUUID:                  newNWBRequestUUID,
+			ID:                       newNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't create new nwb, got internal error: " + err.Error(),
 		}
@@ -356,9 +378,8 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 	}).Info("new nwb created")
 
 	nwbCreated := UniversalResponse{
-		JobUUID:     newNWBRequestUUID,
-		RealServers: newNWBRequest.RealServers,
-		// RealServersCommands      []RealServer `json:"realServersCommands,omitempty"`
+		ID:                       newNWBRequestUUID,
+		ApplicationServers:       newNWBRequest.ApplicationServers,
 		ServiceIP:                newNWBRequest.ServiceIP,
 		ServicePort:              newNWBRequest.ServicePort,
 		HealthcheckType:          newNWBRequest.HealthcheckType,
@@ -413,7 +434,7 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		rError := &UniversalResponse{
-			JobUUID:                  removeNWBRequestUUID,
+			ID:                       removeNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't unmarshal income nwb request: " + err.Error(),
 		}
@@ -430,8 +451,8 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": removeNWBRequestUUID,
-	}).Infof("change job uuid from %v to %v", removeNWBRequestUUID, removeNWBRequest.JobUUID)
-	removeNWBRequestUUID = removeNWBRequest.JobUUID
+	}).Infof("change job uuid from %v to %v", removeNWBRequestUUID, removeNWBRequest.ID)
+	removeNWBRequestUUID = removeNWBRequest.ID
 
 	validateError := removeNWBRequest.validateIncomeRequest()
 	if validateError != nil {
@@ -443,7 +464,7 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		rError := &UniversalResponse{
-			JobUUID:                  removeNWBRequestUUID,
+			ID:                       removeNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't validate income nwb request: " + stringValidateError,
 		}
@@ -456,10 +477,10 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		}
 		return
 	}
-	realServersMap := removeNWBRequest.convertDataForNWBService()
+	applicationServersMap := removeNWBRequest.convertDataForNWBService()
 	err = restAPI.balancerFacade.RemoveNWBService(removeNWBRequest.ServiceIP,
 		removeNWBRequest.ServicePort,
-		realServersMap,
+		applicationServersMap,
 		removeNWBRequestUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -470,7 +491,7 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		rError := &UniversalResponse{
-			JobUUID:                  removeNWBRequestUUID,
+			ID:                       removeNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't create new nwb, got internal error: " + err.Error(),
 		}
@@ -490,9 +511,8 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 	}).Info("nwb removed")
 
 	nwbRemoved := UniversalResponse{
-		JobUUID:     removeNWBRequestUUID,
-		RealServers: removeNWBRequest.RealServers,
-		// RealServersCommands      []RealServer `json:"realServersCommands,omitempty"`
+		ID:                       removeNWBRequestUUID,
+		ApplicationServers:       removeNWBRequest.ApplicationServers,
 		ServiceIP:                removeNWBRequest.ServiceIP,
 		ServicePort:              removeNWBRequest.ServicePort,
 		HealthcheckType:          removeNWBRequest.HealthcheckType,
@@ -511,41 +531,74 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 }
 
 func (newNWBRequest *NewBalanceInfo) convertDataForNWBService() map[string]string {
-	realServiceMap := map[string]string{}
-	for _, d := range newNWBRequest.RealServers {
-		realServerSlice := strings.Split(d, ":")
-		realServiceMap[realServerSlice[0]] = realServerSlice[1]
+	applicationServersMap := map[string]string{}
+	for _, d := range newNWBRequest.ApplicationServers {
+		applicationServersMap[d.ServerIP] = d.ServerPort
 	}
-	return realServiceMap
+	return applicationServersMap
 }
 
 func (removeNWBRequest *RemoveBalanceInfo) convertDataForNWBService() map[string]string {
-	realServiceMap := map[string]string{}
-	for _, d := range removeNWBRequest.RealServers {
-		realServerSlice := strings.Split(d, ":")
-		realServiceMap[realServerSlice[0]] = realServerSlice[1]
+	applicationServersMap := map[string]string{}
+	for _, d := range removeNWBRequest.ApplicationServers {
+		applicationServersMap[d.ServerIP] = d.ServerPort
 	}
-	return realServiceMap
+	return applicationServersMap
 }
 
 func (newNWBRequest *NewBalanceInfo) validateIncomeRequest() error {
 	validate := validator.New()
+	validate.RegisterStructValidation(customPortNewBalanceInfoValidation, NewBalanceInfo{})
+	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	err := validate.Struct(newNWBRequest)
 	if err != nil {
 		return err
-
 	}
 	return nil
 }
 
+func customPortNewBalanceInfoValidation(sl validator.StructLevel) {
+	nbi := sl.Current().Interface().(NewBalanceInfo)
+	port, err := strconv.Atoi(nbi.ServicePort)
+	if err != nil {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
+	}
+	if !(port > 0) || !(port < 20000) {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
+	}
+}
+
+func customPortServerApplicationValidation(sl validator.StructLevel) {
+	sA := sl.Current().Interface().(ServerApplication)
+	port, err := strconv.Atoi(sA.ServerPort)
+	if err != nil {
+		sl.ReportError(sA.ServerPort, "serverPort", "ServerPort", "port must be number", "")
+	}
+	if !(port > 0) || !(port < 20000) {
+		sl.ReportError(sA.ServerPort, "serverPort", "ServerPort", "port must gt=0 and lt=20000", "")
+	}
+}
+
 func (removeNWBRequest *RemoveBalanceInfo) validateIncomeRequest() error {
 	validate := validator.New()
+	validate.RegisterStructValidation(customPortNewBalanceInfoValidation, NewBalanceInfo{})
+	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	err := validate.Struct(removeNWBRequest)
 	if err != nil {
 		return err
-
 	}
 	return nil
+}
+
+func customPortRemoveBalanceInfoValidation(sl validator.StructLevel) {
+	nrbi := sl.Current().Interface().(RemoveBalanceInfo)
+	port, err := strconv.Atoi(nrbi.ServicePort)
+	if err != nil {
+		sl.ReportError(nrbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
+	}
+	if !(port > 0) || !(port < 20000) {
+		sl.ReportError(nrbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
+	}
 }
 
 func errorsValidateToString(validateError error) string {
