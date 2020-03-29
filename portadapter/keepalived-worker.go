@@ -44,8 +44,8 @@ quorum_down "/sbin/ifconfig dummy0:DUMMY_NUMBER down" root
 `
 	rawNewKeepalivedDConfigFileName = `SERVICE_IP-SERVICE_PORT_dummy0-DUMMY_NUMBER.conf`
 
-// 	rawRowForKeepalivedConfig = `include keepalived.d/services-configured/KEEPALIVED_D_CONFIG_FILE_NAME
-// `
+	rawRowForKeepalivedConfig = `include keepalived.d/services-configured/KEEPALIVED_D_CONFIG_FILE_NAME
+`
 )
 
 // KeepalivedCustomizer ...
@@ -118,10 +118,10 @@ func (keepalivedCustomizer *KeepalivedCustomizer) modifyKeepalivedConfigFiles(se
 		servicePort,
 		nextDummyNumberString)
 
-	// err = keepalivedCustomizer.writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName) // TODO: remove that
-	// if err != nil {
-	// 	return "", fmt.Errorf("Error write next row to keepalived config: %v", err)
-	// }
+	err = keepalivedCustomizer.writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName) // TODO: remove that
+	if err != nil {
+		return "", fmt.Errorf("Error write next row to keepalived config: %v", err)
+	}
 
 	deployedEntities["newKeepalivedDConfigFileName"] = []string{newKeepalivedDConfigFileName}
 
@@ -182,18 +182,18 @@ func (keepalivedCustomizer *KeepalivedCustomizer) makeNewKeepalivedDConfigFileNa
 	return newKeepalivedDConfigFileName
 }
 
-// func (keepalivedCustomizer *KeepalivedCustomizer) writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName string) error {  // TODO: remove that
-// 	rowForKeepalivedConfig := strings.ReplaceAll(rawRowForKeepalivedConfig, "KEEPALIVED_D_CONFIG_FILE_NAME", newKeepalivedDConfigFileName)
-// 	keepalivedFile, err := os.OpenFile(keepalivedCustomizer.pathToKeepalivedConfig, os.O_APPEND|os.O_WRONLY, 0644)
-// 	if err != nil {
-// 		return fmt.Errorf("Can't open keepalived config file: %v", err)
-// 	}
-// 	defer keepalivedFile.Close()
-// 	if _, err = keepalivedFile.WriteString(rowForKeepalivedConfig); err != nil {
-// 		return fmt.Errorf("Can't write data to keepalived config file: %v", err)
-// 	}
-// 	return nil
-// }
+func (keepalivedCustomizer *KeepalivedCustomizer) writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName string) error { // TODO: remove that
+	rowForKeepalivedConfig := strings.ReplaceAll(rawRowForKeepalivedConfig, "KEEPALIVED_D_CONFIG_FILE_NAME", newKeepalivedDConfigFileName)
+	keepalivedFile, err := os.OpenFile(keepalivedCustomizer.pathToKeepalivedConfig, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("Can't open keepalived config file: %v", err)
+	}
+	defer keepalivedFile.Close()
+	if _, err = keepalivedFile.WriteString(rowForKeepalivedConfig); err != nil {
+		return fmt.Errorf("Can't write data to keepalived config file: %v", err)
+	}
+	return nil
+}
 
 func (keepalivedCustomizer *KeepalivedCustomizer) writeStartDataForKeepalivedDConfigFile(serviceIP,
 	servicePort,
