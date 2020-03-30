@@ -49,14 +49,14 @@ func NewTunnelFileMaker(pathToIfcfgTunnelFiles string,
 
 // CreateTunnel ...
 func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(deployedEntities map[string][]string,
-	realServersData map[string]string,
+	applicationServers map[string]string,
 	newNWBRequestUUID string) (map[string][]string, error) {
 	nextTunnelName, err := tunnelFileMaker.chooseNewTunnelName()
 	if err != nil {
 		return nil, fmt.Errorf("can't choose new tunnel name: %v", err)
 	}
 
-	newTunnels, createdTunnelFiles, err := tunnelFileMaker.writeNewTunnelFiles(realServersData, nextTunnelName, newNWBRequestUUID)
+	newTunnels, createdTunnelFiles, err := tunnelFileMaker.writeNewTunnelFiles(applicationServers, nextTunnelName, newNWBRequestUUID)
 	if err != nil {
 		return deployedEntities, fmt.Errorf("can't write new tunnel files: %v", err)
 	}
@@ -97,19 +97,19 @@ func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (int, error) {
 	return nextTunnelName, nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFiles(realServersData map[string]string,
+func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFiles(applicationServers map[string]string,
 	nextTunnelName int,
 	newNWBRequestUUID string) ([]string,
 	[]string,
 	error) {
 	newTunnels := []string{}
 	createdTunnelFiles := []string{}
-	for realServerIP := range realServersData {
+	for applicationServerIP := range applicationServers {
 		var newDataForTunnelFile string
 		newTunnelName := "tun" + strconv.Itoa(nextTunnelName)
 		newTunnels = append(newTunnels, newTunnelName)
 		newDataForTunnelFile = strings.ReplaceAll(rawDataForTunnelFile, "TUNNEL_NAME", newTunnelName)
-		newDataForTunnelFile = strings.ReplaceAll(newDataForTunnelFile, "REAL_SERVER_IP", realServerIP)
+		newDataForTunnelFile = strings.ReplaceAll(newDataForTunnelFile, "REAL_SERVER_IP", applicationServerIP)
 
 		newIfcfgTunnelFileFullPath := tunnelFileMaker.pathToIfcfgTunnelFiles + "ifcfg-" + newTunnelName
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
@@ -122,7 +122,7 @@ func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFiles(realServersData map[
 		}
 		createdTunnelFiles = append(createdTunnelFiles, newIfcfgTunnelFileFullPath)
 
-		dataForTunnelRouteFile := strings.ReplaceAll(rawDataForTunnelRouteFile, "REAL_SERVER_IP", realServerIP)
+		dataForTunnelRouteFile := strings.ReplaceAll(rawDataForTunnelRouteFile, "REAL_SERVER_IP", applicationServerIP)
 		dataForTunnelRouteFile = strings.ReplaceAll(dataForTunnelRouteFile, "TUNNEL_NAME", newTunnelName)
 
 		newRouteTunnelFileFullPath := tunnelFileMaker.pathToIfcfgTunnelFiles + "route-" + newTunnelName
@@ -203,8 +203,8 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveCreatedTunnelFiles(createdTunnelFi
 
 // func DetectAllTunnels
 
-// DetectTunnels ... TODO: detect only first "lucky" for real server, that is bad
-func (tunnelFileMaker *TunnelFileMaker) DetectTunnels(realServersData map[string]string,
+// DetectTunnels ... TODO: detect only first "lucky" for application server, that is bad
+func (tunnelFileMaker *TunnelFileMaker) DetectTunnels(applicationServers map[string]string,
 	deployedEntities map[string][]string,
 	removeRequestUUID string) (map[string][]string, error) {
 	allFilesInTunnelDir, err := ioutil.ReadDir(tunnelFileMaker.pathToIfcfgTunnelFiles)
@@ -215,9 +215,9 @@ func (tunnelFileMaker *TunnelFileMaker) DetectTunnels(realServersData map[string
 	}
 
 	allTunnelRouteFiles := getAllTunnelRouteFiles(allFilesInTunnelDir, tunnelFileMaker.pathToIfcfgTunnelFiles)
-	realServersDataIPAddresses := getRealServersDataIPAddresses(realServersData)
+	applicationServersIPAddresses := getapplicationServersIPAddresses(applicationServers)
 
-	tunnelFiles, err := tunnelFileMaker.getAllTunnelsFilesPath(realServersDataIPAddresses, allTunnelRouteFiles)
+	tunnelFiles, err := tunnelFileMaker.getAllTunnelsFilesPath(applicationServersIPAddresses, allTunnelRouteFiles)
 	if err != nil {
 		return deployedEntities, fmt.Errorf("error when get all tunnels files path: %v", err)
 	}
@@ -226,12 +226,12 @@ func (tunnelFileMaker *TunnelFileMaker) DetectTunnels(realServersData map[string
 	return deployedEntities, nil
 }
 
-func getRealServersDataIPAddresses(realServersData map[string]string) []string {
-	realServersDataIPAddresses := []string{}
-	for ip := range realServersData {
-		realServersDataIPAddresses = append(realServersDataIPAddresses, ip)
+func getapplicationServersIPAddresses(applicationServers map[string]string) []string {
+	applicationServersIPAddresses := []string{}
+	for ip := range applicationServers {
+		applicationServersIPAddresses = append(applicationServersIPAddresses, ip)
 	}
-	return realServersDataIPAddresses
+	return applicationServersIPAddresses
 }
 
 func getAllTunnelRouteFiles(allFilesInTunnelDir []os.FileInfo, pathToDir string) []string {
@@ -244,11 +244,11 @@ func getAllTunnelRouteFiles(allFilesInTunnelDir []os.FileInfo, pathToDir string)
 	return allTunnelRouteFiles
 }
 
-func (tunnelFileMaker *TunnelFileMaker) getAllTunnelsFilesPath(realServersDataIPAddresses, allTunnelRouteFiles []string) ([]string, error) {
-	routeFilesForRemove, err := filesContains(realServersDataIPAddresses, allTunnelRouteFiles)
+func (tunnelFileMaker *TunnelFileMaker) getAllTunnelsFilesPath(applicationServersIPAddresses, allTunnelRouteFiles []string) ([]string, error) {
+	routeFilesForRemove, err := filesContains(applicationServersIPAddresses, allTunnelRouteFiles)
 	if err != nil {
 		return nil, fmt.Errorf("got error when search ip tunnels %v in files %v: %v",
-			realServersDataIPAddresses,
+			applicationServersIPAddresses,
 			allTunnelRouteFiles,
 			err)
 	}

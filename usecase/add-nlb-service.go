@@ -34,18 +34,18 @@ func NewAddNlbService(nwConfig *domain.NetworkConfig,
 }
 
 // CreateNewNWBService ...
-func (addNlbService *AddNlbService) CreateNewNWBService(serviceIP, servicePort string, realServersData map[string]string, newNWBRequestUUID string) error {
+func (addNlbService *AddNlbService) CreateNewNWBService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) error {
 	addNlbService.nwConfig.Lock()
 	defer addNlbService.nwConfig.Unlock()
 	var err error
 	deployedEntities := map[string][]string{}
-	deployedEntities, err = addNlbService.tunnelConfig.CreateTunnel(deployedEntities, realServersData, newNWBRequestUUID)
+	deployedEntities, err = addNlbService.tunnelConfig.CreateTunnel(deployedEntities, applicationServers, newNWBRequestUUID)
 	if err != nil {
 		tunnelsRemove(deployedEntities, addNlbService.tunnelConfig, newNWBRequestUUID)
 		return fmt.Errorf("Error when create tunnel: %v", err)
 	}
 
-	deployedEntities, err = addNlbService.keepalivedConfig.CustomizeKeepalived(serviceIP, servicePort, realServersData, deployedEntities, newNWBRequestUUID)
+	deployedEntities, err = addNlbService.keepalivedConfig.CustomizeKeepalived(serviceIP, servicePort, applicationServers, deployedEntities, newNWBRequestUUID)
 	if err != nil {
 		tunnelsRemove(deployedEntities, addNlbService.tunnelConfig, newNWBRequestUUID)
 		keepalivedConfigRemove(deployedEntities, addNlbService.keepalivedConfig, newNWBRequestUUID)

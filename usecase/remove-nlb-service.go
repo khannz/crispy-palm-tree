@@ -36,12 +36,12 @@ func NewRemoveNlbService(nwConfig *domain.NetworkConfig,
 // RemoveNWBService ...
 func (removeNlbService *RemoveNlbService) RemoveNWBService(serviceIP,
 	servicePort string,
-	realServersData map[string]string,
+	applicationServers map[string]string,
 	removeRequestUUID string) error {
 	removeNlbService.nwConfig.Lock()
 	defer removeNlbService.nwConfig.Unlock()
 	var err error
-	deployedEntities, err := removeNlbService.findAlldeployedEntities(serviceIP, servicePort, realServersData, removeRequestUUID)
+	deployedEntities, err := removeNlbService.findAlldeployedEntities(serviceIP, servicePort, applicationServers, removeRequestUUID)
 	if err != nil {
 		return fmt.Errorf("can't deployed entities: %v", err)
 	}
@@ -66,13 +66,13 @@ func (removeNlbService *RemoveNlbService) RemoveNWBService(serviceIP,
 
 func (removeNlbService *RemoveNlbService) findAlldeployedEntities(serviceIP,
 	servicePort string,
-	realServersData map[string]string,
+	applicationServers map[string]string,
 	removeRequestUUID string) (map[string][]string, error) {
 	errors := []error{}
 	deployedEntities := map[string][]string{}
 	var err error
 
-	deployedEntities, err = removeNlbService.tunnelConfig.DetectTunnels(realServersData, deployedEntities, removeRequestUUID)
+	deployedEntities, err = removeNlbService.tunnelConfig.DetectTunnels(applicationServers, deployedEntities, removeRequestUUID)
 	if err != nil {
 		errors = append(errors, err)
 		err = nil
@@ -83,5 +83,12 @@ func (removeNlbService *RemoveNlbService) findAlldeployedEntities(serviceIP,
 		errors = append(errors, err)
 		err = nil
 	}
+
+	deployedEntities, err = removeNlbService.keepalivedConfig.DetectKeepalivedConfigFileRows(serviceIP, servicePort, deployedEntities, removeRequestUUID)
+	if err != nil {
+		errors = append(errors, err)
+		err = nil
+	}
+
 	return deployedEntities, combineErrors(errors)
 }

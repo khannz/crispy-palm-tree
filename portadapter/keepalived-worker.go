@@ -31,7 +31,7 @@ quorum_up "/sbin/ifconfig dummy0:DUMMY_NUMBER SERVICE_IP netmask 255.255.255.255
 quorum_down "/sbin/ifconfig dummy0:DUMMY_NUMBER down" root
 
 `
-	rawMiddleDataToKeepalivedDConfigs = `real_server REAL_SERVER_IP REAL_SERVER_PORT {
+	rawMiddleDataToKeepalivedDConfigs = `real_server APPLICATION_SERVER_IP APPLICATION_SERVER_PORT {
   TCP_CHECK {
    connect_timeout 2
    retry 3
@@ -44,8 +44,8 @@ quorum_down "/sbin/ifconfig dummy0:DUMMY_NUMBER down" root
 `
 	rawNewKeepalivedDConfigFileName = `SERVICE_IP-SERVICE_PORT_dummy0-DUMMY_NUMBER.conf`
 
-// 	rawRowForKeepalivedConfig = `include keepalived.d/services-configured/KEEPALIVED_D_CONFIG_FILE_NAME
-// `
+	rawRowForKeepalivedConfig = `include keepalived.d/services-configured/KEEPALIVED_D_CONFIG_FILE_NAME
+`
 )
 
 // KeepalivedCustomizer ...
@@ -81,10 +81,10 @@ func NewKeepalivedCustomizer(techInterface,
 // CustomizeKeepalived ...
 func (keepalivedCustomizer *KeepalivedCustomizer) CustomizeKeepalived(serviceIP,
 	servicePort string,
-	realServersData map[string]string,
+	applicationServers map[string]string,
 	deployedEntities map[string][]string,
 	newNWBRequestUUID string) (map[string][]string, error) {
-	newKeepalivedDConfigFileName, err := keepalivedCustomizer.modifyKeepalivedConfigFiles(serviceIP, servicePort, realServersData, deployedEntities, newNWBRequestUUID)
+	newKeepalivedDConfigFileName, err := keepalivedCustomizer.modifyKeepalivedConfigFiles(serviceIP, servicePort, applicationServers, deployedEntities, newNWBRequestUUID)
 	if err != nil {
 		return deployedEntities, fmt.Errorf("Error when modify keepalived config: %v", err)
 	}
@@ -105,7 +105,7 @@ func (keepalivedCustomizer *KeepalivedCustomizer) CustomizeKeepalived(serviceIP,
 
 func (keepalivedCustomizer *KeepalivedCustomizer) modifyKeepalivedConfigFiles(serviceIP,
 	servicePort string,
-	realServersData map[string]string,
+	applicationServers map[string]string,
 	deployedEntities map[string][]string,
 	newNWBRequestUUID string) (string, error) {
 	nextDummyNumber, err := keepalivedCustomizer.getNextDummyNumber()
@@ -118,11 +118,11 @@ func (keepalivedCustomizer *KeepalivedCustomizer) modifyKeepalivedConfigFiles(se
 		servicePort,
 		nextDummyNumberString)
 
-	// err = keepalivedCustomizer.writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName) // TODO: remove that
-	// if err != nil {
-	// 	return "", fmt.Errorf("Error write next row to keepalived config: %v", err)
-	// }
-
+	newRowInKeepalivedConfig, err := keepalivedCustomizer.writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName) // TODO: remove that
+	if err != nil {
+		return "", fmt.Errorf("Error write next row to keepalived config: %v", err)
+	}
+	deployedEntities["rowInKeepalivedConfig"] = []string{newRowInKeepalivedConfig}
 	deployedEntities["newKeepalivedDConfigFileName"] = []string{newKeepalivedDConfigFileName}
 
 	newFullKeepalivedDConfigFilePath := keepalivedCustomizer.pathToKeepalivedDConfigConfigured + newKeepalivedDConfigFileName
@@ -136,12 +136,12 @@ func (keepalivedCustomizer *KeepalivedCustomizer) modifyKeepalivedConfigFiles(se
 	}
 	deployedEntities["newFullKeepalivedDConfigFilePath"] = []string{newFullKeepalivedDConfigFilePath}
 
-	for realServerIP, realServerPort := range realServersData {
+	for applicationServerIP, applicationServerPort := range applicationServers {
 		err = keepalivedCustomizer.writeMiddleDataForKeepalivedDConfigFile(serviceIP,
 			servicePort,
 			nextDummyNumberString,
-			realServerIP,
-			realServerPort,
+			applicationServerIP,
+			applicationServerPort,
 			newFullKeepalivedDConfigFilePath)
 		if err != nil {
 			return "", fmt.Errorf("Error create new keepalived d config file: %v", err)
@@ -182,18 +182,18 @@ func (keepalivedCustomizer *KeepalivedCustomizer) makeNewKeepalivedDConfigFileNa
 	return newKeepalivedDConfigFileName
 }
 
-// func (keepalivedCustomizer *KeepalivedCustomizer) writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName string) error {  // TODO: remove that
-// 	rowForKeepalivedConfig := strings.ReplaceAll(rawRowForKeepalivedConfig, "KEEPALIVED_D_CONFIG_FILE_NAME", newKeepalivedDConfigFileName)
-// 	keepalivedFile, err := os.OpenFile(keepalivedCustomizer.pathToKeepalivedConfig, os.O_APPEND|os.O_WRONLY, 0644)
-// 	if err != nil {
-// 		return fmt.Errorf("Can't open keepalived config file: %v", err)
-// 	}
-// 	defer keepalivedFile.Close()
-// 	if _, err = keepalivedFile.WriteString(rowForKeepalivedConfig); err != nil {
-// 		return fmt.Errorf("Can't write data to keepalived config file: %v", err)
-// 	}
-// 	return nil
-// }
+func (keepalivedCustomizer *KeepalivedCustomizer) writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName string) (string, error) { // TODO: remove that
+	rowForKeepalivedConfig := strings.ReplaceAll(rawRowForKeepalivedConfig, "KEEPALIVED_D_CONFIG_FILE_NAME", newKeepalivedDConfigFileName)
+	keepalivedFile, err := os.OpenFile(keepalivedCustomizer.pathToKeepalivedConfig, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return "", fmt.Errorf("Can't open keepalived config file: %v", err)
+	}
+	defer keepalivedFile.Close()
+	if _, err = keepalivedFile.WriteString(rowForKeepalivedConfig); err != nil {
+		return "", fmt.Errorf("Can't write data to keepalived config file: %v", err)
+	}
+	return rowForKeepalivedConfig, nil
+}
 
 func (keepalivedCustomizer *KeepalivedCustomizer) writeStartDataForKeepalivedDConfigFile(serviceIP,
 	servicePort,
@@ -217,12 +217,12 @@ func (keepalivedCustomizer *KeepalivedCustomizer) writeStartDataForKeepalivedDCo
 func (keepalivedCustomizer *KeepalivedCustomizer) writeMiddleDataForKeepalivedDConfigFile(serviceIP,
 	servicePort,
 	nextDummyNumberString,
-	realServerIP,
-	realServerPort,
+	applicationServerIP,
+	applicationServerPort,
 	newFullKeepalivedDConfigFilePath string) error {
 
-	rowsForKeepalivedDConfig := strings.ReplaceAll(rawMiddleDataToKeepalivedDConfigs, "REAL_SERVER_IP", realServerIP)
-	rowsForKeepalivedDConfig = strings.ReplaceAll(rowsForKeepalivedDConfig, "REAL_SERVER_PORT", realServerPort)
+	rowsForKeepalivedDConfig := strings.ReplaceAll(rawMiddleDataToKeepalivedDConfigs, "APPLICATION_SERVER_IP", applicationServerIP)
+	rowsForKeepalivedDConfig = strings.ReplaceAll(rowsForKeepalivedDConfig, "APPLICATION_SERVER_PORT", applicationServerPort)
 	rowsForKeepalivedDConfig = strings.ReplaceAll(rowsForKeepalivedDConfig, "TECH_INTERFACE", keepalivedCustomizer.techInterface)
 	rowsForKeepalivedDConfig = strings.ReplaceAll(rowsForKeepalivedDConfig, "FWMARK_NUMBER", keepalivedCustomizer.fwmarkNumber)
 
@@ -277,14 +277,36 @@ func (keepalivedCustomizer *KeepalivedCustomizer) RemoveKeepalivedSymlink(symlin
 	return nil
 }
 
-// // RemoveRowFromKeepalivedConfigFile ... // TODO: remove that
-// func (keepalivedCustomizer *KeepalivedCustomizer) RemoveRowFromKeepalivedConfigFile(rowInKeepalivedConfig, requestUUID string) error {
-// 	err := removeRowFromFile(keepalivedCustomizer.pathToKeepalivedConfig, rowInKeepalivedConfig)
-// 	if err != nil {
-// 		return fmt.Errorf("can't remove row from keepalived config file: %v", err)
-// 	}
-// 	return nil
-// }
+// DetectKeepalivedConfigFileRows ...
+func (keepalivedCustomizer *KeepalivedCustomizer) DetectKeepalivedConfigFileRows(serviceIP,
+	servicePort string,
+	deployedEntities map[string][]string,
+	requestUUID string) (map[string][]string, error) {
+	regexForFindRowInkeepalivedConfigForSearch := `include keepalived.d\/services-configured\/(` + serviceIP + `-` + servicePort + `_dummy0-.*.conf)`
+	re := regexp.MustCompile(regexForFindRowInkeepalivedConfigForSearch)
+
+	rawFileData, err := ioutil.ReadFile(keepalivedCustomizer.pathToKeepalivedConfig)
+	if err != nil {
+		return deployedEntities, err
+	}
+
+	finded := re.FindAllStringSubmatch(string(rawFileData), -1)
+	if len(finded) == 1 {
+		lastWithGroup := finded[len(finded)-1]
+		deployedEntities["rowInKeepalivedConfig"] = []string{lastWithGroup[0]}
+		return deployedEntities, nil
+	}
+	return deployedEntities, fmt.Errorf("expect find one row in keepalived config file, but finded %v", len(finded))
+}
+
+// RemoveRowFromKeepalivedConfigFile ...
+func (keepalivedCustomizer *KeepalivedCustomizer) RemoveRowFromKeepalivedConfigFile(rowInKeepalivedConfig, requestUUID string) error {
+	err := removeRowFromFile(keepalivedCustomizer.pathToKeepalivedConfig, rowInKeepalivedConfig)
+	if err != nil {
+		return fmt.Errorf("can't remove row from keepalived config file: %v", err)
+	}
+	return nil
+}
 
 // DetectKeepalivedConfigFiles ...
 func (keepalivedCustomizer *KeepalivedCustomizer) DetectKeepalivedConfigFiles(serviceIP,
@@ -315,30 +337,6 @@ func (keepalivedCustomizer *KeepalivedCustomizer) getKeepalivedconfigFileName(se
 
 	return "", fmt.Errorf("in folder %v didn't find file names like %v-%v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured, serviceIP, servicePort)
 }
-
-// func (keepalivedCustomizer *KeepalivedCustomizer) detectKeepalivedRowInConfigFile(serviceIP, servicePort string) (string, error) { // TODO: remove that
-// 	file, err := os.OpenFile(keepalivedCustomizer.pathToKeepalivedConfig, os.O_RDWR, 0644)
-// 	if err != nil {
-// 		return "", fmt.Errorf("can't open file %v, got error %v", keepalivedCustomizer.pathToKeepalivedConfig, err)
-// 	}
-// 	defer file.Close()
-
-// 	fileBytes, err := ioutil.ReadAll(file)
-// 	if err != nil {
-// 		return "", fmt.Errorf("can't read data from file %v, got error %v", keepalivedCustomizer.pathToKeepalivedConfig, err)
-// 	}
-
-// 	keepalivedConfigData := string(fileBytes)
-// 	keepalivedRowTowToSearch := "include keepalived.d/services-configured/(" + serviceIP + "-" + servicePort + "_dummy0-" + ".*.conf)"
-// 	re := regexp.MustCompile(keepalivedRowTowToSearch)
-// 	finded := re.FindAllStringSubmatch(keepalivedConfigData, -1)
-// 	if len(finded) >= 1 {
-// 		if len(finded[0]) >= 2 {
-// 			return finded[0][1], nil
-// 		}
-// 	}
-// 	return "", fmt.Errorf("can't find row for ip %v port %v in keepalived config file %v", serviceIP, servicePort, keepalivedCustomizer.pathToKeepalivedConfig)
-// }
 
 // ReloadKeepalived ...
 func (keepalivedCustomizer *KeepalivedCustomizer) ReloadKeepalived(requestUUID string) error {
@@ -393,14 +391,14 @@ func (keepalivedCustomizer *KeepalivedCustomizer) GetInfoAboutAllNWBServices(req
 }
 
 func getServiceInfoByKeepalivedConfigDFileData(fileData, requestUUID string) (*domain.ServiceInfo, error) {
-	serviceIP, servicePort, err := getRealServiceIPAndPort(fileData)
+	serviceIP, servicePort, err := getApplicationServerIPAndPort(fileData)
 	if err != nil {
 		return nil, fmt.Errorf("can't get service ip and port: %v", err)
 	}
 
-	realServersData, err := getRealServersData(fileData)
+	applicationServers, err := getapplicationServers(fileData)
 	if err != nil {
-		return nil, fmt.Errorf("can't get real servers data: %v", err)
+		return nil, fmt.Errorf("can't get application servers data: %v", err)
 	}
 
 	healthcheckType, err := getHealthcheckType(fileData)
@@ -409,16 +407,16 @@ func getServiceInfoByKeepalivedConfigDFileData(fileData, requestUUID string) (*d
 	}
 
 	serviceInfo := &domain.ServiceInfo{
-		ServiceIP:       serviceIP,
-		ServicePort:     servicePort,
-		RealServers:     realServersData,
-		HealthcheckType: healthcheckType,
+		ServiceIP:          serviceIP,
+		ServicePort:        servicePort,
+		ApplicationServers: applicationServers,
+		HealthcheckType:    healthcheckType,
 	}
 
 	return serviceInfo, nil
 }
 
-func getRealServiceIPAndPort(fileData string) (string, string, error) {
+func getApplicationServerIPAndPort(fileData string) (string, string, error) {
 	re := regexp.MustCompile(`virtual_server (.*.) (.*.) {`)
 	finded := re.FindAllStringSubmatch(fileData, -1)
 	if len(finded) >= 1 {
@@ -430,30 +428,33 @@ func getRealServiceIPAndPort(fileData string) (string, string, error) {
 	return "", "", fmt.Errorf("can't find service ip and port, finded elements: %v", len(finded))
 }
 
-func getRealServersData(fileData string) ([]string, error) {
-	realServersData := []string{}
+func getapplicationServers(fileData string) ([]domain.ApplicationServer, error) {
+	applicationServers := []domain.ApplicationServer{}
 
 	re := regexp.MustCompile(`real_server (.*.) (.*.) {`)
 	finded := re.FindAllStringSubmatch(fileData, -1)
 	if len(finded) >= 1 {
 		for _, allWithGroups := range finded {
 			if !(len(allWithGroups) >= 3) {
-				return realServersData, fmt.Errorf("can't find real server ip and port, regexp finded elements: %v of 3 needed", len(allWithGroups))
+				return applicationServers, fmt.Errorf("can't find application server ip and port, regexp finded elements: %v of 3 needed", len(allWithGroups))
 			}
-			realServerData := getRealServerIPAndPortByRegexpData(allWithGroups)
-			realServersData = append(realServersData, realServerData)
+			applicationServer := getapplicationServerIPAndPortByRegexpData(allWithGroups)
+			applicationServers = append(applicationServers, applicationServer)
 		}
 	} else {
-		return realServersData, fmt.Errorf("can't find real server ip and port, finded elements: %v", len(finded))
+		return applicationServers, fmt.Errorf("can't find application server ip and port, finded elements: %v", len(finded))
 	}
 
-	return realServersData, nil
+	return applicationServers, nil
 }
 
-func getRealServerIPAndPortByRegexpData(regexpData []string) string {
-	realServerIP := regexpData[1]
-	realServerPort := regexpData[2]
-	return realServerIP + ":" + realServerPort
+func getapplicationServerIPAndPortByRegexpData(regexpData []string) domain.ApplicationServer {
+	applicationServerIP := regexpData[1]
+	applicationServerPort := regexpData[2]
+	return domain.ApplicationServer{
+		ServerIP:   applicationServerIP,
+		ServerPort: applicationServerPort,
+	}
 }
 
 func getHealthcheckType(fileData string) (string, error) {

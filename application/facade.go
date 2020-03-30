@@ -34,15 +34,15 @@ func NewBalancerFacade(networkConfig *domain.NetworkConfig,
 }
 
 // NewNWBService ...
-func (balancerFacade *BalancerFacade) NewNWBService(serviceIP, servicePort string, realServersData map[string]string, newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) NewNWBService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) error {
 	addNlbService := usecase.NewAddNlbService(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-	return addNlbService.CreateNewNWBService(serviceIP, servicePort, realServersData, newNWBRequestUUID)
+	return addNlbService.CreateNewNWBService(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
 }
 
 // RemoveNWBService ...
-func (balancerFacade *BalancerFacade) RemoveNWBService(serviceIP, servicePort string, realServersData map[string]string, newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) RemoveNWBService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) error {
 	removeNWBService := usecase.NewRemoveNlbService(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-	return removeNWBService.RemoveNWBService(serviceIP, servicePort, realServersData, newNWBRequestUUID)
+	return removeNWBService.RemoveNWBService(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
 }
 
 // GetNWBServices ...
