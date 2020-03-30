@@ -118,11 +118,11 @@ func (keepalivedCustomizer *KeepalivedCustomizer) modifyKeepalivedConfigFiles(se
 		servicePort,
 		nextDummyNumberString)
 
-	err = keepalivedCustomizer.writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName) // TODO: remove that
+	newRowInKeepalivedConfig, err := keepalivedCustomizer.writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName) // TODO: remove that
 	if err != nil {
 		return "", fmt.Errorf("Error write next row to keepalived config: %v", err)
 	}
-
+	deployedEntities["rowInKeepalivedConfig"] = []string{newRowInKeepalivedConfig}
 	deployedEntities["newKeepalivedDConfigFileName"] = []string{newKeepalivedDConfigFileName}
 
 	newFullKeepalivedDConfigFilePath := keepalivedCustomizer.pathToKeepalivedDConfigConfigured + newKeepalivedDConfigFileName
@@ -182,17 +182,17 @@ func (keepalivedCustomizer *KeepalivedCustomizer) makeNewKeepalivedDConfigFileNa
 	return newKeepalivedDConfigFileName
 }
 
-func (keepalivedCustomizer *KeepalivedCustomizer) writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName string) error { // TODO: remove that
+func (keepalivedCustomizer *KeepalivedCustomizer) writeNextRowToKeepalivedConfig(newKeepalivedDConfigFileName string) (string, error) { // TODO: remove that
 	rowForKeepalivedConfig := strings.ReplaceAll(rawRowForKeepalivedConfig, "KEEPALIVED_D_CONFIG_FILE_NAME", newKeepalivedDConfigFileName)
 	keepalivedFile, err := os.OpenFile(keepalivedCustomizer.pathToKeepalivedConfig, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("Can't open keepalived config file: %v", err)
+		return "", fmt.Errorf("Can't open keepalived config file: %v", err)
 	}
 	defer keepalivedFile.Close()
 	if _, err = keepalivedFile.WriteString(rowForKeepalivedConfig); err != nil {
-		return fmt.Errorf("Can't write data to keepalived config file: %v", err)
+		return "", fmt.Errorf("Can't write data to keepalived config file: %v", err)
 	}
-	return nil
+	return rowForKeepalivedConfig, nil
 }
 
 func (keepalivedCustomizer *KeepalivedCustomizer) writeStartDataForKeepalivedDConfigFile(serviceIP,
@@ -277,14 +277,36 @@ func (keepalivedCustomizer *KeepalivedCustomizer) RemoveKeepalivedSymlink(symlin
 	return nil
 }
 
-// // RemoveRowFromKeepalivedConfigFile ... // TODO: remove that
-// func (keepalivedCustomizer *KeepalivedCustomizer) RemoveRowFromKeepalivedConfigFile(rowInKeepalivedConfig, requestUUID string) error {
-// 	err := removeRowFromFile(keepalivedCustomizer.pathToKeepalivedConfig, rowInKeepalivedConfig)
-// 	if err != nil {
-// 		return fmt.Errorf("can't remove row from keepalived config file: %v", err)
-// 	}
-// 	return nil
-// }
+// DetectKeepalivedConfigFileRows ...
+func (keepalivedCustomizer *KeepalivedCustomizer) DetectKeepalivedConfigFileRows(serviceIP,
+	servicePort string,
+	deployedEntities map[string][]string,
+	requestUUID string) (map[string][]string, error) {
+	regexForFindRowInkeepalivedConfigForSearch := `include keepalived.d\/services-configured\/(` + serviceIP + `-` + servicePort + `_dummy0-.*.conf)`
+	re := regexp.MustCompile(regexForFindRowInkeepalivedConfigForSearch)
+
+	rawFileData, err := ioutil.ReadFile(keepalivedCustomizer.pathToKeepalivedConfig)
+	if err != nil {
+		return deployedEntities, err
+	}
+
+	finded := re.FindAllStringSubmatch(string(rawFileData), -1)
+	if len(finded) == 1 {
+		lastWithGroup := finded[len(finded)-1]
+		deployedEntities["rowInKeepalivedConfig"] = []string{lastWithGroup[0]}
+		return deployedEntities, nil
+	}
+	return deployedEntities, fmt.Errorf("expect find one row in keepalived config file, but finded %v", len(finded))
+}
+
+// RemoveRowFromKeepalivedConfigFile ...
+func (keepalivedCustomizer *KeepalivedCustomizer) RemoveRowFromKeepalivedConfigFile(rowInKeepalivedConfig, requestUUID string) error {
+	err := removeRowFromFile(keepalivedCustomizer.pathToKeepalivedConfig, rowInKeepalivedConfig)
+	if err != nil {
+		return fmt.Errorf("can't remove row from keepalived config file: %v", err)
+	}
+	return nil
+}
 
 // DetectKeepalivedConfigFiles ...
 func (keepalivedCustomizer *KeepalivedCustomizer) DetectKeepalivedConfigFiles(serviceIP,
@@ -315,30 +337,6 @@ func (keepalivedCustomizer *KeepalivedCustomizer) getKeepalivedconfigFileName(se
 
 	return "", fmt.Errorf("in folder %v didn't find file names like %v-%v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured, serviceIP, servicePort)
 }
-
-// func (keepalivedCustomizer *KeepalivedCustomizer) detectKeepalivedRowInConfigFile(serviceIP, servicePort string) (string, error) { // TODO: remove that
-// 	file, err := os.OpenFile(keepalivedCustomizer.pathToKeepalivedConfig, os.O_RDWR, 0644)
-// 	if err != nil {
-// 		return "", fmt.Errorf("can't open file %v, got error %v", keepalivedCustomizer.pathToKeepalivedConfig, err)
-// 	}
-// 	defer file.Close()
-
-// 	fileBytes, err := ioutil.ReadAll(file)
-// 	if err != nil {
-// 		return "", fmt.Errorf("can't read data from file %v, got error %v", keepalivedCustomizer.pathToKeepalivedConfig, err)
-// 	}
-
-// 	keepalivedConfigData := string(fileBytes)
-// 	keepalivedRowTowToSearch := "include keepalived.d/services-configured/(" + serviceIP + "-" + servicePort + "_dummy0-" + ".*.conf)"
-// 	re := regexp.MustCompile(keepalivedRowTowToSearch)
-// 	finded := re.FindAllStringSubmatch(keepalivedConfigData, -1)
-// 	if len(finded) >= 1 {
-// 		if len(finded[0]) >= 2 {
-// 			return finded[0][1], nil
-// 		}
-// 	}
-// 	return "", fmt.Errorf("can't find row for ip %v port %v in keepalived config file %v", serviceIP, servicePort, keepalivedCustomizer.pathToKeepalivedConfig)
-// }
 
 // ReloadKeepalived ...
 func (keepalivedCustomizer *KeepalivedCustomizer) ReloadKeepalived(requestUUID string) error {

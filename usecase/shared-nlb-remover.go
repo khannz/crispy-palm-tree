@@ -28,12 +28,11 @@ func keepalivedConfigRemove(deployedEntities map[string][]string,
 	keepalivedConfig domain.KeepalivedCustomizer,
 	requestUUID string) error {
 	errors := []error{}
-	// if rowsInKeepalivedConfig, inMap := deployedEntities["newKeepalivedDConfigFileName"]; inMap {
-	// rework!!!
-	// if err := keepalivedConfig.RemoveRowFromKeepalivedConfigFile(rowsInKeepalivedConfig[0], requestUUID); err != nil { // TODO: remove that
-	// 	errors = append(errors, err)
-	// }
-	// }
+	if rowsInKeepalivedConfig, inMap := deployedEntities["rowInKeepalivedConfig"]; inMap {
+		if err := keepalivedConfig.RemoveRowFromKeepalivedConfigFile(rowsInKeepalivedConfig[0], requestUUID); err != nil { // TODO: remove that
+			errors = append(errors, err)
+		}
+	}
 	if newFullKeepalivedDConfigFilePath, inMap := deployedEntities["newFullKeepalivedDConfigFilePath"]; inMap {
 		if err := keepalivedConfig.RemoveKeepalivedDConfigFile(newFullKeepalivedDConfigFilePath[0], requestUUID); err != nil {
 			errors = append(errors, err)

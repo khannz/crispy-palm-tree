@@ -83,5 +83,12 @@ func (removeNlbService *RemoveNlbService) findAlldeployedEntities(serviceIP,
 		errors = append(errors, err)
 		err = nil
 	}
+
+	deployedEntities, err = removeNlbService.keepalivedConfig.DetectKeepalivedConfigFileRows(serviceIP, servicePort, deployedEntities, removeRequestUUID)
+	if err != nil {
+		errors = append(errors, err)
+		err = nil
+	}
+
 	return deployedEntities, combineErrors(errors)
 }
