@@ -33,7 +33,7 @@ const restAPIlogName = "restAPI"
 type ServerApplication struct {
 	ServerIP           string `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
 	ServerPort         string `json:"port" validate:"required" example:"1111"`
-	ServerBashCommands string `json:"bashCommands,omitempty"`
+	ServerBashCommands string `json:"bashCommands,omitempty" swaggerignore:"true"`
 }
 
 // UniversalResponse ...
