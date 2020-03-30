@@ -71,11 +71,9 @@ type NewBalanceInfo struct {
 
 // RemoveBalanceInfo ...
 type RemoveBalanceInfo struct {
-	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
-	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
-	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
-	HealthcheckType    string              `json:"healthcheckType,omitempty"`
-	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
+	ID          string `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP   string `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort string `json:"servicePort" validate:"required" example:"1111"`
 }
 
 // RestAPIstruct restapi entity
@@ -477,10 +475,9 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		}
 		return
 	}
-	applicationServersMap := removeNWBRequest.convertDataForNWBService()
+
 	err = restAPI.balancerFacade.RemoveNWBService(removeNWBRequest.ServiceIP,
 		removeNWBRequest.ServicePort,
-		applicationServersMap,
 		removeNWBRequestUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -511,11 +508,11 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 	}).Info("nwb removed")
 
 	nwbRemoved := UniversalResponse{
-		ID:                       removeNWBRequestUUID,
-		ApplicationServers:       removeNWBRequest.ApplicationServers,
-		ServiceIP:                removeNWBRequest.ServiceIP,
-		ServicePort:              removeNWBRequest.ServicePort,
-		HealthcheckType:          removeNWBRequest.HealthcheckType,
+		ID: removeNWBRequestUUID,
+		// ApplicationServers:       removeNWBRequest.ApplicationServers, // FIXME: refactor!!!
+		ServiceIP:   removeNWBRequest.ServiceIP,
+		ServicePort: removeNWBRequest.ServicePort,
+		// HealthcheckType:          removeNWBRequest.HealthcheckType, // FIXME: refactor!!!
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "nwb removed",
 	}
@@ -533,14 +530,6 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 func (newNWBRequest *NewBalanceInfo) convertDataForNWBService() map[string]string {
 	applicationServersMap := map[string]string{}
 	for _, d := range newNWBRequest.ApplicationServers {
-		applicationServersMap[d.ServerIP] = d.ServerPort
-	}
-	return applicationServersMap
-}
-
-func (removeNWBRequest *RemoveBalanceInfo) convertDataForNWBService() map[string]string {
-	applicationServersMap := map[string]string{}
-	for _, d := range removeNWBRequest.ApplicationServers {
 		applicationServersMap[d.ServerIP] = d.ServerPort
 	}
 	return applicationServersMap

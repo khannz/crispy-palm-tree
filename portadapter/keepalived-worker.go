@@ -259,6 +259,26 @@ func (keepalivedCustomizer *KeepalivedCustomizer) makeSymlinkForKeepalived(newKe
 	return fullPathToEnabledKeepalivedDFile, nil
 }
 
+// GetApplicationServersByServiceIPAndPort ...
+func (keepalivedCustomizer *KeepalivedCustomizer) GetApplicationServersByServiceIPAndPort(serviceIP, servicePort string, requestUUID string) ([]domain.ApplicationServer, error) {
+	keepalivedDConfigFileName, err := keepalivedCustomizer.getKeepalivedConfigFileName(serviceIP, servicePort)
+	if err != nil {
+		return nil, fmt.Errorf("can't get get keepalived config file name: %v", err)
+	}
+
+	rawKeepalivedDConfigFileData, err := ioutil.ReadFile(keepalivedCustomizer.pathToKeepalivedDConfigConfigured + keepalivedDConfigFileName)
+	if err != nil {
+		return nil, fmt.Errorf("can't read file %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName, err)
+	}
+
+	applicationServers, err := getApplicationServers(string(rawKeepalivedDConfigFileData))
+	if err != nil {
+		return nil, fmt.Errorf("can't get application servers in  %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName, err)
+	}
+
+	return applicationServers, nil
+}
+
 // RemoveKeepalivedDConfigFile ...
 func (keepalivedCustomizer *KeepalivedCustomizer) RemoveKeepalivedDConfigFile(keepalivedDConfigFile, requestUUID string) error {
 	err := os.Remove(keepalivedDConfigFile)
@@ -313,7 +333,7 @@ func (keepalivedCustomizer *KeepalivedCustomizer) DetectKeepalivedConfigFiles(se
 	servicePort string,
 	deployedEntities map[string][]string,
 	removeRequestUUID string) (map[string][]string, error) {
-	keepalivedDConfigFileName, err := keepalivedCustomizer.getKeepalivedconfigFileName(serviceIP, servicePort) // rework!!!
+	keepalivedDConfigFileName, err := keepalivedCustomizer.getKeepalivedConfigFileName(serviceIP, servicePort) // rework!!!
 	if err != nil {
 		return deployedEntities, fmt.Errorf("can't  detectKeepalived config files: %v", err)
 	}
@@ -323,7 +343,7 @@ func (keepalivedCustomizer *KeepalivedCustomizer) DetectKeepalivedConfigFiles(se
 	return deployedEntities, nil
 }
 
-func (keepalivedCustomizer *KeepalivedCustomizer) getKeepalivedconfigFileName(serviceIP, servicePort string) (string, error) {
+func (keepalivedCustomizer *KeepalivedCustomizer) getKeepalivedConfigFileName(serviceIP, servicePort string) (string, error) {
 	files, err := ioutil.ReadDir(keepalivedCustomizer.pathToKeepalivedDConfigConfigured)
 	if err != nil {
 		return "", fmt.Errorf("read dir %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured, err)
@@ -391,12 +411,12 @@ func (keepalivedCustomizer *KeepalivedCustomizer) GetInfoAboutAllNWBServices(req
 }
 
 func getServiceInfoByKeepalivedConfigDFileData(fileData, requestUUID string) (*domain.ServiceInfo, error) {
-	serviceIP, servicePort, err := getApplicationServerIPAndPort(fileData)
+	serviceIP, servicePort, err := getServiceIPAndPort(fileData)
 	if err != nil {
 		return nil, fmt.Errorf("can't get service ip and port: %v", err)
 	}
 
-	applicationServers, err := getapplicationServers(fileData)
+	applicationServers, err := getApplicationServers(fileData)
 	if err != nil {
 		return nil, fmt.Errorf("can't get application servers data: %v", err)
 	}
@@ -416,7 +436,7 @@ func getServiceInfoByKeepalivedConfigDFileData(fileData, requestUUID string) (*d
 	return serviceInfo, nil
 }
 
-func getApplicationServerIPAndPort(fileData string) (string, string, error) {
+func getServiceIPAndPort(fileData string) (string, string, error) {
 	re := regexp.MustCompile(`virtual_server (.*.) (.*.) {`)
 	finded := re.FindAllStringSubmatch(fileData, -1)
 	if len(finded) >= 1 {
@@ -428,7 +448,7 @@ func getApplicationServerIPAndPort(fileData string) (string, string, error) {
 	return "", "", fmt.Errorf("can't find service ip and port, finded elements: %v", len(finded))
 }
 
-func getapplicationServers(fileData string) ([]domain.ApplicationServer, error) {
+func getApplicationServers(fileData string) ([]domain.ApplicationServer, error) {
 	applicationServers := []domain.ApplicationServer{}
 
 	re := regexp.MustCompile(`real_server (.*.) (.*.) {`)

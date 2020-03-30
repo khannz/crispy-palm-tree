@@ -40,9 +40,9 @@ func (balancerFacade *BalancerFacade) NewNWBService(serviceIP, servicePort strin
 }
 
 // RemoveNWBService ...
-func (balancerFacade *BalancerFacade) RemoveNWBService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) RemoveNWBService(serviceIP, servicePort string, newNWBRequestUUID string) error {
 	removeNWBService := usecase.NewRemoveNlbService(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-	return removeNWBService.RemoveNWBService(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
+	return removeNWBService.RemoveNWBService(serviceIP, servicePort, newNWBRequestUUID)
 }
 
 // GetNWBServices ...

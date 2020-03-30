@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/domain"
 	"github.com/sirupsen/logrus"
 	"github.com/thevan4/go-billet/executor"
 )
@@ -204,7 +205,7 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveCreatedTunnelFiles(createdTunnelFi
 // func DetectAllTunnels
 
 // DetectTunnels ... TODO: detect only first "lucky" for application server, that is bad
-func (tunnelFileMaker *TunnelFileMaker) DetectTunnels(applicationServers map[string]string,
+func (tunnelFileMaker *TunnelFileMaker) DetectTunnels(applicationServers []domain.ApplicationServer,
 	deployedEntities map[string][]string,
 	removeRequestUUID string) (map[string][]string, error) {
 	allFilesInTunnelDir, err := ioutil.ReadDir(tunnelFileMaker.pathToIfcfgTunnelFiles)
@@ -226,10 +227,10 @@ func (tunnelFileMaker *TunnelFileMaker) DetectTunnels(applicationServers map[str
 	return deployedEntities, nil
 }
 
-func getapplicationServersIPAddresses(applicationServers map[string]string) []string {
+func getapplicationServersIPAddresses(applicationServers []domain.ApplicationServer) []string {
 	applicationServersIPAddresses := []string{}
-	for ip := range applicationServers {
-		applicationServersIPAddresses = append(applicationServersIPAddresses, ip)
+	for _, applicationServer := range applicationServers {
+		applicationServersIPAddresses = append(applicationServersIPAddresses, applicationServer.ServerIP)
 	}
 	return applicationServersIPAddresses
 }
