@@ -84,6 +84,14 @@ type AddApplicationServers struct {
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
+// RemoveApplicationServers ...
+type RemoveApplicationServers struct {
+	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
+	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
+}
+
 // RestAPIstruct restapi entity
 type RestAPIstruct struct {
 	server         *http.Server
@@ -434,7 +442,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 	}).Infof("change job uuid from %v to %v", newNWBRequestUUID, newNWBRequest.ID)
 	newNWBRequestUUID = newNWBRequest.ID
 
-	validateError := newNWBRequest.validateIncomeRequest()
+	validateError := newNWBRequest.validateNewNWBRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -567,7 +575,7 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 	}).Infof("change job uuid from %v to %v", removeNWBRequestUUID, removeNWBRequest.ID)
 	removeNWBRequestUUID = removeNWBRequest.ID
 
-	validateError := removeNWBRequest.validateIncomeRequest()
+	validateError := removeNWBRequest.validateRemoveNWBRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -656,7 +664,7 @@ func (addApplicationServersRequest *AddApplicationServers) convertDataAddApplica
 	return applicationServersMap
 }
 
-func (newNWBRequest *NewBalanceInfo) validateIncomeRequest() error {
+func (newNWBRequest *NewBalanceInfo) validateNewNWBRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortNewBalanceInfoValidation, NewBalanceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
@@ -689,7 +697,7 @@ func customPortServerApplicationValidation(sl validator.StructLevel) {
 	}
 }
 
-func (removeNWBRequest *RemoveBalanceInfo) validateIncomeRequest() error {
+func (removeNWBRequest *RemoveBalanceInfo) validateRemoveNWBRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortNewBalanceInfoValidation, NewBalanceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
