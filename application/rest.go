@@ -292,6 +292,30 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	validateError := newGetNWBRequest.validateNewGetNWBRequest()
+	if validateError != nil {
+		stringValidateError := errorsValidateToString(validateError)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": newGetNWBRequestUUID,
+		}).Errorf("validate fail for income get request: %v", stringValidateError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &UniversalResponse{
+			ID:                       newGetNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't validate income get nwb request: " + stringValidateError,
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": newGetNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": newGetNWBRequestUUID,
@@ -669,6 +693,15 @@ func (newNWBRequest *NewBalanceInfo) validateNewNWBRequest() error {
 	validate.RegisterStructValidation(customPortNewBalanceInfoValidation, NewBalanceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	err := validate.Struct(newNWBRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (getAllServicesRequest *GetAllServicesRequest) validateNewGetNWBRequest() error {
+	validate := validator.New()
+	err := validate.Struct(getAllServicesRequest)
 	if err != nil {
 		return err
 	}
