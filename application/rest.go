@@ -76,8 +76,8 @@ type RemoveBalanceInfo struct {
 	ServicePort string `json:"servicePort" validate:"required" example:"1111"`
 }
 
-// AddApplicationServers ...
-type AddApplicationServers struct {
+// AddApplicationServersRequest ...
+type AddApplicationServersRequest struct {
 	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
@@ -139,7 +139,7 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 // @tags Network balance services
 // @Summary Add application servers
 // @Description Make network balance service easier ;)
-// @Param incomeJSON body application.AddApplicationServers true "Expected json"
+// @Param incomeJSON body application.AddApplicationServersRequest true "Expected json"
 // @Accept json
 // @Produce json
 // @Success 200 {object} application.UniversalResponse "If all okay"
@@ -159,7 +159,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 	buf.ReadFrom(r.Body)
 	bytesFromBuf := buf.Bytes()
 
-	addApplicationServersRequest := &AddApplicationServers{}
+	addApplicationServersRequest := &AddApplicationServersRequest{}
 
 	err = json.Unmarshal(bytesFromBuf, addApplicationServersRequest)
 	if err != nil {
@@ -185,13 +185,37 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 		return
 	}
 
+	validateError := addApplicationServersRequest.validateAddApplicationServersRequest()
+	if validateError != nil {
+		stringValidateError := errorsValidateToString(validateError)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": addApplicationServersRequestUUID,
+		}).Errorf("validate fail for income add application servers request: %v", stringValidateError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &UniversalResponse{
+			ID:                       addApplicationServersRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't validate income add application servers nwb request: " + stringValidateError,
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": addApplicationServersRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": addApplicationServersRequestUUID,
 	}).Infof("change job uuid from %v to %v", addApplicationServersRequestUUID, addApplicationServersRequest.ID)
 	addApplicationServersRequestUUID = addApplicationServersRequest.ID
 
-	applicationServersMap := addApplicationServersRequest.convertDataAddApplicationServers()
+	applicationServersMap := addApplicationServersRequest.convertDataAddApplicationServersRequest()
 
 	serviceData, err := restAPI.balancerFacade.AddApplicationServersToService(addApplicationServersRequest.ServiceIP,
 		addApplicationServersRequest.ServicePort,
@@ -680,7 +704,7 @@ func (newNWBRequest *NewBalanceInfo) convertDataForNWBService() map[string]strin
 	return applicationServersMap
 }
 
-func (addApplicationServersRequest *AddApplicationServers) convertDataAddApplicationServers() map[string]string {
+func (addApplicationServersRequest *AddApplicationServersRequest) convertDataAddApplicationServersRequest() map[string]string {
 	applicationServersMap := map[string]string{}
 	for _, d := range addApplicationServersRequest.ApplicationServers {
 		applicationServersMap[d.ServerIP] = d.ServerPort
@@ -739,6 +763,28 @@ func (removeNWBRequest *RemoveBalanceInfo) validateRemoveNWBRequest() error {
 		return err
 	}
 	return nil
+}
+
+func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApplicationServersRequest() error {
+	validate := validator.New()
+	validate.RegisterStructValidation(customPortAddApplicationServersRequestValidation, AddApplicationServersRequest{})
+	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
+	err := validate.Struct(addApplicationServersRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func customPortAddApplicationServersRequestValidation(sl validator.StructLevel) {
+	nbi := sl.Current().Interface().(AddApplicationServersRequest)
+	port, err := strconv.Atoi(nbi.ServicePort)
+	if err != nil {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
+	}
+	if !(port > 0) || !(port < 20000) {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
+	}
 }
 
 func customPortRemoveBalanceInfoValidation(sl validator.StructLevel) {
