@@ -606,10 +606,22 @@ func (keepalivedCustomizer *KeepalivedCustomizer) removeEndDataFromKeepalivedDCo
 	return nil
 }
 
-func trimSuffix(filePath, suffix string) (string, error) {
-	dataBytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return "", fmt.Errorf("can't read file: %v", err)
+// RemoveApplicationServersFromKeepalivedConfigFile ...
+func (keepalivedCustomizer *KeepalivedCustomizer) RemoveApplicationServersFromKeepalivedConfigFile(currentKeepalivedConfigFile string,
+	applicationServersForRemove map[string]string,
+	removeApplicationServersUUID string) error {
+	endSearch := "  }"
+	for ip, port := range applicationServersForRemove {
+		searchRow := ip + " " + port
+		startLine, endLine, err := detectLinesForRemove(currentKeepalivedConfigFile, searchRow, endSearch)
+		if err != nil {
+			return err
+		}
+		linesToRemove := endLine - startLine + 2 // add line for remove
+		err = removeLinesFromFile(currentKeepalivedConfigFile, startLine, linesToRemove)
+		if err != nil {
+			return err
+		}
 	}
-	return strings.TrimSuffix(string(dataBytes), suffix), nil
+	return nil
 }

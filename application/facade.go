@@ -66,3 +66,15 @@ func (balancerFacade *BalancerFacade) AddApplicationServersToService(serviceIP, 
 	}
 	return serviceInfo, nil
 }
+
+// RemoveApplicationServersFromService ...
+func (balancerFacade *BalancerFacade) RemoveApplicationServersFromService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {
+	var err error
+	var serviceInfo domain.ServiceInfo
+	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
+	serviceInfo, err = removeApplicationServers.RemoveNewApplicationServers(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
+	if err != nil {
+		return serviceInfo, fmt.Errorf("can't remove application servers to service: %v", err)
+	}
+	return serviceInfo, nil
+}
