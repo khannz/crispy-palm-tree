@@ -297,3 +297,22 @@ func combineThreeSlices(sliceOne, sliceTwo, sliceThree []string) []string {
 	resultSlice := append(sliceOne, sliceTwo...)
 	return append(resultSlice, sliceThree...)
 }
+
+// RemoveApplicationServersFromTunnels ...
+func (tunnelFileMaker *TunnelFileMaker) RemoveApplicationServersFromTunnels(currentTunnelFilesForService []string,
+	applicationServersForRemove map[string]string,
+	removeApplicationServersUUID string) error {
+	applicationServersIPAddresses := []string{}
+	for ip := range applicationServersForRemove {
+		applicationServersIPAddresses = append(applicationServersIPAddresses, ip)
+	}
+	allTunnelFilesForRemove, err := tunnelFileMaker.getAllTunnelsFilesPath(applicationServersIPAddresses, currentTunnelFilesForService)
+	if err != nil {
+		return fmt.Errorf("error when get all tunnels files path: %v", err)
+	}
+	err = tunnelFileMaker.RemoveCreatedTunnelFiles(allTunnelFilesForRemove, removeApplicationServersUUID)
+	if err != nil {
+		return fmt.Errorf("error when remove created tunnel files: %v", err)
+	}
+	return nil
+}

@@ -137,18 +137,14 @@ func (keepalivedCustomizer *KeepalivedCustomizer) modifyKeepalivedConfigFiles(se
 	deployedEntities["newFullKeepalivedDConfigFilePath"] = []string{newFullKeepalivedDConfigFilePath}
 
 	for applicationServerIP, applicationServerPort := range applicationServers {
-		err = keepalivedCustomizer.writeMiddleDataForKeepalivedDConfigFile(serviceIP,
-			servicePort,
-			nextDummyNumberString,
-			applicationServerIP,
+		err = keepalivedCustomizer.writeMiddleDataForKeepalivedDConfigFile(applicationServerIP,
 			applicationServerPort,
 			newFullKeepalivedDConfigFilePath)
 		if err != nil {
 			return "", fmt.Errorf("Error create new keepalived d config file: %v", err)
 		}
 	}
-	err = keepalivedCustomizer.writeEndDataForKeepalivedDConfigFile(newFullKeepalivedDConfigFilePath)
-	if err != nil {
+	if err = keepalivedCustomizer.writeEndDataForKeepalivedDConfigFile(newFullKeepalivedDConfigFilePath); err != nil {
 		return "", fmt.Errorf("Error create new keepalived d config file: %v", err)
 	}
 	return newKeepalivedDConfigFileName, nil
@@ -214,10 +210,7 @@ func (keepalivedCustomizer *KeepalivedCustomizer) writeStartDataForKeepalivedDCo
 	return nil
 }
 
-func (keepalivedCustomizer *KeepalivedCustomizer) writeMiddleDataForKeepalivedDConfigFile(serviceIP,
-	servicePort,
-	nextDummyNumberString,
-	applicationServerIP,
+func (keepalivedCustomizer *KeepalivedCustomizer) writeMiddleDataForKeepalivedDConfigFile(applicationServerIP,
 	applicationServerPort,
 	newFullKeepalivedDConfigFilePath string) error {
 
@@ -498,4 +491,137 @@ func chooseHealtcheckType(rawHealthcheck string) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown healtchecktype: %v", rawHealthcheck)
 	}
+}
+
+// AddApplicationServersToKeepalived ...
+func (keepalivedCustomizer *KeepalivedCustomizer) AddApplicationServersToKeepalived(serviceIP,
+	servicePort string,
+	newApplicationServers map[string]string,
+	deployedEntities map[string][]string,
+	requestUUID string) (domain.ServiceInfo, map[string][]string, error) {
+	var serviceInfo domain.ServiceInfo
+	keepalivedDConfigFileName, err := keepalivedCustomizer.getKeepalivedConfigFileName(serviceIP, servicePort) // rework!!!
+	if err != nil {
+		return serviceInfo, deployedEntities, fmt.Errorf("can't  detectKeepalived config files: %v", err)
+	}
+
+	backupRawKeepalivedDConfigFileData, err := ioutil.ReadFile(keepalivedCustomizer.pathToKeepalivedDConfigConfigured + keepalivedDConfigFileName)
+	if err != nil {
+		return serviceInfo, deployedEntities, fmt.Errorf("can't read file %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName, err)
+	}
+
+	err = keepalivedCustomizer.removeEndDataFromKeepalivedDConfigFile(keepalivedCustomizer.pathToKeepalivedDConfigConfigured + keepalivedDConfigFileName)
+	if err != nil {
+		return serviceInfo, deployedEntities, fmt.Errorf("can't remove end data from keepalived d config file: %v", err)
+	}
+
+	for applicationServerIP, applicationServerPort := range newApplicationServers { //write new servers to file
+		err = keepalivedCustomizer.writeMiddleDataForKeepalivedDConfigFile(applicationServerIP,
+			applicationServerPort,
+			keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName)
+		if err != nil {
+			keepalivedCustomizer.rollbackKeepalivedDConfigFile(string(backupRawKeepalivedDConfigFileData),
+				keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName,
+				requestUUID)
+			return serviceInfo, deployedEntities, fmt.Errorf("Error add rows to keepalived d config file: %v", err)
+		}
+	}
+
+	if err = keepalivedCustomizer.writeEndDataForKeepalivedDConfigFile(keepalivedCustomizer.pathToKeepalivedDConfigConfigured + keepalivedDConfigFileName); err != nil {
+		keepalivedCustomizer.rollbackKeepalivedDConfigFile(string(backupRawKeepalivedDConfigFileData),
+			keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName,
+			requestUUID)
+		return serviceInfo, deployedEntities, fmt.Errorf("Error create new keepalived d config file: %v", err)
+	}
+	// TODO: deployedEntities somehow?
+
+	newRawKeepalivedDConfigFileData, err := ioutil.ReadFile(keepalivedCustomizer.pathToKeepalivedDConfigConfigured + keepalivedDConfigFileName)
+	if err != nil {
+		return serviceInfo, deployedEntities, fmt.Errorf("can't read file %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName, err)
+	}
+
+	resultApplicationServers, err := getApplicationServers(string(newRawKeepalivedDConfigFileData))
+	if err != nil {
+		return serviceInfo, deployedEntities, fmt.Errorf("can't get application servers in  %v, got error %v", keepalivedCustomizer.pathToKeepalivedDConfigConfigured+keepalivedDConfigFileName, err)
+	}
+
+	healthcheckType, err := getHealthcheckType(string(newRawKeepalivedDConfigFileData))
+	if err != nil {
+		return serviceInfo, deployedEntities, fmt.Errorf("can't get healthcheckType: %v", err)
+	}
+
+	err = keepalivedCustomizer.ReloadKeepalived(requestUUID)
+	if err != nil {
+		return serviceInfo, deployedEntities, fmt.Errorf("can't reload keepalived: %v", err)
+	}
+
+	serviceInfo = domain.ServiceInfo{
+		ServiceIP:          serviceIP,
+		ServicePort:        servicePort,
+		ApplicationServers: resultApplicationServers,
+		HealthcheckType:    healthcheckType,
+	}
+	return serviceInfo, deployedEntities, nil
+}
+
+func (keepalivedCustomizer *KeepalivedCustomizer) rollbackKeepalivedDConfigFile(backupKeepalivedDConfigFileData,
+	fullKeepalivedDConfigFilePath,
+	requestUUID string) {
+	var err error
+	err = os.Remove(fullKeepalivedDConfigFilePath)
+	if err != nil {
+		keepalivedCustomizer.logging.WithFields(logrus.Fields{
+			"entity":     keepalivedCustomizerEntityName,
+			"event uuid": requestUUID,
+		}).Errorf("can't rollback keepalived d config file %v: %v", fullKeepalivedDConfigFilePath, err)
+		return
+	}
+	err = ioutil.WriteFile(fullKeepalivedDConfigFilePath, []byte(backupKeepalivedDConfigFileData), 0644)
+	if err != nil {
+		keepalivedCustomizer.logging.WithFields(logrus.Fields{
+			"entity":     keepalivedCustomizerEntityName,
+			"event uuid": requestUUID,
+		}).Errorf("can't rollback keepalived d config file %v: %v", fullKeepalivedDConfigFilePath, err)
+		return
+	}
+
+	keepalivedCustomizer.logging.WithFields(logrus.Fields{
+		"entity":     keepalivedCustomizerEntityName,
+		"event uuid": requestUUID,
+	}).Warnf("succes rollback keepalived d config file %v", fullKeepalivedDConfigFilePath)
+}
+
+func (keepalivedCustomizer *KeepalivedCustomizer) removeEndDataFromKeepalivedDConfigFile(fullKeepalivedDConfigFilePath string) error {
+	suffix := "}\n"
+
+	renewKeepalivedDFileData, err := trimSuffix(fullKeepalivedDConfigFilePath, suffix)
+	if err != nil {
+		return fmt.Errorf("can't trim suffix: %v", err)
+	}
+
+	err = ioutil.WriteFile(fullKeepalivedDConfigFilePath, []byte(renewKeepalivedDFileData), 0644)
+	if err != nil {
+		return fmt.Errorf("can't write new keepalived d file %v: %v", fullKeepalivedDConfigFilePath, err)
+	}
+	return nil
+}
+
+// RemoveApplicationServersFromKeepalivedConfigFile ...
+func (keepalivedCustomizer *KeepalivedCustomizer) RemoveApplicationServersFromKeepalivedConfigFile(currentKeepalivedConfigFile string,
+	applicationServersForRemove map[string]string,
+	removeApplicationServersUUID string) error {
+	endSearch := "  }"
+	for ip, port := range applicationServersForRemove {
+		searchRow := ip + " " + port
+		startLine, endLine, err := detectLinesForRemove(currentKeepalivedConfigFile, searchRow, endSearch)
+		if err != nil {
+			return err
+		}
+		linesToRemove := endLine - startLine + 2 // add line for remove
+		err = removeLinesFromFile(currentKeepalivedConfigFile, startLine, linesToRemove)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

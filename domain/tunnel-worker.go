@@ -6,4 +6,5 @@ type TunnelMaker interface {
 	RemoveCreatedTunnelFiles([]string, string) error
 	ExecuteCommandForTunnels([]string, string, string) error
 	DetectTunnels([]ApplicationServer, map[string][]string, string) (map[string][]string, error)
+	RemoveApplicationServersFromTunnels([]string, map[string]string, string) error
 }

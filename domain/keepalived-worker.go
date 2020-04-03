@@ -11,4 +11,6 @@ type KeepalivedCustomizer interface {
 	ReloadKeepalived(string) error
 	GetInfoAboutAllNWBServices(string) ([]ServiceInfo, error)
 	GetApplicationServersByServiceIPAndPort(string, string, string) ([]ApplicationServer, error)
+	AddApplicationServersToKeepalived(string, string, map[string]string, map[string][]string, string) (ServiceInfo, map[string][]string, error)
+	RemoveApplicationServersFromKeepalivedConfigFile(string, map[string]string, string) error
 }

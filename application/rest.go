@@ -29,6 +29,9 @@ const restAPIlogName = "restAPI"
 // @contact.name Ivan Tikhonov
 // @contact.email sdn@sberbank.ru
 
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
 // ServerApplication ...
 type ServerApplication struct {
 	ServerIP           string `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
@@ -76,6 +79,22 @@ type RemoveBalanceInfo struct {
 	ServicePort string `json:"servicePort" validate:"required" example:"1111"`
 }
 
+// AddApplicationServersRequest ...
+type AddApplicationServersRequest struct {
+	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
+	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
+}
+
+// RemoveApplicationServersRequest ...
+type RemoveApplicationServersRequest struct {
+	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
+	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
+}
+
 // RestAPIstruct restapi entity
 type RestAPIstruct struct {
 	server         *http.Server
@@ -110,6 +129,8 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.HandleFunc("/newnetworkbalance", restAPI.newNWBRequest).Methods("POST")
 	restAPI.router.HandleFunc("/removenetworkbalance", restAPI.removeNWBRequest).Methods("POST")
 	restAPI.router.HandleFunc("/networkservicesinfo", restAPI.getNWBServices).Methods("POST")
+	restAPI.router.HandleFunc("/addapplicationservers", restAPI.addApplicationServers).Methods("POST")
+	restAPI.router.HandleFunc("/removeapplicationservers", restAPI.removeApplicationServers).Methods("POST")
 	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
 
 	err := restAPI.server.ListenAndServe()
@@ -118,7 +139,268 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	}
 }
 
-////
+// removeApplicationServers godoc
+// @tags Network balance services
+// @Summary Remove application servers
+// @Description Make network balance service easier ;)
+// @Param incomeJSON body application.RemoveApplicationServersRequest true "Expected json"
+// @Accept json
+// @Produce json
+// @Success 200 {object} application.UniversalResponse "If all okay"
+// @Failure 400 {object} application.UniversalResponse "Bad request"
+// @Failure 500 {object} application.UniversalResponse "Internal error"
+// @Router /removeapplicationservers [post]
+func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r *http.Request) {
+	removeApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": removeApplicationServersRequestUUID,
+	}).Info("got new remove application servers request")
+
+	var err error
+	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
+	buf.ReadFrom(r.Body)
+	bytesFromBuf := buf.Bytes()
+
+	removeApplicationServersRequest := &RemoveApplicationServersRequest{}
+
+	err = json.Unmarshal(bytesFromBuf, removeApplicationServersRequest)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": removeApplicationServersRequestUUID,
+		}).Errorf("can't unmarshal income remove application servers request: %v", err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &GetAllServicesResponse{
+			ID:                       removeApplicationServersRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't unmarshal income remove application servers request: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": removeApplicationServersRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
+	validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest()
+	if validateError != nil {
+		stringValidateError := errorsValidateToString(validateError)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": removeApplicationServersRequestUUID,
+		}).Errorf("validate fail for income remove application servers request: %v", stringValidateError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &UniversalResponse{
+			ID:                       removeApplicationServersRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't validate income remove application servers nwb request: " + stringValidateError,
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": removeApplicationServersRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": removeApplicationServersRequestUUID,
+	}).Infof("change job uuid from %v to %v", removeApplicationServersRequestUUID, removeApplicationServersRequest.ID)
+	removeApplicationServersRequestUUID = removeApplicationServersRequest.ID
+
+	applicationServersMap := removeApplicationServersRequest.convertDataRemoveApplicationServersRequest()
+	// TODO: serviceData?
+	_, err = restAPI.balancerFacade.RemoveApplicationServersFromService(removeApplicationServersRequest.ServiceIP,
+		removeApplicationServersRequest.ServicePort,
+		applicationServersMap,
+		removeApplicationServersRequestUUID)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": removeApplicationServersRequestUUID,
+		}).Errorf("can't remove application servers, got error: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		rError := &GetAllServicesResponse{
+			ID:                       removeApplicationServersRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't remove application servers, got internal error: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": removeApplicationServersRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": removeApplicationServersRequestUUID,
+	}).Info("job remove application servers is done")
+
+	// serviceData modify
+	removeApplicationServersResponse := UniversalResponse{
+		ApplicationServers:       removeApplicationServersRequest.ApplicationServers,
+		ServiceIP:                removeApplicationServersRequest.ServiceIP,
+		ServicePort:              removeApplicationServersRequest.ServicePort,
+		ID:                       removeApplicationServersRequestUUID,
+		JobCompletedSuccessfully: true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(removeApplicationServersResponse)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": removeApplicationServersRequestUUID,
+		}).Errorf("can't response by request: %v", err)
+	}
+}
+
+// addApplicationServers godoc
+// @tags Network balance services
+// @Summary Add application servers
+// @Description Make network balance service easier ;)
+// @Param incomeJSON body application.AddApplicationServersRequest true "Expected json"
+// @Accept json
+// @Produce json
+// @Success 200 {object} application.UniversalResponse "If all okay"
+// @Failure 400 {object} application.UniversalResponse "Bad request"
+// @Failure 500 {object} application.UniversalResponse "Internal error"
+// @Router /addapplicationservers [post]
+func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *http.Request) {
+	addApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": addApplicationServersRequestUUID,
+	}).Info("got new add application servers request")
+
+	var err error
+	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
+	buf.ReadFrom(r.Body)
+	bytesFromBuf := buf.Bytes()
+
+	addApplicationServersRequest := &AddApplicationServersRequest{}
+
+	err = json.Unmarshal(bytesFromBuf, addApplicationServersRequest)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": addApplicationServersRequestUUID,
+		}).Errorf("can't unmarshal income add application servers request: %v", err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &GetAllServicesResponse{
+			ID:                       addApplicationServersRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't unmarshal income add application servers request: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": addApplicationServersRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
+	validateError := addApplicationServersRequest.validateAddApplicationServersRequest()
+	if validateError != nil {
+		stringValidateError := errorsValidateToString(validateError)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": addApplicationServersRequestUUID,
+		}).Errorf("validate fail for income add application servers request: %v", stringValidateError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &UniversalResponse{
+			ID:                       addApplicationServersRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't validate income add application servers nwb request: " + stringValidateError,
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": addApplicationServersRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": addApplicationServersRequestUUID,
+	}).Infof("change job uuid from %v to %v", addApplicationServersRequestUUID, addApplicationServersRequest.ID)
+	addApplicationServersRequestUUID = addApplicationServersRequest.ID
+
+	applicationServersMap := addApplicationServersRequest.convertDataAddApplicationServersRequest()
+	// TODO: serviceData?
+	_, err = restAPI.balancerFacade.AddApplicationServersToService(addApplicationServersRequest.ServiceIP,
+		addApplicationServersRequest.ServicePort,
+		applicationServersMap,
+		addApplicationServersRequestUUID)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": addApplicationServersRequestUUID,
+		}).Errorf("can't add application servers, got error: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		rError := &GetAllServicesResponse{
+			ID:                       addApplicationServersRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't add application servers, got internal error: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": addApplicationServersRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity":     restAPIlogName,
+		"event uuid": addApplicationServersRequestUUID,
+	}).Info("job add application servers is done")
+
+	// serviceData modify
+	addApplicationServersResponse := UniversalResponse{
+		// serviceData.SOmwwweee
+		ID:                       addApplicationServersRequestUUID,
+		JobCompletedSuccessfully: true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(addApplicationServersResponse)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": addApplicationServersRequestUUID,
+		}).Errorf("can't response by request: %v", err)
+	}
+}
+
 // getNWBServices godoc
 // @tags Network balance services
 // @Summary Get nlb services
@@ -143,7 +425,7 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 	buf.ReadFrom(r.Body)
 	bytesFromBuf := buf.Bytes()
 
-	newGetNWBRequest := &GetAllServicesRequest{} // maybe use pointer here?
+	newGetNWBRequest := &GetAllServicesRequest{}
 
 	err = json.Unmarshal(bytesFromBuf, newGetNWBRequest)
 	if err != nil {
@@ -158,6 +440,30 @@ func (restAPI *RestAPIstruct) getNWBServices(w http.ResponseWriter, r *http.Requ
 			ID:                       newGetNWBRequestUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't unmarshal income get nwb request: " + err.Error(),
+		}
+		err := json.NewEncoder(w).Encode(rError)
+		if err != nil {
+			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+				"entity":     restAPIlogName,
+				"event uuid": newGetNWBRequestUUID,
+			}).Errorf("can't response by request: %v", err)
+		}
+		return
+	}
+
+	validateError := newGetNWBRequest.validateNewGetNWBRequest()
+	if validateError != nil {
+		stringValidateError := errorsValidateToString(validateError)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":     restAPIlogName,
+			"event uuid": newGetNWBRequestUUID,
+		}).Errorf("validate fail for income get request: %v", stringValidateError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		rError := &UniversalResponse{
+			ID:                       newGetNWBRequestUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "can't validate income get nwb request: " + stringValidateError,
 		}
 		err := json.NewEncoder(w).Encode(rError)
 		if err != nil {
@@ -287,7 +593,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 	buf.ReadFrom(r.Body)
 	bytesFromBuf := buf.Bytes()
 
-	newNWBRequest := &NewBalanceInfo{} // maybe use pointer here?
+	newNWBRequest := &NewBalanceInfo{}
 
 	err = json.Unmarshal(bytesFromBuf, newNWBRequest)
 	if err != nil {
@@ -319,7 +625,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 	}).Infof("change job uuid from %v to %v", newNWBRequestUUID, newNWBRequest.ID)
 	newNWBRequestUUID = newNWBRequest.ID
 
-	validateError := newNWBRequest.validateIncomeRequest()
+	validateError := newNWBRequest.validateNewNWBRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -420,7 +726,7 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 	buf.ReadFrom(r.Body)
 	bytesFromBuf := buf.Bytes()
 
-	removeNWBRequest := &RemoveBalanceInfo{} // maybe use pointer here?
+	removeNWBRequest := &RemoveBalanceInfo{}
 
 	err = json.Unmarshal(bytesFromBuf, removeNWBRequest)
 	if err != nil {
@@ -452,7 +758,7 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 	}).Infof("change job uuid from %v to %v", removeNWBRequestUUID, removeNWBRequest.ID)
 	removeNWBRequestUUID = removeNWBRequest.ID
 
-	validateError := removeNWBRequest.validateIncomeRequest()
+	validateError := removeNWBRequest.validateRemoveNWBRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -508,11 +814,9 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 	}).Info("nwb removed")
 
 	nwbRemoved := UniversalResponse{
-		ID: removeNWBRequestUUID,
-		// ApplicationServers:       removeNWBRequest.ApplicationServers, // FIXME: refactor!!!
-		ServiceIP:   removeNWBRequest.ServiceIP,
-		ServicePort: removeNWBRequest.ServicePort,
-		// HealthcheckType:          removeNWBRequest.HealthcheckType, // FIXME: refactor!!!
+		ID:                       removeNWBRequestUUID,
+		ServiceIP:                removeNWBRequest.ServiceIP,
+		ServicePort:              removeNWBRequest.ServicePort,
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "nwb removed",
 	}
@@ -535,11 +839,36 @@ func (newNWBRequest *NewBalanceInfo) convertDataForNWBService() map[string]strin
 	return applicationServersMap
 }
 
-func (newNWBRequest *NewBalanceInfo) validateIncomeRequest() error {
+func (addApplicationServersRequest *AddApplicationServersRequest) convertDataAddApplicationServersRequest() map[string]string {
+	applicationServersMap := map[string]string{}
+	for _, d := range addApplicationServersRequest.ApplicationServers {
+		applicationServersMap[d.ServerIP] = d.ServerPort
+	}
+	return applicationServersMap
+}
+
+func (removeApplicationServersRequest *RemoveApplicationServersRequest) convertDataRemoveApplicationServersRequest() map[string]string {
+	applicationServersMap := map[string]string{}
+	for _, d := range removeApplicationServersRequest.ApplicationServers {
+		applicationServersMap[d.ServerIP] = d.ServerPort
+	}
+	return applicationServersMap
+}
+
+func (newNWBRequest *NewBalanceInfo) validateNewNWBRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortNewBalanceInfoValidation, NewBalanceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	err := validate.Struct(newNWBRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (getAllServicesRequest *GetAllServicesRequest) validateNewGetNWBRequest() error {
+	validate := validator.New()
+	err := validate.Struct(getAllServicesRequest)
 	if err != nil {
 		return err
 	}
@@ -568,7 +897,7 @@ func customPortServerApplicationValidation(sl validator.StructLevel) {
 	}
 }
 
-func (removeNWBRequest *RemoveBalanceInfo) validateIncomeRequest() error {
+func (removeNWBRequest *RemoveBalanceInfo) validateRemoveNWBRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortNewBalanceInfoValidation, NewBalanceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
@@ -577,6 +906,50 @@ func (removeNWBRequest *RemoveBalanceInfo) validateIncomeRequest() error {
 		return err
 	}
 	return nil
+}
+
+func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApplicationServersRequest() error {
+	validate := validator.New()
+	validate.RegisterStructValidation(customPortAddApplicationServersRequestValidation, AddApplicationServersRequest{})
+	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
+	err := validate.Struct(addApplicationServersRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func customPortAddApplicationServersRequestValidation(sl validator.StructLevel) {
+	nbi := sl.Current().Interface().(AddApplicationServersRequest)
+	port, err := strconv.Atoi(nbi.ServicePort)
+	if err != nil {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
+	}
+	if !(port > 0) || !(port < 20000) {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
+	}
+}
+
+func (removeApplicationServersRequest *RemoveApplicationServersRequest) validateRemoveApplicationServersRequest() error {
+	validate := validator.New()
+	validate.RegisterStructValidation(customPortRemoveApplicationServersRequestValidation, RemoveApplicationServersRequest{})
+	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
+	err := validate.Struct(removeApplicationServersRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func customPortRemoveApplicationServersRequestValidation(sl validator.StructLevel) {
+	nbi := sl.Current().Interface().(RemoveApplicationServersRequest)
+	port, err := strconv.Atoi(nbi.ServicePort)
+	if err != nil {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
+	}
+	if !(port > 0) || !(port < 20000) {
+		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
+	}
 }
 
 func customPortRemoveBalanceInfoValidation(sl validator.StructLevel) {
