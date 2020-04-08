@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/domain"
+	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/sirupsen/logrus"
 	"github.com/thevan4/go-billet/executor"
 )

@@ -15,3 +15,9 @@ type ServiceInfo struct {
 	HealthcheckType    string
 	ExtraInfo          []string
 }
+
+// ServiceWorker ...
+type ServiceWorker interface {
+	CreateService(string, string, map[string]string, string) error // validate service and application servers (ip+port) not existing
+	// RemoveService()
+}

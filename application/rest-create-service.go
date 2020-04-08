@@ -19,9 +19,9 @@ type NewBalanceInfo struct {
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
-// newNWBRequest godoc
+// createService godoc
 // @tags Network balance services
-// @Summary Create nlb service
+// @Summary Create service
 // @Description Make network balance service easier ;)
 // @Param incomeJSON body application.NewBalanceInfo true "Expected json"
 // @Accept json
@@ -29,13 +29,13 @@ type NewBalanceInfo struct {
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /newnetworkbalance [post]
-func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Request) {
-	newNWBRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+// @Router /create-service [post]
+func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Request) {
+	createServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
-		"event uuid": newNWBRequestUUID,
+		"event uuid": createServiceUUID,
 	}).Info("got new add nwb request")
 
 	var err error
@@ -43,19 +43,19 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 	buf.ReadFrom(r.Body)
 	bytesFromBuf := buf.Bytes()
 
-	newNWBRequest := &NewBalanceInfo{}
+	createService := &NewBalanceInfo{}
 
-	err = json.Unmarshal(bytesFromBuf, newNWBRequest)
+	err = json.Unmarshal(bytesFromBuf, createService)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
-			"event uuid": newNWBRequestUUID,
+			"event uuid": createServiceUUID,
 		}).Errorf("can't unmarshal income nwb request: %v", err)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		rError := &UniversalResponse{
-			ID:                       newNWBRequestUUID,
+			ID:                       createServiceUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't unmarshal income nwb request: " + err.Error(),
 		}
@@ -63,7 +63,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 				"entity":     restAPIlogName,
-				"event uuid": newNWBRequestUUID,
+				"event uuid": createServiceUUID,
 			}).Errorf("can't response by request: %v", err)
 		}
 		return
@@ -71,21 +71,21 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
-		"event uuid": newNWBRequestUUID,
-	}).Infof("change job uuid from %v to %v", newNWBRequestUUID, newNWBRequest.ID)
-	newNWBRequestUUID = newNWBRequest.ID
+		"event uuid": createServiceUUID,
+	}).Infof("change job uuid from %v to %v", createServiceUUID, createService.ID)
+	createServiceUUID = createService.ID
 
-	validateError := newNWBRequest.validateNewNWBRequest()
+	validateError := createService.validatecreateService()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
-			"event uuid": newNWBRequestUUID,
+			"event uuid": createServiceUUID,
 		}).Errorf("validate fail for income nwb request: %v", stringValidateError)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		rError := &UniversalResponse{
-			ID:                       newNWBRequestUUID,
+			ID:                       createServiceUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't validate income nwb request: " + stringValidateError,
 		}
@@ -93,26 +93,26 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 				"entity":     restAPIlogName,
-				"event uuid": newNWBRequestUUID,
+				"event uuid": createServiceUUID,
 			}).Errorf("can't response by request: %v", err)
 		}
 		return
 	}
-	applicationServersMap := newNWBRequest.convertDataForNWBService()
-	err = restAPI.balancerFacade.NewNWBService(newNWBRequest.ServiceIP,
-		newNWBRequest.ServicePort,
+	applicationServersMap := createService.convertDataForNWBService()
+	err = restAPI.balancerFacade.CreateService(createService.ServiceIP,
+		createService.ServicePort,
 		applicationServersMap,
-		newNWBRequestUUID)
+		createServiceUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
-			"event uuid": newNWBRequestUUID,
+			"event uuid": createServiceUUID,
 		}).Errorf("can't create new nwb, got error: %v", err)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		rError := &UniversalResponse{
-			ID:                       newNWBRequestUUID,
+			ID:                       createServiceUUID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "can't create new nwb, got internal error: " + err.Error(),
 		}
@@ -120,7 +120,7 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 				"entity":     restAPIlogName,
-				"event uuid": newNWBRequestUUID,
+				"event uuid": createServiceUUID,
 			}).Errorf("can't response by request: %v", err)
 		}
 		return
@@ -128,15 +128,15 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
-		"event uuid": newNWBRequestUUID,
+		"event uuid": createServiceUUID,
 	}).Info("new nwb created")
 
 	nwbCreated := UniversalResponse{
-		ID:                       newNWBRequestUUID,
-		ApplicationServers:       newNWBRequest.ApplicationServers,
-		ServiceIP:                newNWBRequest.ServiceIP,
-		ServicePort:              newNWBRequest.ServicePort,
-		HealthcheckType:          newNWBRequest.HealthcheckType,
+		ID:                       createServiceUUID,
+		ApplicationServers:       createService.ApplicationServers,
+		ServiceIP:                createService.ServiceIP,
+		ServicePort:              createService.ServicePort,
+		HealthcheckType:          createService.HealthcheckType,
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "new nwb created",
 	}
@@ -147,31 +147,31 @@ func (restAPI *RestAPIstruct) newNWBRequest(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
-			"event uuid": newNWBRequestUUID,
+			"event uuid": createServiceUUID,
 		}).Errorf("can't response by request: %v", err)
 	}
 }
 
-func (newNWBRequest *NewBalanceInfo) convertDataForNWBService() map[string]string {
+func (createService *NewBalanceInfo) convertDataForNWBService() map[string]string {
 	applicationServersMap := map[string]string{}
-	for _, d := range newNWBRequest.ApplicationServers {
+	for _, d := range createService.ApplicationServers {
 		applicationServersMap[d.ServerIP] = d.ServerPort
 	}
 	return applicationServersMap
 }
 
-func (newNWBRequest *NewBalanceInfo) validateNewNWBRequest() error {
+func (createService *NewBalanceInfo) validatecreateService() error {
 	validate := validator.New()
-	validate.RegisterStructValidation(customPortValidationForNewNWBRequest, NewBalanceInfo{})
+	validate.RegisterStructValidation(customPortValidationForcreateService, NewBalanceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	err := validate.Struct(newNWBRequest)
+	err := validate.Struct(createService)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func customPortValidationForNewNWBRequest(sl validator.StructLevel) {
+func customPortValidationForcreateService(sl validator.StructLevel) {
 	nbi := sl.Current().Interface().(NewBalanceInfo)
 	port, err := strconv.Atoi(nbi.ServicePort)
 	if err != nil {

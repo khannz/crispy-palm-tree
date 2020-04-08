@@ -8,8 +8,17 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
+
+func stringToUINT16(sval string) (uint16, error) {
+	v, err := strconv.ParseUint(sval, 0, 16)
+	if err != nil {
+		return 0, err
+	}
+	return uint16(v), nil
+}
 
 func removeRowFromFile(fileFullPath, rowToRemove string) error {
 	foundLines, err := detectLines(fileFullPath, rowToRemove)
