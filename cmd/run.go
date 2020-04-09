@@ -42,6 +42,7 @@ var rootCmd = &cobra.Command{
 			"fwmark number":              viperConfig.GetString(fwmarkNumberName),
 			"path to ifcfg tunnel files": viperConfig.GetString(pathToIfcfgTunnelFilesName),
 			"sysctl config path":         viperConfig.GetString(sysctlConfigsPathName),
+			"database path":              viperConfig.GetString(databasePathName),
 			"mock mode":                  viperConfig.GetBool(mockMode),
 		}).Info("")
 
@@ -71,11 +72,33 @@ var rootCmd = &cobra.Command{
 			logging)
 		// tunnel maker end
 
+		// cache database start
+		cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("NewDatabaseEntity for cache fatal error: %v", err)
+		}
+		defer cacheDB.Db.Close()
+		// cache database end
+
+		// persistent databe start
+		persistentDB, err := portadapter.NewStorageEntity(false, viperConfig.GetString(databasePathName), logging)
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("NewDatabaseEntity for cache fatal error: %v", err)
+		}
+		defer persistentDB.Db.Close()
+		// persistent databe end
+
 		// vrrpConfigurator start
 		vrrpConfigurator := portadapter.NewIPVSADMEntity(locker)
 		// vrrpConfigurator end
 
-		facade := application.NewBalancerFacade(locker, vrrpConfigurator, tunnelMaker, uuidGenerator, logging)
+		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
 
 		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade)
 		go restAPI.UpRestAPI()

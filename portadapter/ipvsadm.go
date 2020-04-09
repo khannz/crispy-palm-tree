@@ -19,9 +19,7 @@ func NewIPVSADMEntity(locker *domain.Locker) *IPVSADMEntity {
 }
 
 // CreateService ... // FIXME: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
-func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceIP,
-	rawServicePort string,
-	rawApplicationServers map[string]string,
+func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo,
 	createServiceUUID string) error {
 	ipvsadmEntity.locker.Lock()
 	defer ipvsadmEntity.locker.Unlock()
@@ -32,32 +30,32 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceIP,
 	}
 	defer ipvs.Exit()
 
-	err = checkServiceCreateIsValid(serviceIP,
-		rawServicePort,
-		rawApplicationServers,
+	err = checkServiceCreateIsValid(serviceInfo.ServiceIP,
+		serviceInfo.ServicePort,
+		serviceInfo.ApplicationServers,
 		createServiceUUID)
 	if err != nil {
 		return fmt.Errorf("won't create service, got extra validate error: %v", err)
 	}
 
-	servicePort, err := stringToUINT16(rawServicePort)
+	servicePort, err := stringToUINT16(serviceInfo.ServicePort)
 	if err != nil {
 		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
 	}
 
-	applicationServers, err := convertRawApplicationServers(rawApplicationServers)
+	applicationServers, err := convertRawApplicationServers(serviceInfo.ApplicationServers)
 	if err != nil {
 		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
 	}
 
 	// AddService for IPv4
-	err = ipvs.AddService(serviceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")), "rr")
+	err = ipvs.AddService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")), "rr")
 	if err != nil {
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
 
 	for ip, port := range applicationServers {
-		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
+		err := ipvs.AddDestPort(serviceInfo.ServiceIP, servicePort, ip,
 			port, uint16(gnl2go.ToProtoNum("tcp")), 10, gnl2go.IPVS_TUNNELING)
 		if err != nil {
 			return fmt.Errorf("cant add 1st dest to service sched flags: %v", err)
@@ -90,7 +88,7 @@ func ipvsInit() (*gnl2go.IpvsClient, error) {
 
 func checkServiceCreateIsValid(serviceIP,
 	rawServicePort string,
-	rawApplicationServers map[string]string,
+	rawApplicationServers []domain.ApplicationServer,
 	eventUUID string) error {
 	var err error
 	err = validateServiceUnique(serviceIP,
@@ -115,13 +113,13 @@ func validateServiceUnique(serviceIP,
 	return nil
 }
 
-func validateApplicationServesIsUnique(rawApplicationServers map[string]string,
+func validateApplicationServesIsUnique(rawApplicationServers []domain.ApplicationServer,
 	eventUUID string) error {
 	var err error
-	for ip, port := range rawApplicationServers {
-		err = validateApplicationServerIsUnique(ip, port, eventUUID)
+	for _, applicationServer := range rawApplicationServers {
+		err = validateApplicationServerIsUnique(applicationServer.ServerIP, applicationServer.ServerPort, eventUUID)
 		if err != nil {
-			return fmt.Errorf("validateApplicationServerIsUnique for ip %v port %v fail: %v", ip, port, err)
+			return fmt.Errorf("validateApplicationServerIsUnique for ip %v port %v fail: %v", applicationServer.ServerIP, applicationServer.ServerPort, err)
 		}
 	}
 	return nil
@@ -134,15 +132,15 @@ func validateApplicationServerIsUnique(ip,
 	return nil
 }
 
-func convertRawApplicationServers(rawApplicationServers map[string]string) (map[string]uint16, error) {
+func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServer) (map[string]uint16, error) {
 	applicationServers := map[string]uint16{}
 
-	for ip, rawPort := range rawApplicationServers {
-		port, err := stringToUINT16(rawPort)
+	for _, applicationServer := range rawApplicationServers {
+		port, err := stringToUINT16(applicationServer.ServerPort)
 		if err != nil {
-			return applicationServers, fmt.Errorf("can't convert port %v to type uint16: %v", rawPort, err)
+			return applicationServers, fmt.Errorf("can't convert port %v to type uint16: %v", applicationServer.ServerPort, err)
 		}
-		applicationServers[ip] = port
+		applicationServers[applicationServer.ServerIP] = port
 	}
 	return applicationServers, nil
 }

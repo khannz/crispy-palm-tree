@@ -29,6 +29,7 @@ const (
 	// defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
 	// defaultSysctlConfigsPath      = "/etc/sysctl.d/"
 	// defaultKeepalivedConfigPath   = "/etc/keepalived/keepalived.conf"
+	defaultDatabasePath           = "./database"
 	defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/nw-pr-lb/network-scripts/"
 	defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/nw-pr-lb/sysctl.d/"
 	defaultMockMode               = true
@@ -49,6 +50,7 @@ const (
 	fwmarkNumberName           = "fwmark-number"
 	pathToIfcfgTunnelFilesName = "path-to-ifcfg-tunnel-files"
 	sysctlConfigsPathName      = "sysctl-configs-path"
+	databasePathName           = "database-path"
 	mockMode                   = "mock-mode"
 )
 
@@ -85,6 +87,8 @@ func init() {
 	pflag.String(fwmarkNumberName, defaultFwmarkNumber, "fwmark number")
 	pflag.String(pathToIfcfgTunnelFilesName, defaultPathToIfcfgTunnelFiles, "path to ifcfg tunnel files")
 	pflag.String(sysctlConfigsPathName, defaultSysctlConfigsPath, "sysctl config path")
+
+	pflag.String(databasePathName, defaultDatabasePath, "Path to persistent database")
 
 	pflag.Bool(mockMode, defaultMockMode, "Mock mode. No commands will be executed")
 
