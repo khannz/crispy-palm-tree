@@ -42,7 +42,7 @@ func NewBalancerFacade(locker *domain.Locker,
 func (balancerFacade *BalancerFacade) CreateService(serviceIP,
 	servicePort string,
 	applicationServers map[string]string,
-	newNWBRequestUUID string) error {
+	createServiceUUID string) error {
 	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
 		balancerFacade.VRRPConfigurator,
 		balancerFacade.CacheStorage,
@@ -51,14 +51,21 @@ func (balancerFacade *BalancerFacade) CreateService(serviceIP,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
-	return newCreateServiceEntity.CreateService(serviceInfo, newNWBRequestUUID)
+	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
 }
 
-// // RemoveNWBService ...
-// func (balancerFacade *BalancerFacade) RemoveNWBService(serviceIP, servicePort string, newNWBRequestUUID string) error {
-// 	removeNWBService := usecase.NewRemoveNlbService(balancerFacade.TunnelConfig, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-// 	return removeNWBService.RemoveNWBService(serviceIP, servicePort, newNWBRequestUUID)
-// }
+// RemoveService ...
+func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort string, newNWBRequestUUID string) error {
+	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
+		balancerFacade.VRRPConfigurator,
+		balancerFacade.CacheStorage,
+		balancerFacade.PersistentStorage,
+		balancerFacade.TunnelConfig,
+		balancerFacade.UUIDgenerator,
+		balancerFacade.Logging)
+	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, nil)
+	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
+}
 
 // // GetNWBServices ...
 // func (balancerFacade *BalancerFacade) GetNWBServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {

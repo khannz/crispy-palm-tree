@@ -216,3 +216,8 @@ func (storageEntity *StorageEntity) detectAllApplicationServersForService(servic
 	}
 	return applicationServers, nil
 }
+
+// CompareStorageAndActualConfig - WIP
+func (storageEntity *StorageEntity) CompareStorageAndActualConfig(configuratorVRRP domain.ServiceWorker) error {
+	return nil
+}

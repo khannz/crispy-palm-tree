@@ -67,9 +67,9 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo domain.Servi
 			// TODO: log: cant roll back
 		}
 
-		// if errRollBackCache := createService.configuratorVRRP.RemoveService(serviceInfo, createServiceUUID); errRollBackCache != nil {
-		// 	// TODO: log: cant roll back
-		// }
+		if errRollBackCache := createService.configuratorVRRP.RemoveService(serviceInfo, createServiceUUID); errRollBackCache != nil {
+			// TODO: log: cant roll back
+		}
 		return fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
 
@@ -80,14 +80,14 @@ func (createService *CreateServiceEntity) addNewServiceToCacheStorage(serviceInf
 	createService.cacheStorage.Lock()
 	defer createService.cacheStorage.Unlock()
 	if err := createService.cacheStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
-		return fmt.Errorf("Error add new service data to storage: %v", err)
+		return fmt.Errorf("error add new service data to cache storage: %v", err)
 	}
 	return nil
 }
 
 func (createService *CreateServiceEntity) addNewServiceToPersistentStorage(serviceInfo domain.ServiceInfo, createServiceUUID string) error {
 	if err := createService.persistentStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
-		return fmt.Errorf("Error add new service data to storage: %v", err)
+		return fmt.Errorf("error add new service data to persistent storage: %v", err)
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func (createService *CreateServiceEntity) removeNewServiceFromCacheStorage(servi
 	createService.cacheStorage.Lock()
 	defer createService.cacheStorage.Unlock()
 	if err := createService.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, createServiceUUID); err != nil {
-		return fmt.Errorf("Error add new service data to storage: %v", err)
+		return fmt.Errorf("error remove service %v data from cache storage: %v", serviceInfo, err)
 	}
 	return nil
 }

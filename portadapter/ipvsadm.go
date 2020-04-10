@@ -1,7 +1,6 @@
 package portadapter
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
@@ -29,14 +28,6 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo
 		return fmt.Errorf("can't ipvs Init: %v", err)
 	}
 	defer ipvs.Exit()
-
-	err = checkServiceCreateIsValid(serviceInfo.ServiceIP,
-		serviceInfo.ServicePort,
-		serviceInfo.ApplicationServers,
-		createServiceUUID)
-	if err != nil {
-		return fmt.Errorf("won't create service, got extra validate error: %v", err)
-	}
 
 	servicePort, err := stringToUINT16(serviceInfo.ServicePort)
 	if err != nil {
@@ -69,67 +60,14 @@ func ipvsInit() (*gnl2go.IpvsClient, error) {
 	ipvs := new(gnl2go.IpvsClient)
 	err := ipvs.Init()
 	if err != nil {
-		return ipvs, fmt.Errorf("Cant initialize ipvs client, error is %v", err)
+		return ipvs, fmt.Errorf("cant initialize ipvs client, error is %v", err)
 	}
-	err = ipvs.Flush()
+	_, err = ipvs.GetPools()
 	if err != nil {
-		return ipvs, fmt.Errorf("Error while running ipvs Flush method %v", err)
+		return ipvs, fmt.Errorf("error while running ipvs GetPools method %v", err)
 	}
 
-	p, err := ipvs.GetPools()
-	if err != nil {
-		return ipvs, fmt.Errorf("Error while running ipvs GetPools method %v", err)
-	}
-	if len(p) != 0 {
-		return ipvs, errors.New("ipvs Flush method havent cleared all the data")
-	}
 	return ipvs, nil
-}
-
-func checkServiceCreateIsValid(serviceIP,
-	rawServicePort string,
-	rawApplicationServers []domain.ApplicationServer,
-	eventUUID string) error {
-	var err error
-	err = validateServiceUnique(serviceIP,
-		rawServicePort,
-		eventUUID)
-	if err != nil {
-		return fmt.Errorf("validateServiceUnique fail: %v", err)
-	}
-
-	err = validateApplicationServesIsUnique(rawApplicationServers, eventUUID)
-	if err != nil {
-		return fmt.Errorf("validateApplicationServesIsUnique fail: %v", err)
-	}
-
-	return nil
-}
-
-func validateServiceUnique(serviceIP,
-	rawServicePort string,
-	eventUUID string) error {
-	//TODO: some validate
-	return nil
-}
-
-func validateApplicationServesIsUnique(rawApplicationServers []domain.ApplicationServer,
-	eventUUID string) error {
-	var err error
-	for _, applicationServer := range rawApplicationServers {
-		err = validateApplicationServerIsUnique(applicationServer.ServerIP, applicationServer.ServerPort, eventUUID)
-		if err != nil {
-			return fmt.Errorf("validateApplicationServerIsUnique for ip %v port %v fail: %v", applicationServer.ServerIP, applicationServer.ServerPort, err)
-		}
-	}
-	return nil
-}
-
-func validateApplicationServerIsUnique(ip,
-	port string,
-	eventUUID string) error {
-	//TODO: some validate
-	return nil
 }
 
 func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServer) (map[string]uint16, error) {
@@ -143,4 +81,28 @@ func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServ
 		applicationServers[applicationServer.ServerIP] = port
 	}
 	return applicationServers, nil
+}
+
+// RemoveService ...
+func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo domain.ServiceInfo, requestUUID string) error {
+	ipvsadmEntity.locker.Lock()
+	defer ipvsadmEntity.locker.Unlock()
+
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+
+	servicePort, err := stringToUINT16(serviceInfo.ServicePort)
+	if err != nil {
+		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
+	}
+
+	err = ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
+	if err != nil {
+		return fmt.Errorf("error while running DelService for ipv4: %v", err)
+	}
+
+	return nil
 }

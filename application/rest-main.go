@@ -56,7 +56,7 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIs
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.HandleFunc("/create-service", restAPI.createService).Methods("POST")
-	// restAPI.router.HandleFunc("/removenetworkbalance", restAPI.removeNWBRequest).Methods("POST")
+	restAPI.router.HandleFunc("/remove-service", restAPI.removeNWBRequest).Methods("POST")
 	// restAPI.router.HandleFunc("/networkservicesinfo", restAPI.getNWBServices).Methods("POST")
 	// restAPI.router.HandleFunc("/addapplicationservers", restAPI.addApplicationServers).Methods("POST")
 	// restAPI.router.HandleFunc("/removeapplicationservers", restAPI.removeApplicationServers).Methods("POST")
