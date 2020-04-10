@@ -3,9 +3,9 @@ package application
 import (
 	"net/http"
 
-	// Need for httpSwagger
-	_ "git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/docs"
 	"github.com/gorilla/mux"
+	// Need for httpSwagger
+	_ "github.com/khannz/crispy-palm-tree/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -55,11 +55,11 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIs
 
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
-	restAPI.router.HandleFunc("/newnetworkbalance", restAPI.newNWBRequest).Methods("POST")
-	restAPI.router.HandleFunc("/removenetworkbalance", restAPI.removeNWBRequest).Methods("POST")
-	restAPI.router.HandleFunc("/networkservicesinfo", restAPI.getNWBServices).Methods("POST")
-	restAPI.router.HandleFunc("/addapplicationservers", restAPI.addApplicationServers).Methods("POST")
-	restAPI.router.HandleFunc("/removeapplicationservers", restAPI.removeApplicationServers).Methods("POST")
+	restAPI.router.HandleFunc("/create-service", restAPI.createService).Methods("POST")
+	restAPI.router.HandleFunc("/remove-service", restAPI.removeNWBRequest).Methods("POST")
+	// restAPI.router.HandleFunc("/networkservicesinfo", restAPI.getNWBServices).Methods("POST")
+	// restAPI.router.HandleFunc("/addapplicationservers", restAPI.addApplicationServers).Methods("POST")
+	// restAPI.router.HandleFunc("/removeapplicationservers", restAPI.removeApplicationServers).Methods("POST")
 	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
 
 	err := restAPI.server.ListenAndServe()

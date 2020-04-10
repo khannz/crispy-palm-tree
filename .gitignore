@@ -6,3 +6,4 @@ swag
 *.json
 *.conf
 route-tun*
+database/*

@@ -1,7 +1,7 @@
 package portadapter
 
 import (
-	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/domain"
+	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/gofrs/uuid"
 )
 

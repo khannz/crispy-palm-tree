@@ -10,6 +10,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// RemoveBalanceInfo ...
+type RemoveBalanceInfo struct {
+	ID          string `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ServiceIP   string `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
+	ServicePort string `json:"servicePort" validate:"required" example:"1111"`
+}
+
 // removeNWBRequest godoc
 // @tags Network balance services
 // @Summary Remove nlb service
@@ -20,7 +27,7 @@ import (
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /removenetworkbalance [post]
+// @Router /remove-service [post]
 func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Request) {
 	removeNWBRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 
@@ -90,7 +97,7 @@ func (restAPI *RestAPIstruct) removeNWBRequest(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err = restAPI.balancerFacade.RemoveNWBService(removeNWBRequest.ServiceIP,
+	err = restAPI.balancerFacade.RemoveService(removeNWBRequest.ServiceIP,
 		removeNWBRequest.ServicePort,
 		removeNWBRequestUUID)
 	if err != nil {

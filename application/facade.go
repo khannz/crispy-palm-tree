@@ -1,80 +1,120 @@
 package application
 
 import (
-	"fmt"
-
-	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/domain"
-	"git.sdn.sbrf.ru/users/tihonov-id/repos/nw-pr-lb/usecase"
+	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
 )
 
 // BalancerFacade struct
 type BalancerFacade struct {
-	NetworkConfig        *domain.NetworkConfig
-	TunnelConfig         domain.TunnelMaker
-	KeepalivedCustomizer domain.KeepalivedCustomizer
-	UUIDgenerator        domain.UUIDgenerator
-	Logging              *logrus.Logger
+	Locker            *domain.Locker
+	VRRPConfigurator  domain.ServiceWorker
+	CacheStorage      *portadapter.StorageEntity // so dirty
+	PersistentStorage *portadapter.StorageEntity // so dirty
+	TunnelConfig      domain.TunnelMaker
+	UUIDgenerator     domain.UUIDgenerator
+	Logging           *logrus.Logger
 }
 
 // NewBalancerFacade ...
-func NewBalancerFacade(networkConfig *domain.NetworkConfig,
+func NewBalancerFacade(locker *domain.Locker,
+	vrrpConfigurator domain.ServiceWorker,
+	cacheStorage *portadapter.StorageEntity,
+	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
-	keepalivedCustomizer domain.KeepalivedCustomizer,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
 
 	return &BalancerFacade{
-		NetworkConfig:        networkConfig,
-		TunnelConfig:         tunnelConfig,
-		KeepalivedCustomizer: keepalivedCustomizer,
-		UUIDgenerator:        uuidGenerator,
-		Logging:              logging,
+		Locker:            locker,
+		VRRPConfigurator:  vrrpConfigurator,
+		CacheStorage:      cacheStorage,
+		PersistentStorage: persistentStorage,
+		TunnelConfig:      tunnelConfig,
+		UUIDgenerator:     uuidGenerator,
+		Logging:           logging,
 	}
 }
 
-// NewNWBService ...
-func (balancerFacade *BalancerFacade) NewNWBService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) error {
-	addNlbService := usecase.NewAddNlbService(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-	return addNlbService.CreateNewNWBService(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
+// CreateService ...
+func (balancerFacade *BalancerFacade) CreateService(serviceIP,
+	servicePort string,
+	applicationServers map[string]string,
+	createServiceUUID string) error {
+	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
+		balancerFacade.VRRPConfigurator,
+		balancerFacade.CacheStorage,
+		balancerFacade.PersistentStorage,
+		balancerFacade.TunnelConfig,
+		balancerFacade.UUIDgenerator,
+		balancerFacade.Logging)
+	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
+	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
 }
 
-// RemoveNWBService ...
-func (balancerFacade *BalancerFacade) RemoveNWBService(serviceIP, servicePort string, newNWBRequestUUID string) error {
-	removeNWBService := usecase.NewRemoveNlbService(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-	return removeNWBService.RemoveNWBService(serviceIP, servicePort, newNWBRequestUUID)
+// RemoveService ...
+func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort string, newNWBRequestUUID string) error {
+	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
+		balancerFacade.VRRPConfigurator,
+		balancerFacade.CacheStorage,
+		balancerFacade.PersistentStorage,
+		balancerFacade.TunnelConfig,
+		balancerFacade.UUIDgenerator,
+		balancerFacade.Logging)
+	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, nil)
+	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
 }
 
-// GetNWBServices ...
-func (balancerFacade *BalancerFacade) GetNWBServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {
-	getNWBServices := usecase.NewGetNlbServices(balancerFacade.NetworkConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.Logging)
-	nwbServices, err := getNWBServices.GetAllNWBServices(getNWBServicesUUID)
-	if err != nil {
-		return nil, fmt.Errorf("can't get nwb services: %v", err)
+// // GetNWBServices ...
+// func (balancerFacade *BalancerFacade) GetNWBServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {
+// 	getNWBServices := usecase.NewGetNlbServices(balancerFacade.Logging)
+// 	nwbServices, err := getNWBServices.GetAllNWBServices(getNWBServicesUUID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("can't get nwb services: %v", err)
+// 	}
+// 	return nwbServices, nil
+// }
+
+// // AddApplicationServersToService ...
+// func (balancerFacade *BalancerFacade) AddApplicationServersToService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {
+// 	var err error
+// 	var serviceInfo domain.ServiceInfo
+// 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.TunnelConfig, balancerFacade.UUIDgenerator, balancerFacade.Logging)
+// 	serviceInfo, err = addApplicationServers.AddNewApplicationServers(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
+// 	if err != nil {
+// 		return serviceInfo, fmt.Errorf("can't add application servers to service: %v", err)
+// 	}
+// 	return serviceInfo, nil
+// }
+
+// // RemoveApplicationServersFromService ...
+// func (balancerFacade *BalancerFacade) RemoveApplicationServersFromService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {
+// 	var err error
+// 	var serviceInfo domain.ServiceInfo
+// 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.TunnelConfig, balancerFacade.UUIDgenerator, balancerFacade.Logging)
+// 	serviceInfo, err = removeApplicationServers.RemoveNewApplicationServers(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
+// 	if err != nil {
+// 		return serviceInfo, fmt.Errorf("can't remove application servers to service: %v", err)
+// 	}
+// 	return serviceInfo, nil
+// }
+
+func incomeServiceDataToDomainModel(serviceIP,
+	servicePort string,
+	rawApplicationServers map[string]string) domain.ServiceInfo {
+	applicationServers := []domain.ApplicationServer{}
+	for ip, port := range rawApplicationServers {
+		applicationServer := domain.ApplicationServer{
+			ServerIP:   ip,
+			ServerPort: port,
+		}
+		applicationServers = append(applicationServers, applicationServer)
 	}
-	return nwbServices, nil
-}
-
-// AddApplicationServersToService ...
-func (balancerFacade *BalancerFacade) AddApplicationServersToService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {
-	var err error
-	var serviceInfo domain.ServiceInfo
-	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-	serviceInfo, err = addApplicationServers.AddNewApplicationServers(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
-	if err != nil {
-		return serviceInfo, fmt.Errorf("can't add application servers to service: %v", err)
+	return domain.ServiceInfo{
+		ServiceIP:          serviceIP,
+		ServicePort:        servicePort,
+		ApplicationServers: applicationServers,
 	}
-	return serviceInfo, nil
-}
-
-// RemoveApplicationServersFromService ...
-func (balancerFacade *BalancerFacade) RemoveApplicationServersFromService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {
-	var err error
-	var serviceInfo domain.ServiceInfo
-	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.NetworkConfig, balancerFacade.TunnelConfig, balancerFacade.KeepalivedCustomizer, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-	serviceInfo, err = removeApplicationServers.RemoveNewApplicationServers(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
-	if err != nil {
-		return serviceInfo, fmt.Errorf("can't remove application servers to service: %v", err)
-	}
-	return serviceInfo, nil
 }
