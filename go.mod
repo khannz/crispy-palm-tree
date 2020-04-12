@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.2.0
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gorilla/mux v1.7.4
+	github.com/r3labs/diff v1.0.1
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5

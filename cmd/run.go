@@ -98,6 +98,16 @@ var rootCmd = &cobra.Command{
 		vrrpConfigurator := portadapter.NewIPVSADMEntity(locker)
 		// vrrpConfigurator end
 
+		err = validateActualAndStorageConfigs(persistentDB, vrrpConfigurator) // FIXME: cacheDB
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("init program fail: storage config not valid: %v", err)
+		}
+
+		// validate config end
+
 		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
 
 		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade)
@@ -157,19 +167,13 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
-// TODO: include "keepalived.d/services-enabled/*.conf" check it too!
+func validateActualAndStorageConfigs(storage *portadapter.StorageEntity,
+	ipvsadmEntity *portadapter.IPVSADMEntity) error {
+	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
+	if err != nil {
+		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
+	}
+	return nil
+}
 
-//TODO:
-// long: bird peering autoset when cold cold start
-
-// add and remove real servers
-// if real 1 - exit error
-// gen commands for real servers!
-// response: report about created (ip real services created)
-// register in controller
-
-// long: firewall rules (iptables)
-
-// NEXTTODEPLOY:
-// контроллер: тоже что и сюда + у него информация о всех балансировщиках (статус, количество, регистрация, разрегистрация, загрузка(CPU+network(сессии в сек)), мониторинг балансировщиков)
-// на основе зоны безы выбор подсеть (номер автономной сети) и на резать там VM
+// TODO: long: bird peering autoset when cold cold start
