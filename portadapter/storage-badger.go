@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"sync"
 
 	badger "github.com/dgraph-io/badger/v2"
@@ -217,7 +218,41 @@ func (storageEntity *StorageEntity) detectAllApplicationServersForService(servic
 	return applicationServers, nil
 }
 
-// CompareStorageAndActualConfig - WIP
-func (storageEntity *StorageEntity) CompareStorageAndActualConfig(configuratorVRRP domain.ServiceWorker) error {
-	return nil
+// LoadAllStorageDataToDomainModel ...
+func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]domain.ServiceInfo, error) {
+	servicesInfo := []domain.ServiceInfo{}
+	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 10
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			key := item.Key()
+			err := item.Value(func(val []byte) error {
+				oldApplicationServers := []domain.ApplicationServer{}
+				if err := json.Unmarshal(val, &oldApplicationServers); err != nil {
+					return fmt.Errorf("can't unmarshall application servers data: %v", err)
+				}
+				rawServiceData := strings.Split(string(key), ":")
+				if len(rawServiceData) != 2 {
+					return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
+				}
+				serviceInfo := domain.ServiceInfo{
+					ServiceIP:          rawServiceData[0],
+					ServicePort:        rawServiceData[1],
+					ApplicationServers: oldApplicationServers,
+				}
+				servicesInfo = append(servicesInfo, serviceInfo)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return servicesInfo, nil
 }
