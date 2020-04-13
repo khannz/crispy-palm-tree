@@ -75,7 +75,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	}).Infof("change job uuid from %v to %v", createServiceUUID, createService.ID)
 	createServiceUUID = createService.ID
 
-	validateError := createService.validatecreateService()
+	applicationServersMap, validateError := createService.validateCreateService()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -98,7 +98,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	applicationServersMap := createService.convertDataForNWBService()
+
 	err = restAPI.balancerFacade.CreateService(createService.ServiceIP,
 		createService.ServicePort,
 		applicationServersMap,
@@ -160,15 +160,20 @@ func (createService *NewBalanceInfo) convertDataForNWBService() map[string]strin
 	return applicationServersMap
 }
 
-func (createService *NewBalanceInfo) validatecreateService() error {
+func (createService *NewBalanceInfo) validateCreateService() (map[string]string, error) {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortValidationForcreateService, NewBalanceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	err := validate.Struct(createService)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	applicationServersMap := createService.convertDataForNWBService()
+	err = deepValidateServiceInfo(createService.ServiceIP, createService.ServicePort, applicationServersMap)
+	if err != nil {
+		return nil, err
+	}
+	return applicationServersMap, err
 }
 
 func customPortValidationForcreateService(sl validator.StructLevel) {
