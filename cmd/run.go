@@ -72,27 +72,16 @@ var rootCmd = &cobra.Command{
 			logging)
 		// tunnel maker end
 
-		// cache database start
-		cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
+		// db and cache init
+		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Fatalf("NewDatabaseEntity for cache fatal error: %v", err)
+			}).Fatalf("storage and cache init error: %v", err)
 		}
 		defer cacheDB.Db.Close()
-		// cache database end
-
-		// persistent databe start
-		persistentDB, err := portadapter.NewStorageEntity(false, viperConfig.GetString(databasePathName), logging)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("NewDatabaseEntity for cache fatal error: %v", err)
-		}
 		defer persistentDB.Db.Close()
-		// persistent databe end
 
 		// vrrpConfigurator start
 		vrrpConfigurator := portadapter.NewIPVSADMEntity(locker)
@@ -105,7 +94,6 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("init program fail: storage config not valid: %v", err)
 		}
-
 		// validate config end
 
 		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
@@ -174,6 +162,25 @@ func validateActualAndStorageConfigs(storage *portadapter.StorageEntity,
 		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
 	}
 	return nil
+}
+
+func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
+	cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init NewStorageEntity for cache error: %v", err)
+	}
+
+	persistentDB, err := portadapter.NewStorageEntity(false, databasePath, logging)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init NewStorageEntity for persistent storage error: %v", err)
+	}
+
+	err = cacheDB.LoadCacheFromStorage(persistentDB)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cant load cache from storage: %v", err)
+	}
+
+	return cacheDB, persistentDB, nil
 }
 
 // TODO: long: bird peering autoset when cold cold start

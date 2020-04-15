@@ -61,7 +61,7 @@ func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData domain.S
 		return fmt.Errorf("can't form data for storage: %v", err)
 	}
 
-	err = storageEntity.checkUnique(serviceDataKey, serviceData.ApplicationServers)
+	err = storageEntity.checkUnique(serviceDataKey, serviceData)
 	if err != nil {
 		return fmt.Errorf("some key not unique: %v", err)
 	}
@@ -114,15 +114,19 @@ func formDataForDatabase(serviceData domain.ServiceInfo) ([]byte,
 }
 
 func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
-	applicationServers []domain.ApplicationServer) error {
+	serviceInfo domain.ServiceInfo) error {
 	var err error
 	err = storageEntity.checkServiceUniqueInDatabase(serviceDataKey)
 	if err != nil {
 		return fmt.Errorf("service is not unique: %v", err)
 	}
+	err = storageEntity.checkUniqueInApplicationServersFromDatabase(serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	if err != nil {
+		return fmt.Errorf("service is not unique, find it in applicatation servers: %v", err)
+	}
 
-	for _, applicationServer := range applicationServers {
-		err = storageEntity.checkUniqueApplicationServerInDatabase(applicationServer)
+	for _, applicationServer := range serviceInfo.ApplicationServers {
+		err = storageEntity.checkUniqueInApplicationServersFromDatabase(applicationServer.ServerIP, applicationServer.ServerPort)
 		if err != nil {
 			return fmt.Errorf("application server for service %s is not unique: %v", serviceDataKey, err)
 		}
@@ -130,7 +134,7 @@ func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
 	return nil
 }
 
-func (storageEntity *StorageEntity) checkUniqueApplicationServerInDatabase(applicationServer domain.ApplicationServer) error {
+func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(checkIP, checkPort string) error {
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -146,7 +150,8 @@ func (storageEntity *StorageEntity) checkUniqueApplicationServerInDatabase(appli
 				}
 
 				for _, oldApplicationServer := range oldApplicationServers {
-					if applicationServer == oldApplicationServer {
+					if checkIP == oldApplicationServer.ServerIP &&
+						checkPort == oldApplicationServer.ServerPort {
 						return fmt.Errorf("in service %s application server %s already exist", serviceData, oldApplicationServer)
 					}
 				}
@@ -255,4 +260,33 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]domain.
 		return nil, err
 	}
 	return servicesInfo, nil
+}
+
+// LoadCacheFromStorage ...
+func (storageEntity *StorageEntity) LoadCacheFromStorage(oldStorageEntity *StorageEntity) error {
+	err := oldStorageEntity.Db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 10
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			k := item.Key()
+			err := item.Value(func(v []byte) error {
+				err := storageEntity.Db.Update(func(txn *badger.Txn) error {
+					err := txn.Set(k, v)
+					return err
+				})
+				return err
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

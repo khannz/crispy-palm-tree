@@ -47,3 +47,17 @@ func errorsValidateToString(validateError error) string {
 	}
 	return errorsString
 }
+
+func deepValidateServiceInfo(serviceIP, servicePort string, applicationServers map[string]string) error {
+	for appSrvIP, appSrvPort := range applicationServers {
+		if serviceIP == appSrvIP &&
+			servicePort == appSrvPort {
+			return fmt.Errorf("service %v:%v equal application service %v:%v",
+				serviceIP,
+				servicePort,
+				appSrvIP,
+				appSrvPort)
+		}
+	}
+	return nil
+}
