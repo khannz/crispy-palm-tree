@@ -2,6 +2,7 @@ package portadapter
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/tehnerd/gnl2go"
@@ -105,4 +106,60 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo domain.ServiceInfo
 	}
 
 	return nil
+}
+
+// ValidateHistoricalConfig ...
+func (ipvsadmEntity *IPVSADMEntity) ValidateHistoricalConfig(storage *StorageEntity) error {
+
+	pools, err := ipvsadmEntity.readActualConfig()
+	if err != nil {
+		return fmt.Errorf("can't read actual config: %v", err)
+	}
+	ipvsadmServicesInfo := transformRawIPVSPoolsToDomainModel(pools)
+	storageServicesInfo, err := storage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return fmt.Errorf("can't load all storage data to domain model: %v", err)
+	}
+
+	if err = compareDomainServicesData(ipvsadmServicesInfo, storageServicesInfo); err != nil {
+		return fmt.Errorf("actual data does not match storage data: %v", err)
+	}
+	return nil
+}
+
+func (ipvsadmEntity *IPVSADMEntity) readActualConfig() ([]gnl2go.Pool, error) {
+	ipvsadmEntity.locker.Lock()
+	defer ipvsadmEntity.locker.Unlock()
+
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return nil, fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+	pools, err := ipvs.GetPools()
+	if err != nil {
+		return nil, fmt.Errorf("ipvs can't get pools: %v", err)
+	}
+	return pools, nil
+}
+
+func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []domain.ServiceInfo {
+	servicesInfo := []domain.ServiceInfo{}
+	for _, pool := range pools {
+		applicationServers := []domain.ApplicationServer{}
+		for _, dest := range pool.Dests {
+			applocationServer := domain.ApplicationServer{
+				ServerIP:   dest.IP,
+				ServerPort: strconv.Itoa(int(dest.Port)),
+			}
+			applicationServers = append(applicationServers, applocationServer)
+		}
+		serviceInfo := domain.ServiceInfo{
+			ServiceIP:          pool.Service.VIP,
+			ServicePort:        strconv.Itoa(int(pool.Service.Port)),
+			ApplicationServers: applicationServers,
+		}
+		servicesInfo = append(servicesInfo, serviceInfo)
+	}
+	return servicesInfo
 }

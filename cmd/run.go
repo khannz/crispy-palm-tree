@@ -87,15 +87,13 @@ var rootCmd = &cobra.Command{
 		vrrpConfigurator := portadapter.NewIPVSADMEntity(locker)
 		// vrrpConfigurator end
 
-		// // TODO: validate config start
-		// err = validateStorageAndRealConfig(cacheDB, vrrpConfigurator)
-		// if err != nil {
-		// 	logging.WithFields(logrus.Fields{
-		// 		"entity":     rootEntity,
-		// 		"event uuid": uuidForRootProcess,
-		// 	}).Fatalf("init program fail: storage config not valid: %v", err)
-		// }
-
+		err = validateActualAndStorageConfigs(persistentDB, vrrpConfigurator) // FIXME: cacheDB
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("init program fail: storage config not valid: %v", err)
+		}
 		// validate config end
 
 		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
@@ -157,6 +155,15 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
+func validateActualAndStorageConfigs(storage *portadapter.StorageEntity,
+	ipvsadmEntity *portadapter.IPVSADMEntity) error {
+	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
+	if err != nil {
+		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
+	}
+	return nil
+}
+
 func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
 	cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
 	if err != nil {
@@ -175,15 +182,5 @@ func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadap
 
 	return cacheDB, persistentDB, nil
 }
-
-// validateStorageAndRealConfig - WIP! methods not released yet
-// func validateStorageAndRealConfig(storage *portadapter.StorageEntity,
-//ipvsadmEntity *portadapter.IPVSADMEntity) error {
-// 	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
-// 	if err != nil {
-// 		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
-// 	}
-// 	return nil
-// }
 
 // TODO: long: bird peering autoset when cold cold start
