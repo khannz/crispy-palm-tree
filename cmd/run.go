@@ -72,31 +72,31 @@ var rootCmd = &cobra.Command{
 			logging)
 		// tunnel maker end
 
-		// cache database start
-		cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
+		// db and cache init
+		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Fatalf("NewDatabaseEntity for cache fatal error: %v", err)
+			}).Fatalf("storage and cache init error: %v", err)
 		}
 		defer cacheDB.Db.Close()
-		// cache database end
-
-		// persistent databe start
-		persistentDB, err := portadapter.NewStorageEntity(false, viperConfig.GetString(databasePathName), logging)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("NewDatabaseEntity for cache fatal error: %v", err)
-		}
 		defer persistentDB.Db.Close()
-		// persistent databe end
 
 		// vrrpConfigurator start
 		vrrpConfigurator := portadapter.NewIPVSADMEntity(locker)
 		// vrrpConfigurator end
+
+		// // TODO: validate config start
+		// err = validateStorageAndRealConfig(cacheDB, vrrpConfigurator)
+		// if err != nil {
+		// 	logging.WithFields(logrus.Fields{
+		// 		"entity":     rootEntity,
+		// 		"event uuid": uuidForRootProcess,
+		// 	}).Fatalf("init program fail: storage config not valid: %v", err)
+		// }
+
+		// validate config end
 
 		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
 
@@ -157,19 +157,33 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
-// TODO: include "keepalived.d/services-enabled/*.conf" check it too!
+func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
+	cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init NewStorageEntity for cache error: %v", err)
+	}
 
-//TODO:
-// long: bird peering autoset when cold cold start
+	persistentDB, err := portadapter.NewStorageEntity(false, databasePath, logging)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init NewStorageEntity for persistent storage error: %v", err)
+	}
 
-// add and remove real servers
-// if real 1 - exit error
-// gen commands for real servers!
-// response: report about created (ip real services created)
-// register in controller
+	err = cacheDB.LoadCacheFromStorage(persistentDB)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cant load cache from storage: %v", err)
+	}
 
-// long: firewall rules (iptables)
+	return cacheDB, persistentDB, nil
+}
 
-// NEXTTODEPLOY:
-// контроллер: тоже что и сюда + у него информация о всех балансировщиках (статус, количество, регистрация, разрегистрация, загрузка(CPU+network(сессии в сек)), мониторинг балансировщиков)
-// на основе зоны безы выбор подсеть (номер автономной сети) и на резать там VM
+// validateStorageAndRealConfig - WIP! methods not released yet
+// func validateStorageAndRealConfig(storage *portadapter.StorageEntity,
+//ipvsadmEntity *portadapter.IPVSADMEntity) error {
+// 	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
+// 	if err != nil {
+// 		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
+// 	}
+// 	return nil
+// }
+
+// TODO: long: bird peering autoset when cold cold start
