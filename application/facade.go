@@ -1,6 +1,8 @@
 package application
 
 import (
+	"fmt"
+
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/khannz/crispy-palm-tree/usecase"
@@ -77,17 +79,26 @@ func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort strin
 // 	return nwbServices, nil
 // }
 
-// // AddApplicationServersToService ...
-// func (balancerFacade *BalancerFacade) AddApplicationServersToService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {
-// 	var err error
-// 	var serviceInfo domain.ServiceInfo
-// 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.TunnelConfig, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-// 	serviceInfo, err = addApplicationServers.AddNewApplicationServers(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
-// 	if err != nil {
-// 		return serviceInfo, fmt.Errorf("can't add application servers to service: %v", err)
-// 	}
-// 	return serviceInfo, nil
-// }
+// AddApplicationServers ...
+func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
+	servicePort string,
+	applicationServers map[string]string,
+	addApplicationServersRequestUUID string) (domain.ServiceInfo, error) {
+	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
+		balancerFacade.VRRPConfigurator,
+		balancerFacade.CacheStorage,
+		balancerFacade.PersistentStorage,
+		balancerFacade.TunnelConfig,
+		balancerFacade.UUIDgenerator,
+		balancerFacade.Logging)
+
+	incomeServiceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
+	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestUUID)
+	if err != nil {
+		return incomeServiceInfo, fmt.Errorf("can't add application servers to service: %v", err)
+	}
+	return currentserviceInfo, nil
+}
 
 // // RemoveApplicationServersFromService ...
 // func (balancerFacade *BalancerFacade) RemoveApplicationServersFromService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/khannz/crispy-palm-tree/domain"
 )
 
 // ServerApplication ...
@@ -60,4 +61,44 @@ func deepValidateServiceInfo(serviceIP, servicePort string, applicationServers m
 		}
 	}
 	return nil
+}
+
+func transformDomainServiceInfoToResponseData(serviceInfo domain.ServiceInfo, isOk bool) UniversalResponse {
+	return UniversalResponse{
+		ApplicationServers:       transformDomainApplicationServersToRestApplicationServers(serviceInfo.ApplicationServers),
+		ServiceIP:                serviceInfo.ServiceIP,
+		ServicePort:              serviceInfo.ServicePort,
+		HealthcheckType:          serviceInfo.HealthcheckType,
+		JobCompletedSuccessfully: isOk,
+		ExtraInfo:                transformSliceToString(serviceInfo.ExtraInfo),
+	}
+}
+
+func transformDomainServicesInfoToResponseData(nwbServices []domain.ServiceInfo, isOk bool) []UniversalResponse {
+	UniversalResponses := []UniversalResponse{}
+	for _, nwbService := range nwbServices {
+		UniversalResponses = append(UniversalResponses, transformDomainServiceInfoToResponseData(nwbService, isOk))
+	}
+	return UniversalResponses
+}
+
+func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []domain.ApplicationServer) []ServerApplication {
+	applicationServers := []ServerApplication{}
+	for _, domainApplicationServer := range domainApplicationServers {
+		applicationServer := ServerApplication{
+			ServerIP:           domainApplicationServer.ServerIP,
+			ServerPort:         domainApplicationServer.ServerPort,
+			ServerBashCommands: domainApplicationServer.ServerBashCommands,
+		}
+		applicationServers = append(applicationServers, applicationServer)
+	}
+	return applicationServers
+}
+
+func transformSliceToString(slice []string) string {
+	var resultString string
+	for _, el := range slice {
+		resultString += "\n" + el
+	}
+	return resultString
 }
