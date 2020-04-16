@@ -59,7 +59,7 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.HandleFunc("/remove-service", restAPI.removeNWBRequest).Methods("POST")
 	// restAPI.router.HandleFunc("/networkservicesinfo", restAPI.getNWBServices).Methods("POST")
 	restAPI.router.HandleFunc("/add-application-servers", restAPI.addApplicationServers).Methods("POST")
-	// restAPI.router.HandleFunc("/removeapplicationservers", restAPI.removeApplicationServers).Methods("POST")
+	restAPI.router.HandleFunc("/remove-application-servers", restAPI.removeApplicationServers).Methods("POST")
 	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
 
 	err := restAPI.server.ListenAndServe()

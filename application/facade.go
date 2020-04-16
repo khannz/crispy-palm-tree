@@ -100,17 +100,26 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
 	return currentserviceInfo, nil
 }
 
-// // RemoveApplicationServersFromService ...
-// func (balancerFacade *BalancerFacade) RemoveApplicationServersFromService(serviceIP, servicePort string, applicationServers map[string]string, newNWBRequestUUID string) (domain.ServiceInfo, error) {
-// 	var err error
-// 	var serviceInfo domain.ServiceInfo
-// 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.TunnelConfig, balancerFacade.UUIDgenerator, balancerFacade.Logging)
-// 	serviceInfo, err = removeApplicationServers.RemoveNewApplicationServers(serviceIP, servicePort, applicationServers, newNWBRequestUUID)
-// 	if err != nil {
-// 		return serviceInfo, fmt.Errorf("can't remove application servers to service: %v", err)
-// 	}
-// 	return serviceInfo, nil
-// }
+// RemoveApplicationServers ...
+func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
+	servicePort string,
+	applicationServers map[string]string,
+	removeApplicationServersRequestUUID string) (domain.ServiceInfo, error) {
+	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
+		balancerFacade.VRRPConfigurator,
+		balancerFacade.CacheStorage,
+		balancerFacade.PersistentStorage,
+		balancerFacade.TunnelConfig,
+		balancerFacade.UUIDgenerator,
+		balancerFacade.Logging)
+
+	incomeServiceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
+	currentserviceInfo, err := removeApplicationServers.AddApplicationServers(incomeServiceInfo, removeApplicationServersRequestUUID)
+	if err != nil {
+		return incomeServiceInfo, fmt.Errorf("can't remove application servers from service: %v", err)
+	}
+	return currentserviceInfo, nil
+}
 
 func incomeServiceDataToDomainModel(serviceIP,
 	servicePort string,

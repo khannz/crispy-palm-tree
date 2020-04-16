@@ -67,11 +67,11 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
 
-	if err = addApplicationServers.configuratorVRRP.UpdateService(newServiceInfo, addApplicationServersUUID); err != nil {
+	if err = addApplicationServers.configuratorVRRP.AddApplicationServersFromService(newServiceInfo, addApplicationServersUUID); err != nil {
 		if errRollback := addApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, addApplicationServersUUID); errRollback != nil {
 			// TODO: log it
 		}
-		return currentServiceInfo, fmt.Errorf("can't update service: %v", err)
+		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
 
 	if err = addApplicationServers.updateServiceFromPersistentStorage(updatedServiceInfo, addApplicationServersUUID); err != nil {
@@ -80,10 +80,10 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		}
 
 		// TODO: when relese remove application service logic
-		// if errRollBackCache := addApplicationServers.configuratorVRRP.RemoveApplicationServersFromService(newServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
-		// 	// TODO: log: cant roll back
-		// }
-		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
+		if errRollBackCache := addApplicationServers.configuratorVRRP.RemoveApplicationServersFromService(newServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
+			// TODO: log: cant roll back
+		}
+		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
 
 	return updatedServiceInfo, nil
@@ -126,21 +126,4 @@ func (addApplicationServers *AddApplicationServers) formUpdateServiceInfo(curren
 		ApplicationServers: resultApplicationServers,
 	}
 	return resultServiceInfo, nil
-}
-
-// TODO: need better check unique, app srv to services too
-func checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo domain.ServiceInfo, eventUUID string) error {
-	// TODO: bad loops
-	for _, newApplicationServer := range newServiceInfo.ApplicationServers {
-		for _, currentApplicationServer := range currentServiceInfo.ApplicationServers {
-			if newApplicationServer == currentApplicationServer {
-				return fmt.Errorf("application server %v:%v alredy exist in service %v:%v",
-					newApplicationServer.ServerIP,
-					newApplicationServer.ServerPort,
-					newServiceInfo.ServiceIP,
-					newServiceInfo.ServicePort)
-			}
-		}
-	}
-	return nil
 }
