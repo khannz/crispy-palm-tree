@@ -155,6 +155,7 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
+// FIXME: ipvsadm first strart required "empty" run ipvasdm command
 func validateActualAndStorageConfigs(storage *portadapter.StorageEntity,
 	ipvsadmEntity *portadapter.IPVSADMEntity) error {
 	err := ipvsadmEntity.ValidateHistoricalConfig(storage)

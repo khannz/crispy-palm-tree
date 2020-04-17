@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/sirupsen/logrus"
 )
 
@@ -125,7 +124,7 @@ func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	allNWBServicesResponse := transformDomainServicesInfoToResponseData(nwbServices)
+	allNWBServicesResponse := transformDomainServicesInfoToResponseData(nwbServices, true)
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": getRequestUUID,
@@ -151,43 +150,6 @@ func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request
 			"event uuid": getRequestUUID,
 		}).Errorf("can't response by request: %v", err)
 	}
-}
-
-func transformDomainServicesInfoToResponseData(nwbServices []domain.ServiceInfo) []UniversalResponse {
-	UniversalResponses := []UniversalResponse{}
-	for _, nwbService := range nwbServices {
-		UniversalResponse := UniversalResponse{
-			ApplicationServers:       transformDomainApplicationServersToRestApplicationServers(nwbService.ApplicationServers),
-			ServiceIP:                nwbService.ServiceIP,
-			ServicePort:              nwbService.ServicePort,
-			HealthcheckType:          nwbService.HealthcheckType,
-			JobCompletedSuccessfully: true,
-			ExtraInfo:                transformSliceToString(nwbService.ExtraInfo),
-		}
-		UniversalResponses = append(UniversalResponses, UniversalResponse)
-	}
-	return UniversalResponses
-}
-
-func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []domain.ApplicationServer) []ServerApplication {
-	applicationServers := []ServerApplication{}
-	for _, domainApplicationServer := range domainApplicationServers {
-		applicationServer := ServerApplication{
-			ServerIP:           domainApplicationServer.ServerIP,
-			ServerPort:         domainApplicationServer.ServerPort,
-			ServerBashCommands: domainApplicationServer.ServerBashCommands,
-		}
-		applicationServers = append(applicationServers, applicationServer)
-	}
-	return applicationServers
-}
-
-func transformSliceToString(slice []string) string {
-	var resultString string
-	for _, el := range slice {
-		resultString += "\n" + el
-	}
-	return resultString
 }
 
 func (getAllServicesRequest *GetAllServicesRequest) validateGetServicesRequest() error {

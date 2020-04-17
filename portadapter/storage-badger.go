@@ -56,7 +56,7 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 
 // NewServiceDataToStorage add new service to storage. Also check unique data
 func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData domain.ServiceInfo, eventUUID string) error {
-	serviceDataKey, serviceDataValue, err := formDataForDatabase(serviceData)
+	serviceDataKey, serviceDataValue, err := transformServiceDataForDatabase(serviceData)
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)
 	}
@@ -66,7 +66,7 @@ func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData domain.S
 		return fmt.Errorf("some key not unique: %v", err)
 	}
 
-	err = storageEntity.updateDatabaseForNewservice(serviceDataKey, serviceDataValue)
+	err = storageEntity.updateDatabaseServiceInfo(serviceDataKey, serviceDataValue)
 	if err != nil {
 		return fmt.Errorf("can't update storage for new service: %v", err)
 	}
@@ -103,16 +103,6 @@ func (storageEntity *StorageEntity) checkServiceUniqueInDatabase(key []byte) err
 	})
 }
 
-func formDataForDatabase(serviceData domain.ServiceInfo) ([]byte,
-	[]byte,
-	error) {
-	serviceDataKey, serviceDataValue, err := transformServiceDataForDatabase(serviceData)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't transform service data for storage: %v", err)
-	}
-	return serviceDataKey, serviceDataValue, nil
-}
-
 func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
 	serviceInfo domain.ServiceInfo) error {
 	var err error
@@ -134,6 +124,7 @@ func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
 	return nil
 }
 
+// TODO: need better check unique, app srv to services too
 func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(checkIP, checkPort string) error {
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
@@ -169,7 +160,7 @@ func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(
 	return nil
 }
 
-func (storageEntity *StorageEntity) updateDatabaseForNewservice(serviceDataKey,
+func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 	serviceDataValue []byte) error {
 	var err error
 	err = updateDb(storageEntity.Db, serviceDataKey, serviceDataValue)
@@ -197,11 +188,12 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData dom
 	return nil
 }
 
-// detectAllApplicationServersForService - WIP
-func (storageEntity *StorageEntity) detectAllApplicationServersForService(serviceData domain.ServiceInfo, eventUUID string) ([]domain.ApplicationServer, error) {
-	applicationServers := []domain.ApplicationServer{}
+// GetServiceInfo ...
+func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData domain.ServiceInfo, eventUUID string) (domain.ServiceInfo, error) {
+	var currentServiceInfo domain.ServiceInfo
+	currentApplicationServers := []domain.ApplicationServer{}
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(serviceData.ServiceIP + ":" + serviceData.ServicePort))
+		item, err := txn.Get([]byte(incomeServiceData.ServiceIP + ":" + incomeServiceData.ServicePort))
 		if err != nil {
 			return fmt.Errorf("txn.Get fail: %v", err)
 		}
@@ -215,12 +207,17 @@ func (storageEntity *StorageEntity) detectAllApplicationServersForService(servic
 		}); err != nil {
 			return err
 		}
-		applicationServers = oldApplicationServers // is that work?
+		currentApplicationServers = oldApplicationServers // is that work?
 		return nil
 	}); err != nil {
-		return applicationServers, err
+		return currentServiceInfo, err
 	}
-	return applicationServers, nil
+
+	return domain.ServiceInfo{
+		ServiceIP:          incomeServiceData.ServiceIP,
+		ServicePort:        incomeServiceData.ServicePort,
+		ApplicationServers: currentApplicationServers,
+	}, nil
 }
 
 // LoadAllStorageDataToDomainModel ...
@@ -288,5 +285,20 @@ func (storageEntity *StorageEntity) LoadCacheFromStorage(oldStorageEntity *Stora
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// UpdateServiceInfo validate and update service
+func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData domain.ServiceInfo, eventUUID string) error {
+	serviceDataKey, serviceDataValue, err := transformServiceDataForDatabase(newServiceData)
+	if err != nil {
+		return fmt.Errorf("can't form data for storage: %v", err)
+	}
+
+	err = storageEntity.updateDatabaseServiceInfo(serviceDataKey, serviceDataValue)
+	if err != nil {
+		return fmt.Errorf("can't update storage for new service: %v", err)
+	}
+
 	return nil
 }

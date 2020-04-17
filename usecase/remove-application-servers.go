@@ -1,118 +1,128 @@
 package usecase
 
-// import (
-// 	"fmt"
+import (
+	"fmt"
 
-// 	"github.com/khannz/crispy-palm-tree/domain"
-// 	"github.com/sirupsen/logrus"
-// )
+	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/sirupsen/logrus"
+)
 
-// const removeApplicationServers = "remove-application-servers"
+const removeApplicationServers = "remove-application-servers"
 
-// // RemoveApplicationServers ...
-// type RemoveApplicationServers struct {
-// 	nwConfig         *domain.NetworkConfig
-// 	tunnelConfig     domain.TunnelMaker
-// 	keepalivedConfig domain.KeepalivedCustomizer
-// 	uuidGenerator    domain.UUIDgenerator
-// 	logging          *logrus.Logger
-// }
+// RemoveApplicationServers ...
+type RemoveApplicationServers struct {
+	locker            *domain.Locker
+	configuratorVRRP  domain.ServiceWorker
+	cacheStorage      *portadapter.StorageEntity // so dirty
+	persistentStorage *portadapter.StorageEntity // so dirty
+	tunnelConfig      domain.TunnelMaker
+	uuidGenerator     domain.UUIDgenerator
+	logging           *logrus.Logger
+}
 
-// // NewRemoveApplicationServers ...
-// func NewRemoveApplicationServers(nwConfig *domain.NetworkConfig,
-// 	tunnelConfig domain.TunnelMaker,
-// 	keepalivedConfig domain.KeepalivedCustomizer,
-// 	uuidGenerator domain.UUIDgenerator,
-// 	logging *logrus.Logger) *RemoveApplicationServers {
-// 	return &RemoveApplicationServers{
-// 		nwConfig:         nwConfig,
-// 		tunnelConfig:     tunnelConfig,
-// 		keepalivedConfig: keepalivedConfig,
-// 		logging:          logging,
-// 		uuidGenerator:    uuidGenerator,
-// 	}
-// }
+// NewRemoveApplicationServers ...
+func NewRemoveApplicationServers(locker *domain.Locker,
+	configuratorVRRP domain.ServiceWorker,
+	cacheStorage *portadapter.StorageEntity,
+	persistentStorage *portadapter.StorageEntity,
+	tunnelConfig domain.TunnelMaker,
+	uuidGenerator domain.UUIDgenerator,
+	logging *logrus.Logger) *RemoveApplicationServers {
+	return &RemoveApplicationServers{
+		locker:            locker,
+		configuratorVRRP:  configuratorVRRP,
+		cacheStorage:      cacheStorage,
+		persistentStorage: persistentStorage,
+		tunnelConfig:      tunnelConfig,
+		logging:           logging,
+		uuidGenerator:     uuidGenerator,
+	}
+}
 
-// // RemoveNewApplicationServers ...
-// func (removeApplicationServers *RemoveApplicationServers) RemoveNewApplicationServers(serviceIP,
-// 	servicePort string,
-// 	applicationServersForRemove map[string]string,
-// 	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
-// 	removeApplicationServers.nwConfig.Lock()
-// 	defer removeApplicationServers.nwConfig.Unlock()
+// AddApplicationServers ...
+func (removeApplicationServers *RemoveApplicationServers) AddApplicationServers(removeServiceInfo domain.ServiceInfo,
+	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
+	var err error
+	var updatedServiceInfo domain.ServiceInfo
+	// deployedEntities := map[string][]string{}
+	// deployedEntities, err = removeApplicationServers.tunnelConfig.CreateTunnel(deployedEntities, applicationServers, removeApplicationServersUUID)
+	// if err != nil {
+	// 	tunnelsRemove(deployedEntities, removeApplicationServers.tunnelConfig, removeApplicationServersUUID)
+	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
+	// }
 
-// 	var serviceInfo domain.ServiceInfo
+	// need for rollback. used only service ip and port
+	currentServiceInfo, err := removeApplicationServers.getServiceInfo(removeServiceInfo, removeApplicationServersUUID)
+	if err != nil {
+		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
+	}
 
-// 	currentKeepalivedConfigFile, currentApplicationServers, currentTunnelFilesForService, err := removeApplicationServers.getCurrentServiceConfig(serviceIP, servicePort, removeApplicationServersUUID)
-// 	if err != nil {
-// 		return serviceInfo, fmt.Errorf("can't get current service config: %v", err)
-// 	}
+	if err = validateRemoveApplicationServers(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers); err != nil {
+		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
+	}
 
-// 	err = validateApplicationServersForRemove(applicationServersForRemove, currentApplicationServers)
-// 	if err != nil {
-// 		return serviceInfo, fmt.Errorf("can't validate application servers for remove: %v", err)
-// 	}
-// 	err = removeApplicationServers.keepalivedConfig.RemoveApplicationServersFromKeepalivedConfigFile(currentKeepalivedConfigFile, applicationServersForRemove, removeApplicationServersUUID)
-// 	if err != nil {
-// 		return serviceInfo, fmt.Errorf("can't remove rows from keepalived config file: %v", err)
-// 	}
+	updatedServiceInfo = removeApplicationServers.formUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID)
 
-// 	err = removeApplicationServers.tunnelConfig.RemoveApplicationServersFromTunnels(currentTunnelFilesForService, applicationServersForRemove, removeApplicationServersUUID)
-// 	if err != nil {
-// 		return serviceInfo, fmt.Errorf("can't remove application servers from tunnels: %v", err)
-// 	}
+	// add to cache storage
+	if err = removeApplicationServers.updateServiceFromCacheStorage(updatedServiceInfo, removeApplicationServersUUID); err != nil {
+		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
+			// TODO: log it
+		}
+		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
+	}
 
-// 	err = removeApplicationServers.keepalivedConfig.ReloadKeepalived(removeApplicationServersUUID)
-// 	if err != nil {
-// 		return serviceInfo, fmt.Errorf("can't reload keepalived: %v", err)
-// 	}
+	if err = removeApplicationServers.configuratorVRRP.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {
+		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
+			// TODO: log it
+		}
+		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
+	}
 
-// 	return serviceInfo, nil
-// }
+	if err = removeApplicationServers.updateServiceFromPersistentStorage(updatedServiceInfo, removeApplicationServersUUID); err != nil {
+		if errRollBackCache := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+			// TODO: log: cant roll back
+		}
 
-// func (removeApplicationServers *RemoveApplicationServers) getCurrentServiceConfig(serviceIP,
-// 	servicePort string,
-// 	requestUUID string) (string, []domain.ApplicationServer, []string, error) {
+		if errRollBackCache := removeApplicationServers.configuratorVRRP.AddApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+			// TODO: log: cant roll back
+		}
+		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
+	}
 
-// 	currentKeepalivedConfigFile, err := removeApplicationServers.detectKeepalivedConfigWrapper(serviceIP, servicePort, requestUUID)
-// 	if err != nil {
-// 		return "", nil, nil, err
-// 	}
+	return updatedServiceInfo, nil
+}
 
-// 	currentApplicationServers, err := removeApplicationServers.keepalivedConfig.GetApplicationServersByServiceIPAndPort(serviceIP, servicePort, requestUUID)
-// 	if err != nil {
-// 		return "", nil, nil, fmt.Errorf("can't get application servers by service ip and port: %v", err)
-// 	}
+func (removeApplicationServers *RemoveApplicationServers) updateServiceFromCacheStorage(serviceInfo domain.ServiceInfo, removeApplicationServersUUID string) error {
+	removeApplicationServers.cacheStorage.Lock()
+	defer removeApplicationServers.cacheStorage.Unlock()
+	if err := removeApplicationServers.cacheStorage.UpdateServiceInfo(serviceInfo, removeApplicationServersUUID); err != nil {
+		return fmt.Errorf("error add new service data to cache storage: %v", err)
+	}
+	return nil
+}
 
-// 	currentTunnelFilesForService, err := removeApplicationServers.detectTunnelsWrapper(currentApplicationServers, requestUUID)
-// 	if err != nil {
-// 		return "", nil, nil, err
-// 	}
-// 	return currentKeepalivedConfigFile, currentApplicationServers, currentTunnelFilesForService, nil
-// }
+func (removeApplicationServers *RemoveApplicationServers) updateServiceFromPersistentStorage(serviceInfo domain.ServiceInfo, removeApplicationServersUUID string) error {
+	if err := removeApplicationServers.persistentStorage.UpdateServiceInfo(serviceInfo, removeApplicationServersUUID); err != nil {
+		return fmt.Errorf("error add new service data to persistent storage: %v", err)
+	}
+	return nil
+}
 
-// func (removeApplicationServers *RemoveApplicationServers) detectTunnelsWrapper(applicationServers []domain.ApplicationServer, requestUUID string) ([]string, error) {
-// 	deployedEntities := map[string][]string{}
-// 	var err error
-// 	deployedEntities, err = removeApplicationServers.tunnelConfig.DetectTunnels(applicationServers, deployedEntities, requestUUID)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("can't detect tunnels: %v", err)
-// 	}
-// 	return deployedEntities["createdTunnelFiles"], nil
-// }
+func (removeApplicationServers *RemoveApplicationServers) getServiceInfo(removeServiceInfo domain.ServiceInfo,
+	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
+	removeApplicationServers.cacheStorage.Lock()
+	defer removeApplicationServers.cacheStorage.Unlock()
+	return removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersUUID)
+}
 
-// func (removeApplicationServers *RemoveApplicationServers) detectKeepalivedConfigWrapper(serviceIP, servicePort string, requestUUID string) (string, error) {
-// 	deployedEntities := map[string][]string{}
-// 	var err error
-// 	deployedEntities, err = removeApplicationServers.keepalivedConfig.DetectKeepalivedConfigFiles(serviceIP, servicePort, deployedEntities, requestUUID)
-// 	if err != nil {
-// 		return "", fmt.Errorf("can't detectkeepalived config files: %v", err)
-// 	}
-// 	return deployedEntities["newFullKeepalivedDConfigFilePath"][0], nil
-// }
-// func validateApplicationServersForRemove(applicationServersForRemove map[string]string, currentApplicationServers []domain.ApplicationServer) error {
-// 	if len(applicationServersForRemove) >= len(currentApplicationServers) {
-// 		return fmt.Errorf("can't remove application servers. Current application servers %v, try remove %v application servers", len(currentApplicationServers), len(applicationServersForRemove))
-// 	}
-// 	return nil
-// }
+func (removeApplicationServers *RemoveApplicationServers) formUpdateServiceInfo(currentServiceInfo, removeServiceInfo domain.ServiceInfo, eventUUID string) domain.ServiceInfo {
+	var resultServiceInfo domain.ServiceInfo
+	resultApplicationServers := formNewApplicationServersSlice(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
+	resultServiceInfo = domain.ServiceInfo{
+		ServiceIP:          removeServiceInfo.ServiceIP,
+		ServicePort:        removeServiceInfo.ServicePort,
+		ApplicationServers: resultApplicationServers,
+	}
+	return resultServiceInfo
+}

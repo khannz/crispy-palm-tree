@@ -46,13 +46,10 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
 
-	for ip, port := range applicationServers {
-		err := ipvs.AddDestPort(serviceInfo.ServiceIP, servicePort, ip,
-			port, uint16(gnl2go.ToProtoNum("tcp")), 10, gnl2go.IPVS_TUNNELING)
-		if err != nil {
-			return fmt.Errorf("cant add 1st dest to service sched flags: %v", err)
-		}
+	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, applicationServers); err != nil {
+		return fmt.Errorf("cant add application server to service: %v", err)
 	}
+
 	// TODO: log that ok
 	return nil
 }
@@ -162,4 +159,90 @@ func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []domain.ServiceInf
 		servicesInfo = append(servicesInfo, serviceInfo)
 	}
 	return servicesInfo
+}
+
+func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.IpvsClient,
+	serviceIP string, servicePort uint16,
+	applicationServers map[string]uint16) error {
+	for ip, port := range applicationServers {
+		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
+			port, uint16(gnl2go.ToProtoNum("tcp")), 10, gnl2go.IPVS_TUNNELING)
+		if err != nil {
+			return fmt.Errorf("cant add dest to service sched flags: %v", err)
+		}
+	}
+	return nil
+}
+
+func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gnl2go.IpvsClient,
+	serviceIP string, servicePort uint16,
+	applicationServers map[string]uint16) error {
+	for ip, port := range applicationServers {
+		err := ipvs.DelDestPort(serviceIP, servicePort, ip,
+			port, uint16(gnl2go.ToProtoNum("tcp")))
+		if err != nil {
+			return fmt.Errorf("cant add dest to service sched flags: %v", err)
+		}
+	}
+	return nil
+}
+
+// AddApplicationServersFromService ...
+func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo domain.ServiceInfo,
+	updateServiceUUID string) error {
+	ipvsadmEntity.locker.Lock()
+	defer ipvsadmEntity.locker.Unlock()
+
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+
+	servicePort, err := stringToUINT16(serviceInfo.ServicePort)
+	if err != nil {
+		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
+	}
+
+	applicationServers, err := convertRawApplicationServers(serviceInfo.ApplicationServers)
+	if err != nil {
+		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
+	}
+
+	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, applicationServers); err != nil {
+		return fmt.Errorf("cant add application server to service: %v", err)
+	}
+
+	// TODO: log that ok
+	return nil
+}
+
+// RemoveApplicationServersFromService ...
+func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceInfo domain.ServiceInfo,
+	updateServiceUUID string) error {
+	ipvsadmEntity.locker.Lock()
+	defer ipvsadmEntity.locker.Unlock()
+
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+
+	servicePort, err := stringToUINT16(serviceInfo.ServicePort)
+	if err != nil {
+		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
+	}
+
+	applicationServers, err := convertRawApplicationServers(serviceInfo.ApplicationServers)
+	if err != nil {
+		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
+	}
+
+	if err = ipvsadmEntity.removeApplicationServersFromService(ipvs, serviceInfo.ServiceIP, servicePort, applicationServers); err != nil {
+		return fmt.Errorf("cant add application server to service: %v", err)
+	}
+
+	// TODO: log that ok
+	return nil
 }
