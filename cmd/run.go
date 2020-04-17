@@ -98,7 +98,7 @@ var rootCmd = &cobra.Command{
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Warnf("validate aActual and storage configs warning: %v. Will try init storage config", err)
+			}).Warnf("validate aActual and storage configs warning: %v. Will try init storage config", errValidate)
 			if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
 				logging.WithFields(logrus.Fields{
 					"entity":     rootEntity,
