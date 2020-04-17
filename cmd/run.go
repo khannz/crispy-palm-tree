@@ -13,6 +13,7 @@ import (
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/thevan4/go-billet/executor"
 )
 
 var rootCmd = &cobra.Command{
@@ -87,7 +88,7 @@ var rootCmd = &cobra.Command{
 		vrrpConfigurator := portadapter.NewIPVSADMEntity(locker)
 		// vrrpConfigurator end
 
-		err = validateActualAndStorageConfigs(persistentDB, vrrpConfigurator) // FIXME: cacheDB
+		err = validateActualAndStorageConfigs(cacheDB, vrrpConfigurator)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
@@ -155,10 +156,13 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
-// FIXME: ipvsadm first strart required "empty" run ipvasdm command
 func validateActualAndStorageConfigs(storage *portadapter.StorageEntity,
 	ipvsadmEntity *portadapter.IPVSADMEntity) error {
-	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
+	_, _, exitCode, err := executor.Execute("/usr/bin/ipvsadm", "", nil)
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("got error when execute ipvsadm command: %v, exit code %v", err, exitCode)
+	}
+	err = ipvsadmEntity.ValidateHistoricalConfig(storage)
 	if err != nil {
 		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
 	}

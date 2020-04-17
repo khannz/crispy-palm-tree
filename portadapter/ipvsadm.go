@@ -18,7 +18,7 @@ func NewIPVSADMEntity(locker *domain.Locker) *IPVSADMEntity {
 	return &IPVSADMEntity{locker: locker}
 }
 
-// CreateService ... // FIXME: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
+// CreateService ... // TODO: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
 func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo,
 	createServiceUUID string) error {
 	ipvsadmEntity.locker.Lock()
