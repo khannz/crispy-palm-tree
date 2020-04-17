@@ -69,15 +69,15 @@ func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort strin
 	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
 }
 
-// // GetNWBServices ...
-// func (balancerFacade *BalancerFacade) GetNWBServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {
-// 	getNWBServices := usecase.NewGetNlbServices(balancerFacade.Logging)
-// 	nwbServices, err := getNWBServices.GetAllNWBServices(getNWBServicesUUID)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("can't get nwb services: %v", err)
-// 	}
-// 	return nwbServices, nil
-// }
+// GetServices ...
+func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {
+	getNWBServices := usecase.NewGetAllServices(balancerFacade.CacheStorage, balancerFacade.Logging)
+	nwbServices, err := getNWBServices.GetAllServices(getNWBServicesUUID)
+	if err != nil {
+		return nil, fmt.Errorf("can't get nwb services: %v", err)
+	}
+	return nwbServices, nil
+}
 
 // AddApplicationServers ...
 func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
