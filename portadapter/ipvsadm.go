@@ -6,6 +6,7 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/tehnerd/gnl2go"
+	"github.com/thevan4/go-billet/executor"
 )
 
 // IPVSADMEntity ...
@@ -14,11 +15,15 @@ type IPVSADMEntity struct {
 }
 
 // NewIPVSADMEntity ...
-func NewIPVSADMEntity(locker *domain.Locker) *IPVSADMEntity {
-	return &IPVSADMEntity{locker: locker}
+func NewIPVSADMEntity(locker *domain.Locker) (*IPVSADMEntity, error) {
+	_, _, exitCode, err := executor.Execute("/usr/bin/ipvsadm", "", nil)
+	if err != nil || exitCode != 0 {
+		return nil, fmt.Errorf("got error when execute ipvsadm command: %v, exit code %v", err, exitCode)
+	}
+	return &IPVSADMEntity{locker: locker}, nil
 }
 
-// CreateService ... // FIXME: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
+// CreateService ... // TODO: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
 func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo,
 	createServiceUUID string) error {
 	ipvsadmEntity.locker.Lock()
