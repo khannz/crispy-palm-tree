@@ -51,7 +51,9 @@ func (removeApplicationServers *RemoveApplicationServers) AddApplicationServers(
 	// 	tunnelsRemove(deployedEntities, removeApplicationServers.tunnelConfig, removeApplicationServersUUID)
 	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
 	// }
-
+	removeApplicationServers.locker.Lock()
+	// TODO: check stop chan for graceful shutdown
+	defer removeApplicationServers.locker.Unlock()
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := removeApplicationServers.getServiceInfo(removeServiceInfo, removeApplicationServersUUID)
 	if err != nil {
@@ -94,8 +96,6 @@ func (removeApplicationServers *RemoveApplicationServers) AddApplicationServers(
 }
 
 func (removeApplicationServers *RemoveApplicationServers) updateServiceFromCacheStorage(serviceInfo domain.ServiceInfo, removeApplicationServersUUID string) error {
-	removeApplicationServers.cacheStorage.Lock()
-	defer removeApplicationServers.cacheStorage.Unlock()
 	if err := removeApplicationServers.cacheStorage.UpdateServiceInfo(serviceInfo, removeApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to cache storage: %v", err)
 	}
@@ -111,8 +111,6 @@ func (removeApplicationServers *RemoveApplicationServers) updateServiceFromPersi
 
 func (removeApplicationServers *RemoveApplicationServers) getServiceInfo(removeServiceInfo domain.ServiceInfo,
 	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
-	removeApplicationServers.cacheStorage.Lock()
-	defer removeApplicationServers.cacheStorage.Unlock()
 	return removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersUUID)
 }
 

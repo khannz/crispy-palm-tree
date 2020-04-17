@@ -49,7 +49,9 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo domain.Servi
 	// 	tunnelsRemove(deployedEntities, createService.tunnelConfig, newNWBRequestUUID)
 	// 	return fmt.Errorf("Error when create tunnel: %v", err)
 	// }
-
+	createService.locker.Lock()
+	// TODO: check stop chan for graceful shutdown
+	defer createService.locker.Unlock()
 	// add to cache storage
 	if err = createService.addNewServiceToCacheStorage(serviceInfo, createServiceUUID); err != nil {
 		return fmt.Errorf("can't add to cache storage :%v", err)
@@ -78,8 +80,6 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo domain.Servi
 }
 
 func (createService *CreateServiceEntity) addNewServiceToCacheStorage(serviceInfo domain.ServiceInfo, createServiceUUID string) error {
-	createService.cacheStorage.Lock()
-	defer createService.cacheStorage.Unlock()
 	if err := createService.cacheStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
 		return fmt.Errorf("error add new service data to cache storage: %v", err)
 	}
@@ -94,8 +94,6 @@ func (createService *CreateServiceEntity) addNewServiceToPersistentStorage(servi
 }
 
 func (createService *CreateServiceEntity) removeNewServiceFromCacheStorage(serviceInfo domain.ServiceInfo, createServiceUUID string) error {
-	createService.cacheStorage.Lock()
-	defer createService.cacheStorage.Unlock()
 	if err := createService.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, createServiceUUID); err != nil {
 		return fmt.Errorf("error remove service %v data from cache storage: %v", serviceInfo, err)
 	}

@@ -44,6 +44,9 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain.ServiceInfo,
 	removeServiceUUID string) error {
 	var err error
+	removeServiceEntity.locker.Lock()
+	// TODO: check stop chan for graceful shutdown
+	defer removeServiceEntity.locker.Unlock()
 	if err = removeServiceEntity.configuratorVRRP.RemoveService(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("configuratorVRRP can't remove service: %v", serviceInfo)
 	}
@@ -57,8 +60,6 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain
 }
 
 func (removeServiceEntity *RemoveServiceEntity) removeServiceFromPersistentStorage(serviceInfo domain.ServiceInfo, removeServiceUUID string) error {
-	removeServiceEntity.persistentStorage.Lock()
-	defer removeServiceEntity.persistentStorage.Unlock()
 	if err := removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("error remove service %v from persistent storage: %v", serviceInfo, err)
 	}
@@ -66,8 +67,6 @@ func (removeServiceEntity *RemoveServiceEntity) removeServiceFromPersistentStora
 }
 
 func (removeServiceEntity *RemoveServiceEntity) removeNewServiceFromCacheStorage(serviceInfo domain.ServiceInfo, removeServiceUUID string) error {
-	removeServiceEntity.cacheStorage.Lock()
-	defer removeServiceEntity.cacheStorage.Unlock()
 	if err := removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("error remove service %v data from cache storage: %v", serviceInfo, err)
 	}
