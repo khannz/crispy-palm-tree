@@ -59,6 +59,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo domain.Servi
 		if errRollBackCache := createService.removeNewServiceFromCacheStorage(serviceInfo, createServiceUUID); errRollBackCache != nil {
 			// TODO: log: cant roll back
 		}
+		// TODO: remove service from vrrp
 		return fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
 

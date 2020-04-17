@@ -153,43 +153,6 @@ package application
 // 	}
 // }
 
-// func transformDomainServicesInfoToResponseData(nwbServices []domain.ServiceInfo) []UniversalResponse {
-// 	UniversalResponses := []UniversalResponse{}
-// 	for _, nwbService := range nwbServices {
-// 		UniversalResponse := UniversalResponse{
-// 			ApplicationServers:       transformDomainApplicationServersToRestApplicationServers(nwbService.ApplicationServers),
-// 			ServiceIP:                nwbService.ServiceIP,
-// 			ServicePort:              nwbService.ServicePort,
-// 			HealthcheckType:          nwbService.HealthcheckType,
-// 			JobCompletedSuccessfully: true,
-// 			ExtraInfo:                transformSliceToString(nwbService.ExtraInfo),
-// 		}
-// 		UniversalResponses = append(UniversalResponses, UniversalResponse)
-// 	}
-// 	return UniversalResponses
-// }
-
-// func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []domain.ApplicationServer) []ServerApplication {
-// 	applicationServers := []ServerApplication{}
-// 	for _, domainApplicationServer := range domainApplicationServers {
-// 		applicationServer := ServerApplication{
-// 			ServerIP:           domainApplicationServer.ServerIP,
-// 			ServerPort:         domainApplicationServer.ServerPort,
-// 			ServerBashCommands: domainApplicationServer.ServerBashCommands,
-// 		}
-// 		applicationServers = append(applicationServers, applicationServer)
-// 	}
-// 	return applicationServers
-// }
-
-// func transformSliceToString(slice []string) string {
-// 	var resultString string
-// 	for _, el := range slice {
-// 		resultString += "\n" + el
-// 	}
-// 	return resultString
-// }
-
 // func (getAllServicesRequest *GetAllServicesRequest) validateNewGetNWBRequest() error {
 // 	validate := validator.New()
 // 	err := validate.Struct(getAllServicesRequest)
