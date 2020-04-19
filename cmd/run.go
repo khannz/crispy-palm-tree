@@ -44,6 +44,7 @@ var rootCmd = &cobra.Command{
 			"sysctl config path":         viperConfig.GetString(sysctlConfigsPathName),
 			"database path":              viperConfig.GetString(databasePathName),
 			"mock mode":                  viperConfig.GetBool(mockMode),
+			"time interval for validate storage config": viperConfig.GetDuration(validateStorageConfigName),
 		}).Info("")
 
 		if isColdStart() && !viperConfig.GetBool(mockMode) {
@@ -84,7 +85,7 @@ var rootCmd = &cobra.Command{
 		defer persistentDB.Db.Close()
 
 		// vrrpConfigurator start
-		vrrpConfigurator, err := portadapter.NewIPVSADMEntity(locker)
+		vrrpConfigurator, err := portadapter.NewIPVSADMEntity()
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
@@ -98,15 +99,29 @@ var rootCmd = &cobra.Command{
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Warnf("validate aActual and storage configs warning: %v. Will try init storage config", errValidate)
+			}).Warnf("validate actual and storage configs warning: %v.\nWill try init storage config", errValidate)
 			if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
 				logging.WithFields(logrus.Fields{
 					"entity":     rootEntity,
 					"event uuid": uuidForRootProcess,
 				}).Fatalf("init config from storage fail: %v", err)
 			}
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Warnf("init storage config successful", errValidate)
 		}
 		// init config end
+		// scheduler start
+		scheduler := application.NewValidateConfigScheduler(cacheDB, vrrpConfigurator, locker, signalChan, logging)
+		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("can't start scheduler: %v", err)
+		}
+		// scheduler end
+
 		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
 
 		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade)

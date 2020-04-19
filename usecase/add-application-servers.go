@@ -51,7 +51,9 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	// 	tunnelsRemove(deployedEntities, addApplicationServers.tunnelConfig, addApplicationServersUUID)
 	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
 	// }
-
+	addApplicationServers.locker.Lock()
+	// TODO: check stop chan for graceful shutdown
+	defer addApplicationServers.locker.Unlock()
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := addApplicationServers.getServiceInfo(newServiceInfo, addApplicationServersUUID)
 	if err != nil {
@@ -90,8 +92,6 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 }
 
 func (addApplicationServers *AddApplicationServers) updateServiceFromCacheStorage(serviceInfo domain.ServiceInfo, addApplicationServersUUID string) error {
-	addApplicationServers.cacheStorage.Lock()
-	defer addApplicationServers.cacheStorage.Unlock()
 	if err := addApplicationServers.cacheStorage.UpdateServiceInfo(serviceInfo, addApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to cache storage: %v", err)
 	}
@@ -107,8 +107,6 @@ func (addApplicationServers *AddApplicationServers) updateServiceFromPersistentS
 
 func (addApplicationServers *AddApplicationServers) getServiceInfo(newServiceInfo domain.ServiceInfo,
 	addApplicationServersUUID string) (domain.ServiceInfo, error) {
-	addApplicationServers.cacheStorage.Lock()
-	defer addApplicationServers.cacheStorage.Unlock()
 	return addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
 }
 
