@@ -10,20 +10,16 @@ import (
 
 // IPVSADMEntity ...
 type IPVSADMEntity struct {
-	locker *domain.Locker
 }
 
 // NewIPVSADMEntity ...
 func NewIPVSADMEntity(locker *domain.Locker) *IPVSADMEntity {
-	return &IPVSADMEntity{locker: locker}
+	return &IPVSADMEntity{}
 }
 
 // CreateService ... // FIXME: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
 func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo,
 	createServiceUUID string) error {
-	ipvsadmEntity.locker.Lock()
-	defer ipvsadmEntity.locker.Unlock()
-
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -83,9 +79,6 @@ func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServ
 
 // RemoveService ...
 func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo domain.ServiceInfo, requestUUID string) error {
-	ipvsadmEntity.locker.Lock()
-	defer ipvsadmEntity.locker.Unlock()
-
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -125,9 +118,6 @@ func (ipvsadmEntity *IPVSADMEntity) ValidateHistoricalConfig(storage *StorageEnt
 }
 
 func (ipvsadmEntity *IPVSADMEntity) readActualConfig() ([]gnl2go.Pool, error) {
-	ipvsadmEntity.locker.Lock()
-	defer ipvsadmEntity.locker.Unlock()
-
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return nil, fmt.Errorf("can't ipvs Init: %v", err)
@@ -190,8 +180,6 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 // AddApplicationServersFromService ...
 func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo domain.ServiceInfo,
 	updateServiceUUID string) error {
-	ipvsadmEntity.locker.Lock()
-	defer ipvsadmEntity.locker.Unlock()
 
 	ipvs, err := ipvsInit()
 	if err != nil {
@@ -220,9 +208,6 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo
 // RemoveApplicationServersFromService ...
 func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceInfo domain.ServiceInfo,
 	updateServiceUUID string) error {
-	ipvsadmEntity.locker.Lock()
-	defer ipvsadmEntity.locker.Unlock()
-
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)

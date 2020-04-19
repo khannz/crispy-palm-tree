@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -33,6 +34,7 @@ const (
 	defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/nw-pr-lb/network-scripts/"
 	defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/nw-pr-lb/sysctl.d/"
 	defaultMockMode               = true
+	defaultValidateStorageConfig  = 10 * time.Minute
 )
 
 // Config names
@@ -52,6 +54,7 @@ const (
 	sysctlConfigsPathName      = "sysctl-configs-path"
 	databasePathName           = "database-path"
 	mockMode                   = "mock-mode"
+	validateStorageConfigName  = "validate-storage-config"
 )
 
 // // For builds with ldflags
@@ -89,6 +92,7 @@ func init() {
 	pflag.String(sysctlConfigsPathName, defaultSysctlConfigsPath, "sysctl config path")
 
 	pflag.String(databasePathName, defaultDatabasePath, "Path to persistent database")
+	pflag.Duration(validateStorageConfigName, defaultValidateStorageConfig, "Time interval for validate storage config")
 
 	pflag.Bool(mockMode, defaultMockMode, "Mock mode. No commands will be executed")
 

@@ -44,6 +44,7 @@ var rootCmd = &cobra.Command{
 			"sysctl config path":         viperConfig.GetString(sysctlConfigsPathName),
 			"database path":              viperConfig.GetString(databasePathName),
 			"mock mode":                  viperConfig.GetBool(mockMode),
+			"time interval for validate storage config": viperConfig.GetDuration(validateStorageConfigName),
 		}).Info("")
 
 		if isColdStart() && !viperConfig.GetBool(mockMode) {
@@ -95,6 +96,16 @@ var rootCmd = &cobra.Command{
 			}).Fatalf("init program fail: storage config not valid: %v", err)
 		}
 		// validate config end
+
+		// validate scheduler start
+		scheduler := application.NewValidateConfigScheduler(cacheDB, vrrpConfigurator, locker, signalChan, logging)
+		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("can't start scheduler: %v", err)
+		}
+		// validate scheduler end
 
 		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
 
