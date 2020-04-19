@@ -85,17 +85,42 @@ var rootCmd = &cobra.Command{
 		defer persistentDB.Db.Close()
 
 		// vrrpConfigurator start
-		vrrpConfigurator := portadapter.NewIPVSADMEntity(locker)
-		// vrrpConfigurator end
-
-		err = validateActualAndStorageConfigs(persistentDB, vrrpConfigurator) // FIXME: cacheDB
+		vrrpConfigurator, err := portadapter.NewIPVSADMEntity()
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Fatalf("init program fail: storage config not valid: %v", err)
+			}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
-		// validate config end
+		// vrrpConfigurator end
+
+		// init config start
+		if errValidate := validateActualAndStorageConfigs(vrrpConfigurator, cacheDB); errValidate != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Warnf("validate actual and storage configs warning: %v.\nWill try init storage config", errValidate)
+			if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
+				logging.WithFields(logrus.Fields{
+					"entity":     rootEntity,
+					"event uuid": uuidForRootProcess,
+				}).Fatalf("init config from storage fail: %v", err)
+			}
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Warnf("init storage config successful", errValidate)
+		}
+		// init config end
+		// scheduler start
+		scheduler := application.NewValidateConfigScheduler(cacheDB, vrrpConfigurator, locker, signalChan, logging)
+		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("can't start scheduler: %v", err)
+		}
+		// scheduler end
 
 		// validate scheduler start
 		scheduler := application.NewValidateConfigScheduler(cacheDB, vrrpConfigurator, locker, signalChan, logging)
@@ -166,16 +191,6 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
-// FIXME: ipvsadm first strart required "empty" run ipvasdm command
-func validateActualAndStorageConfigs(storage *portadapter.StorageEntity,
-	ipvsadmEntity *portadapter.IPVSADMEntity) error {
-	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
-	if err != nil {
-		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
-	}
-	return nil
-}
-
 func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
 	cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
 	if err != nil {
@@ -193,6 +208,30 @@ func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadap
 	}
 
 	return cacheDB, persistentDB, nil
+}
+
+func validateActualAndStorageConfigs(ipvsadmEntity *portadapter.IPVSADMEntity,
+	storage *portadapter.StorageEntity) error {
+	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
+	if err != nil {
+		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
+	}
+	return nil
+}
+
+func initConfigFromStorage(vrrpConfigurator *portadapter.IPVSADMEntity,
+	storage *portadapter.StorageEntity,
+	eventUUID string) error {
+	configsFromStorage, err := storage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return fmt.Errorf("fail to load  storage config at start")
+	}
+	for _, configFromStorage := range configsFromStorage {
+		if err := vrrpConfigurator.CreateService(configFromStorage, eventUUID); err != nil {
+			return fmt.Errorf("can't create service for %v config from storage: %v", configFromStorage, err)
+		}
+	}
+	return nil
 }
 
 // TODO: long: bird peering autoset when cold cold start
