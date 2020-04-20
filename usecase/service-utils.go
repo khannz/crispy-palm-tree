@@ -64,3 +64,9 @@ loop:
 	}
 	return currentApplicattionServers
 }
+
+func decreaseJobs(gracefullShutdown *domain.GracefullShutdown) {
+	gracefullShutdown.Lock()
+	defer gracefullShutdown.Unlock()
+	gracefullShutdown.UsecasesJobs--
+}

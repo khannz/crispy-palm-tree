@@ -16,6 +16,7 @@ type BalancerFacade struct {
 	CacheStorage      *portadapter.StorageEntity // so dirty
 	PersistentStorage *portadapter.StorageEntity // so dirty
 	TunnelConfig      domain.TunnelMaker
+	GracefullShutdown *domain.GracefullShutdown
 	UUIDgenerator     domain.UUIDgenerator
 	Logging           *logrus.Logger
 }
@@ -26,6 +27,7 @@ func NewBalancerFacade(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
+	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
 
@@ -35,6 +37,7 @@ func NewBalancerFacade(locker *domain.Locker,
 		CacheStorage:      cacheStorage,
 		PersistentStorage: persistentStorage,
 		TunnelConfig:      tunnelConfig,
+		GracefullShutdown: gracefullShutdown,
 		UUIDgenerator:     uuidGenerator,
 		Logging:           logging,
 	}
@@ -50,6 +53,7 @@ func (balancerFacade *BalancerFacade) CreateService(serviceIP,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
@@ -63,6 +67,7 @@ func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort strin
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, nil)
@@ -71,7 +76,10 @@ func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort strin
 
 // GetServices ...
 func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {
-	getNWBServices := usecase.NewGetAllServices(balancerFacade.CacheStorage, balancerFacade.Locker, balancerFacade.Logging)
+	getNWBServices := usecase.NewGetAllServices(balancerFacade.CacheStorage,
+		balancerFacade.Locker,
+		balancerFacade.GracefullShutdown,
+		balancerFacade.Logging)
 	nwbServices, err := getNWBServices.GetAllServices(getNWBServicesUUID)
 	if err != nil {
 		return nil, fmt.Errorf("can't get nwb services: %v", err)
@@ -89,6 +97,7 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 
@@ -110,11 +119,12 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 
 	incomeServiceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
-	currentserviceInfo, err := removeApplicationServers.AddApplicationServers(incomeServiceInfo, removeApplicationServersRequestUUID)
+	currentserviceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestUUID)
 	if err != nil {
 		return incomeServiceInfo, fmt.Errorf("can't remove application servers from service: %v", err)
 	}
