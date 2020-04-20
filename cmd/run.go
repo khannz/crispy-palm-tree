@@ -120,17 +120,13 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("can't start scheduler: %v", err)
 		}
-		// scheduler end
-
-		// validate scheduler start
-		scheduler := application.NewValidateConfigScheduler(cacheDB, vrrpConfigurator, locker, signalChan, logging)
 		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("can't start scheduler: %v", err)
 		}
-		// validate scheduler end
+		// scheduler end
 
 		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
 
