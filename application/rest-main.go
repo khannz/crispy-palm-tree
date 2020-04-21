@@ -1,9 +1,12 @@
 package application
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	// Need for httpSwagger
 	_ "github.com/khannz/crispy-palm-tree/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -66,4 +69,28 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	if err != nil {
 		restAPI.balancerFacade.Logging.Infof("rest api down: %v", err)
 	}
+}
+
+// GracefulShutdownRestAPI ...
+func (restAPI *RestAPIstruct) GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone chan struct{}) {
+	<-gracefulShutdownCommandForRestAPI
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity": restAPIlogName,
+	}).Info("stoping http server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(20*time.Second))
+	defer cancel()
+
+	err := restAPI.server.Shutdown(ctx)
+	if err != nil {
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity": restAPIlogName,
+		}).Errorf("shutdown request error: %v", err)
+	}
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"entity": restAPIlogName,
+	}).Info("rest api stoped")
+
+	restAPIisDone <- struct{}{}
 }

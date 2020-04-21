@@ -17,6 +17,7 @@ type CreateServiceEntity struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
+	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -27,6 +28,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity, // so dirty
 	persistentStorage *portadapter.StorageEntity, // so dirty
 	tunnelConfig domain.TunnelMaker,
+	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *CreateServiceEntity {
 	return &CreateServiceEntity{
@@ -35,6 +37,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
+		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
@@ -50,8 +53,16 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo domain.Servi
 	// 	return fmt.Errorf("Error when create tunnel: %v", err)
 	// }
 	createService.locker.Lock()
-	// TODO: check stop chan for graceful shutdown
 	defer createService.locker.Unlock()
+	createService.gracefullShutdown.Lock()
+	if createService.gracefullShutdown.ShutdownNow {
+		defer createService.gracefullShutdown.Unlock()
+		return fmt.Errorf("program got shutdown signal, job create service %v cancel", serviceInfo)
+	}
+	createService.gracefullShutdown.UsecasesJobs++
+	createService.gracefullShutdown.Unlock()
+	defer decreaseJobs(createService.gracefullShutdown)
+
 	// add to cache storage
 	if err = createService.addNewServiceToCacheStorage(serviceInfo, createServiceUUID); err != nil {
 		return fmt.Errorf("can't add to cache storage :%v", err)

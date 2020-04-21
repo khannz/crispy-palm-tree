@@ -17,6 +17,7 @@ type RemoveApplicationServers struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
+	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -27,6 +28,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
+	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *RemoveApplicationServers {
 	return &RemoveApplicationServers{
@@ -40,8 +42,8 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 	}
 }
 
-// AddApplicationServers ...
-func (removeApplicationServers *RemoveApplicationServers) AddApplicationServers(removeServiceInfo domain.ServiceInfo,
+// RemoveApplicationServers ...
+func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo domain.ServiceInfo,
 	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
 	var err error
 	var updatedServiceInfo domain.ServiceInfo
@@ -52,8 +54,16 @@ func (removeApplicationServers *RemoveApplicationServers) AddApplicationServers(
 	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
 	// }
 	removeApplicationServers.locker.Lock()
-	// TODO: check stop chan for graceful shutdown
 	defer removeApplicationServers.locker.Unlock()
+	removeApplicationServers.gracefullShutdown.Lock()
+	if removeApplicationServers.gracefullShutdown.ShutdownNow {
+		defer removeApplicationServers.gracefullShutdown.Unlock()
+		return removeServiceInfo, fmt.Errorf("program got shutdown signal, job remove application servers %v cancel", removeServiceInfo)
+	}
+	removeApplicationServers.gracefullShutdown.UsecasesJobs++
+	removeApplicationServers.gracefullShutdown.Unlock()
+	defer decreaseJobs(removeApplicationServers.gracefullShutdown)
+
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := removeApplicationServers.getServiceInfo(removeServiceInfo, removeApplicationServersUUID)
 	if err != nil {

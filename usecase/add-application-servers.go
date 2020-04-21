@@ -17,6 +17,7 @@ type AddApplicationServers struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
+	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -27,6 +28,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
+	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *AddApplicationServers {
 	return &AddApplicationServers{
@@ -35,6 +37,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
+		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
@@ -52,8 +55,16 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
 	// }
 	addApplicationServers.locker.Lock()
-	// TODO: check stop chan for graceful shutdown
 	defer addApplicationServers.locker.Unlock()
+	addApplicationServers.gracefullShutdown.Lock()
+	if addApplicationServers.gracefullShutdown.ShutdownNow {
+		defer addApplicationServers.gracefullShutdown.Unlock()
+		return newServiceInfo, fmt.Errorf("program got shutdown signal, job add application servers %v cancel", newServiceInfo)
+	}
+	addApplicationServers.gracefullShutdown.UsecasesJobs++
+	addApplicationServers.gracefullShutdown.Unlock()
+	defer decreaseJobs(addApplicationServers.gracefullShutdown)
+
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := addApplicationServers.getServiceInfo(newServiceInfo, addApplicationServersUUID)
 	if err != nil {
