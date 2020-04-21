@@ -17,7 +17,7 @@ const rootEntity = "root-entity"
 // Default values
 const (
 	defaultConfigFilePath = "./nw-lb.yaml"
-	defaultLogOutput      = "stdout"
+	defaultLogOutput      = "syslog"
 	defaultLogLevel       = "trace"
 	defaultLogFormat      = "default"
 	defaultSystemLogTag   = ""

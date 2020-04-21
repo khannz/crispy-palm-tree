@@ -15,7 +15,7 @@ type IPVSADMEntity struct {
 
 // NewIPVSADMEntity ...
 func NewIPVSADMEntity() (*IPVSADMEntity, error) {
-	_, _, exitCode, err := executor.Execute("/usr/bin/ipvsadm", "", nil)
+	_, _, exitCode, err := executor.Execute("ipvsadm", "", nil)
 	if err != nil || exitCode != 0 {
 		return nil, fmt.Errorf("got error when execute ipvsadm command: %v, exit code %v", err, exitCode)
 	}
