@@ -17,6 +17,7 @@ type RemoveServiceEntity struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
+	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -27,6 +28,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity, // so dirty
 	persistentStorage *portadapter.StorageEntity, // so dirty
 	tunnelConfig domain.TunnelMaker,
+	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *RemoveServiceEntity {
 	return &RemoveServiceEntity{
@@ -45,8 +47,16 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain
 	removeServiceUUID string) error {
 	var err error
 	removeServiceEntity.locker.Lock()
-	// TODO: check stop chan for graceful shutdown
 	defer removeServiceEntity.locker.Unlock()
+	removeServiceEntity.gracefullShutdown.Lock()
+	if removeServiceEntity.gracefullShutdown.ShutdownNow {
+		defer removeServiceEntity.gracefullShutdown.Unlock()
+		return fmt.Errorf("program got shutdown signal, job remove service %v cancel", serviceInfo)
+	}
+	removeServiceEntity.gracefullShutdown.UsecasesJobs++
+	removeServiceEntity.gracefullShutdown.Unlock()
+	defer decreaseJobs(removeServiceEntity.gracefullShutdown)
+
 	if err = removeServiceEntity.configuratorVRRP.RemoveService(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("configuratorVRRP can't remove service: %v", serviceInfo)
 	}

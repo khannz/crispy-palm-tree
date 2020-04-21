@@ -7,3 +7,4 @@ swag
 *.conf
 route-tun*
 database/*
+dist/*

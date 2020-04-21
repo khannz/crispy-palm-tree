@@ -35,6 +35,7 @@ const (
 	defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/nw-pr-lb/sysctl.d/"
 	defaultMockMode               = true
 	defaultValidateStorageConfig  = 10 * time.Minute
+	defaultMaxShutdownTimeName    = 20 * time.Second
 )
 
 // Config names
@@ -55,6 +56,7 @@ const (
 	databasePathName           = "database-path"
 	mockMode                   = "mock-mode"
 	validateStorageConfigName  = "validate-storage-config"
+	maxShutdownTimeName        = "max-shutdown-time"
 )
 
 // // For builds with ldflags
@@ -93,6 +95,7 @@ func init() {
 
 	pflag.String(databasePathName, defaultDatabasePath, "Path to persistent database")
 	pflag.Duration(validateStorageConfigName, defaultValidateStorageConfig, "Time interval for validate storage config")
+	pflag.Duration(maxShutdownTimeName, defaultMaxShutdownTimeName, "Max time for graceful shutdown")
 
 	pflag.Bool(mockMode, defaultMockMode, "Mock mode. No commands will be executed")
 

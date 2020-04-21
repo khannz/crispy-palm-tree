@@ -1,12 +1,14 @@
 package run
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/khannz/crispy-palm-tree/application"
 	"github.com/khannz/crispy-palm-tree/domain"
@@ -45,6 +47,7 @@ var rootCmd = &cobra.Command{
 			"database path":              viperConfig.GetString(databasePathName),
 			"mock mode":                  viperConfig.GetBool(mockMode),
 			"time interval for validate storage config": viperConfig.GetDuration(validateStorageConfigName),
+			"max shutdown time":                         viperConfig.GetDuration(maxShutdownTimeName),
 		}).Info("")
 
 		if isColdStart() && !viperConfig.GetBool(mockMode) {
@@ -58,6 +61,10 @@ var rootCmd = &cobra.Command{
 		} // TODO: remove hardcode
 
 		locker := &domain.Locker{}
+		gracefullShutdown := &domain.GracefullShutdown{}
+
+		gracefulShutdownCommandForRestAPI := make(chan struct{}, 1)
+		restAPIisDone := make(chan struct{}, 1)
 
 		// more about signals: https://en.wikipedia.org/wiki/Signal_(IPC)
 		signalChan := make(chan os.Signal, 2)
@@ -120,19 +127,65 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("can't start scheduler: %v", err)
 		}
+		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("can't start scheduler: %v", err)
+		}
 		// scheduler end
 
-		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, uuidGenerator, logging)
+		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, gracefullShutdown, uuidGenerator, logging)
 
 		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade)
 		go restAPI.UpRestAPI()
+		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
+
 		<-signalChan // shutdown signal
+
+		gracefulShutdownCommandForRestAPI <- struct{}{}
+		gracefulShutdownUsecases(gracefullShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
+		<-restAPIisDone
 
 		logging.WithFields(logrus.Fields{
 			"entity":     rootEntity,
 			"event uuid": uuidForRootProcess,
 		}).Info("Program stoped")
 	},
+}
+
+func gracefulShutdownUsecases(gracefullShutdown *domain.GracefullShutdown, maxWaitTimeForJobsIsDone time.Duration, logging *logrus.Logger) {
+	gracefullShutdown.Lock()
+	gracefullShutdown.ShutdownNow = true
+	gracefullShutdown.Unlock()
+
+	ticker := time.NewTicker(time.Duration(100 * time.Millisecond)) // hardcode
+	defer ticker.Stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), maxWaitTimeForJobsIsDone)
+	defer cancel()
+	for {
+		select {
+		case <-ticker.C:
+			gracefullShutdown.Lock()
+			if gracefullShutdown.UsecasesJobs <= 0 {
+				logging.WithFields(logrus.Fields{
+					"entity": rootEntity,
+				}).Info("All jobs is done")
+				defer gracefullShutdown.Unlock()
+				return
+			}
+			gracefullShutdown.Unlock()
+			continue
+		case <-ctx.Done():
+			gracefullShutdown.Lock()
+			logging.WithFields(logrus.Fields{
+				"entity": rootEntity,
+			}).Warnf("%v jobs is fail when program stop", gracefullShutdown.UsecasesJobs)
+			defer gracefullShutdown.Unlock()
+			return
+		}
+	}
 }
 
 // Execute ...
