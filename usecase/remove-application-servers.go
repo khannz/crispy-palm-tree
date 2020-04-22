@@ -43,16 +43,13 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 }
 
 // RemoveApplicationServers ...
+// FIXME: rollbacks need refactor
 func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo domain.ServiceInfo,
 	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
 	var err error
 	var updatedServiceInfo domain.ServiceInfo
-	// deployedEntities := map[string][]string{}
-	// deployedEntities, err = removeApplicationServers.tunnelConfig.CreateTunnel(deployedEntities, applicationServers, removeApplicationServersUUID)
-	// if err != nil {
-	// 	tunnelsRemove(deployedEntities, removeApplicationServers.tunnelConfig, removeApplicationServersUUID)
-	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
-	// }
+
+	// gracefull shutdown part start
 	removeApplicationServers.locker.Lock()
 	defer removeApplicationServers.locker.Unlock()
 	removeApplicationServers.gracefullShutdown.Lock()
@@ -63,6 +60,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	removeApplicationServers.gracefullShutdown.UsecasesJobs++
 	removeApplicationServers.gracefullShutdown.Unlock()
 	defer decreaseJobs(removeApplicationServers.gracefullShutdown)
+	// gracefull shutdown part end
 
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := removeApplicationServers.getServiceInfo(removeServiceInfo, removeApplicationServersUUID)
@@ -74,14 +72,22 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
 	}
 
-	updatedServiceInfo = removeApplicationServers.formUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID)
+	enrichedApplicationServersForRemove := enrichApplicationServersInfo(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
 
+	updatedServiceInfo = removeApplicationServers.formUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID)
 	// add to cache storage
 	if err = removeApplicationServers.updateServiceFromCacheStorage(updatedServiceInfo, removeApplicationServersUUID); err != nil {
 		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
 			// TODO: log it
 		}
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
+	}
+
+	if err = removeApplicationServers.tunnelConfig.RemoveTunnels(enrichedApplicationServersForRemove, removeApplicationServersUUID); err != nil {
+		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
+			// TODO: log it
+		}
+		return currentServiceInfo, fmt.Errorf("can't remove tunnels: %v", err)
 	}
 
 	if err = removeApplicationServers.configuratorVRRP.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {

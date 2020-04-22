@@ -43,9 +43,12 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 }
 
 // RemoveService ...
+// FIXME: rollbacks need refactor
 func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain.ServiceInfo,
 	removeServiceUUID string) error {
 	var err error
+
+	// gracefull shutdown part start
 	removeServiceEntity.locker.Lock()
 	defer removeServiceEntity.locker.Unlock()
 	removeServiceEntity.gracefullShutdown.Lock()
@@ -56,6 +59,19 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain
 	removeServiceEntity.gracefullShutdown.UsecasesJobs++
 	removeServiceEntity.gracefullShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefullShutdown)
+	// gracefull shutdown part end
+
+	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
+	if err = removeServiceEntity.configuratorVRRP.RemoveService(serviceInfo, removeServiceUUID); err != nil {
+		return fmt.Errorf("can't get current service info: %v", serviceInfo)
+	}
+
+	if err = removeServiceEntity.tunnelConfig.RemoveTunnels(currentServiceInfo.ApplicationServers, removeServiceUUID); err != nil {
+		if errRollback := removeServiceEntity.cacheStorage.UpdateServiceInfo(serviceInfo, removeServiceUUID); errRollback != nil {
+			// TODO: log it
+		}
+		return fmt.Errorf("can't remove tunnels: %v", err)
+	}
 
 	if err = removeServiceEntity.configuratorVRRP.RemoveService(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("configuratorVRRP can't remove service: %v", serviceInfo)

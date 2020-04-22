@@ -70,3 +70,27 @@ func decreaseJobs(gracefullShutdown *domain.GracefullShutdown) {
 	defer gracefullShutdown.Unlock()
 	gracefullShutdown.UsecasesJobs--
 }
+
+// need to be sure fullApplicationServersInfo contain incompleteApplicationServersInfo
+func enrichApplicationServersInfo(fullApplicationServersInfo []domain.ApplicationServer,
+	incompleteApplicationServersInfo []domain.ApplicationServer) []domain.ApplicationServer {
+	enrichApplicationServersInfo := []domain.ApplicationServer{}
+	for _, incompleteApplicationServerInfo := range incompleteApplicationServersInfo {
+		for _, fullApplicationServerInfo := range fullApplicationServersInfo {
+			if incompleteApplicationServerInfo.ServerIP == fullApplicationServerInfo.ServerIP &&
+				incompleteApplicationServerInfo.ServerPort == fullApplicationServerInfo.ServerPort {
+				enrichApplicationServerInfo := domain.ApplicationServer{
+					ServerIP:        incompleteApplicationServerInfo.ServerIP,
+					ServerPort:      incompleteApplicationServerInfo.ServerPort,
+					State:           fullApplicationServerInfo.State,
+					IfcfgTunnelFile: fullApplicationServerInfo.IfcfgTunnelFile,
+					RouteTunnelFile: fullApplicationServerInfo.RouteTunnelFile,
+					SysctlConfFile:  fullApplicationServerInfo.SysctlConfFile,
+					TunnelName:      fullApplicationServerInfo.TunnelName,
+				}
+				enrichApplicationServersInfo = append(enrichApplicationServersInfo, enrichApplicationServerInfo)
+			}
+		}
+	}
+	return enrichApplicationServersInfo
+}

@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const addApplicationServers = "add-application-servers"
+const addApplicationServersName = "add-application-servers"
 
 // AddApplicationServers ...
 type AddApplicationServers struct {
@@ -48,12 +48,8 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	addApplicationServersUUID string) (domain.ServiceInfo, error) {
 	var err error
 	var updatedServiceInfo domain.ServiceInfo
-	// deployedEntities := map[string][]string{}
-	// deployedEntities, err = addApplicationServers.tunnelConfig.CreateTunnel(deployedEntities, applicationServers, addApplicationServersUUID)
-	// if err != nil {
-	// 	tunnelsRemove(deployedEntities, addApplicationServers.tunnelConfig, addApplicationServersUUID)
-	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
-	// }
+
+	// gracefull shutdown part start
 	addApplicationServers.locker.Lock()
 	defer addApplicationServers.locker.Unlock()
 	addApplicationServers.gracefullShutdown.Lock()
@@ -64,6 +60,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	addApplicationServers.gracefullShutdown.UsecasesJobs++
 	addApplicationServers.gracefullShutdown.Unlock()
 	defer decreaseJobs(addApplicationServers.gracefullShutdown)
+	// gracefull shutdown part end
 
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := addApplicationServers.getServiceInfo(newServiceInfo, addApplicationServersUUID)
@@ -80,14 +77,48 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
 
+	// enrich application servers info start
+	enrichedApplicationServers, err := addApplicationServers.tunnelConfig.EnrichApplicationServersInfo(newServiceInfo.ApplicationServers, addApplicationServersUUID)
+	if err != nil {
+		return updatedServiceInfo, err
+	}
+	newServiceInfo.ApplicationServers = enrichedApplicationServers
+	// enrich application servers info end
+
+	if err = addApplicationServers.tunnelConfig.CreateTunnels(enrichedApplicationServers, addApplicationServersUUID); err != nil {
+		if errRollBackCache := addApplicationServers.cacheStorage.RemoveServiceDataFromStorage(newServiceInfo, addApplicationServersUUID); err != nil {
+			addApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     addApplicationServersName,
+				"event uuid": addApplicationServersUUID,
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
+		}
+		return updatedServiceInfo, err
+	}
+
 	if err = addApplicationServers.configuratorVRRP.AddApplicationServersFromService(newServiceInfo, addApplicationServersUUID); err != nil {
-		if errRollback := addApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, addApplicationServersUUID); errRollback != nil {
-			// TODO: log it
+		if errRollBackTunnels := addApplicationServers.tunnelConfig.RemoveTunnels(enrichedApplicationServers, addApplicationServersUUID); err != nil {
+			addApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     addApplicationServersName,
+				"event uuid": addApplicationServersUUID,
+			}).Errorf("can't rollback tunnels, got error: %v", errRollBackTunnels)
+		}
+		if errRollBackCache := addApplicationServers.cacheStorage.RemoveServiceDataFromStorage(newServiceInfo, addApplicationServersUUID); err != nil {
+			addApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     addApplicationServersName,
+				"event uuid": addApplicationServersUUID,
+			}).Errorf("can't rollback tunnels, got error: %v", errRollBackCache)
 		}
 		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
 
 	if err = addApplicationServers.updateServiceFromPersistentStorage(updatedServiceInfo, addApplicationServersUUID); err != nil {
+		if errRollBackTunnels := addApplicationServers.tunnelConfig.RemoveTunnels(enrichedApplicationServers, addApplicationServersUUID); err != nil {
+			addApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     addApplicationServersName,
+				"event uuid": addApplicationServersUUID,
+			}).Errorf("can't rollback tunnels, got error: %v", errRollBackTunnels)
+		}
+
 		if errRollBackCache := addApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
 			// TODO: log: cant roll back
 		}
