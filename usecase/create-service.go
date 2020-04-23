@@ -44,7 +44,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 }
 
 // CreateService ...
-func (createService *CreateServiceEntity) CreateService(serviceInfo domain.ServiceInfo,
+func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.ServiceInfo,
 	createServiceUUID string) error {
 	// gracefull shutdown part start
 	createService.locker.Lock()

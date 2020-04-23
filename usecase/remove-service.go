@@ -44,7 +44,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 
 // RemoveService ...
 // FIXME: rollbacks need refactor
-func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain.ServiceInfo,
+func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domain.ServiceInfo,
 	removeServiceUUID string) error {
 	var err error
 
@@ -85,14 +85,14 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain
 	return nil
 }
 
-func (removeServiceEntity *RemoveServiceEntity) removeServiceFromPersistentStorage(serviceInfo domain.ServiceInfo, removeServiceUUID string) error {
+func (removeServiceEntity *RemoveServiceEntity) removeServiceFromPersistentStorage(serviceInfo *domain.ServiceInfo, removeServiceUUID string) error {
 	if err := removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("error remove service %v from persistent storage: %v", serviceInfo, err)
 	}
 	return nil
 }
 
-func (removeServiceEntity *RemoveServiceEntity) removeNewServiceFromCacheStorage(serviceInfo domain.ServiceInfo, removeServiceUUID string) error {
+func (removeServiceEntity *RemoveServiceEntity) removeNewServiceFromCacheStorage(serviceInfo *domain.ServiceInfo, removeServiceUUID string) error {
 	if err := removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("error remove service %v data from cache storage: %v", serviceInfo, err)
 	}

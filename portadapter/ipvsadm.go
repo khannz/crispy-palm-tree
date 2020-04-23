@@ -23,7 +23,7 @@ func NewIPVSADMEntity() (*IPVSADMEntity, error) {
 }
 
 // CreateService ... // TODO: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
-func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo,
+func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInfo,
 	createServiceUUID string) error {
 	ipvs, err := ipvsInit()
 	if err != nil {
@@ -83,7 +83,7 @@ func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServ
 }
 
 // RemoveService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo domain.ServiceInfo, requestUUID string) error {
+func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInfo, requestUUID string) error {
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -135,8 +135,8 @@ func (ipvsadmEntity *IPVSADMEntity) readActualConfig() ([]gnl2go.Pool, error) {
 	return pools, nil
 }
 
-func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []domain.ServiceInfo {
-	servicesInfo := []domain.ServiceInfo{}
+func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []*domain.ServiceInfo {
+	servicesInfo := []*domain.ServiceInfo{}
 	for _, pool := range pools {
 		applicationServers := []domain.ApplicationServer{}
 		for _, dest := range pool.Dests {
@@ -146,7 +146,7 @@ func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []domain.ServiceInf
 			}
 			applicationServers = append(applicationServers, applocationServer)
 		}
-		serviceInfo := domain.ServiceInfo{
+		serviceInfo := &domain.ServiceInfo{
 			ServiceIP:          pool.Service.VIP,
 			ServicePort:        strconv.Itoa(int(pool.Service.Port)),
 			ApplicationServers: applicationServers,
@@ -183,7 +183,7 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 }
 
 // AddApplicationServersFromService ...
-func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo domain.ServiceInfo,
+func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo *domain.ServiceInfo,
 	updateServiceUUID string) error {
 
 	ipvs, err := ipvsInit()
@@ -211,7 +211,7 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo
 }
 
 // RemoveApplicationServersFromService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceInfo domain.ServiceInfo,
+func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceInfo *domain.ServiceInfo,
 	updateServiceUUID string) error {
 	ipvs, err := ipvsInit()
 	if err != nil {

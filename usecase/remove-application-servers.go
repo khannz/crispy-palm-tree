@@ -44,10 +44,10 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 
 // RemoveApplicationServers ...
 // FIXME: rollbacks need refactor
-func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo domain.ServiceInfo,
-	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
+func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo *domain.ServiceInfo,
+	removeApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	var err error
-	var updatedServiceInfo domain.ServiceInfo
+	var updatedServiceInfo *domain.ServiceInfo
 
 	// gracefull shutdown part start
 	removeApplicationServers.locker.Lock()
@@ -111,29 +111,29 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	return updatedServiceInfo, nil
 }
 
-func (removeApplicationServers *RemoveApplicationServers) updateServiceFromCacheStorage(serviceInfo domain.ServiceInfo, removeApplicationServersUUID string) error {
+func (removeApplicationServers *RemoveApplicationServers) updateServiceFromCacheStorage(serviceInfo *domain.ServiceInfo, removeApplicationServersUUID string) error {
 	if err := removeApplicationServers.cacheStorage.UpdateServiceInfo(serviceInfo, removeApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to cache storage: %v", err)
 	}
 	return nil
 }
 
-func (removeApplicationServers *RemoveApplicationServers) updateServiceFromPersistentStorage(serviceInfo domain.ServiceInfo, removeApplicationServersUUID string) error {
+func (removeApplicationServers *RemoveApplicationServers) updateServiceFromPersistentStorage(serviceInfo *domain.ServiceInfo, removeApplicationServersUUID string) error {
 	if err := removeApplicationServers.persistentStorage.UpdateServiceInfo(serviceInfo, removeApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to persistent storage: %v", err)
 	}
 	return nil
 }
 
-func (removeApplicationServers *RemoveApplicationServers) getServiceInfo(removeServiceInfo domain.ServiceInfo,
-	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
+func (removeApplicationServers *RemoveApplicationServers) getServiceInfo(removeServiceInfo *domain.ServiceInfo,
+	removeApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	return removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersUUID)
 }
 
-func (removeApplicationServers *RemoveApplicationServers) formUpdateServiceInfo(currentServiceInfo, removeServiceInfo domain.ServiceInfo, eventUUID string) domain.ServiceInfo {
-	var resultServiceInfo domain.ServiceInfo
+func (removeApplicationServers *RemoveApplicationServers) formUpdateServiceInfo(currentServiceInfo, removeServiceInfo *domain.ServiceInfo, eventUUID string) *domain.ServiceInfo {
+	var resultServiceInfo *domain.ServiceInfo
 	resultApplicationServers := formNewApplicationServersSlice(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
-	resultServiceInfo = domain.ServiceInfo{
+	resultServiceInfo = &domain.ServiceInfo{
 		ServiceIP:          removeServiceInfo.ServiceIP,
 		ServicePort:        removeServiceInfo.ServicePort,
 		ApplicationServers: resultApplicationServers,

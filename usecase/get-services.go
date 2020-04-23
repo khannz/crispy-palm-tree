@@ -32,7 +32,7 @@ func NewGetAllServices(cacheStorage *portadapter.StorageEntity,
 }
 
 // GetAllServices ...
-func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID string) ([]domain.ServiceInfo, error) {
+func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID string) ([]*domain.ServiceInfo, error) {
 	getAllServices.locker.Lock()
 	defer getAllServices.locker.Unlock()
 	getAllServices.gracefullShutdown.Lock()

@@ -7,7 +7,7 @@ import (
 )
 
 // TODO: need better check unique, app srv to services too
-func checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo domain.ServiceInfo, eventUUID string) error {
+func checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) error {
 	// TODO: bad loops
 	for _, newApplicationServer := range newServiceInfo.ApplicationServers {
 		for _, currentApplicationServer := range currentServiceInfo.ApplicationServers {

@@ -44,10 +44,10 @@ func NewAddApplicationServers(locker *domain.Locker,
 }
 
 // AddNewApplicationServers ...
-func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(newServiceInfo domain.ServiceInfo,
-	addApplicationServersUUID string) (domain.ServiceInfo, error) {
+func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(newServiceInfo *domain.ServiceInfo,
+	addApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	var err error
-	var updatedServiceInfo domain.ServiceInfo
+	var updatedServiceInfo *domain.ServiceInfo
 
 	// gracefull shutdown part start
 	addApplicationServers.locker.Lock()
@@ -133,34 +133,34 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	return updatedServiceInfo, nil
 }
 
-func (addApplicationServers *AddApplicationServers) updateServiceFromCacheStorage(serviceInfo domain.ServiceInfo, addApplicationServersUUID string) error {
+func (addApplicationServers *AddApplicationServers) updateServiceFromCacheStorage(serviceInfo *domain.ServiceInfo, addApplicationServersUUID string) error {
 	if err := addApplicationServers.cacheStorage.UpdateServiceInfo(serviceInfo, addApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to cache storage: %v", err)
 	}
 	return nil
 }
 
-func (addApplicationServers *AddApplicationServers) updateServiceFromPersistentStorage(serviceInfo domain.ServiceInfo, addApplicationServersUUID string) error {
+func (addApplicationServers *AddApplicationServers) updateServiceFromPersistentStorage(serviceInfo *domain.ServiceInfo, addApplicationServersUUID string) error {
 	if err := addApplicationServers.persistentStorage.UpdateServiceInfo(serviceInfo, addApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to persistent storage: %v", err)
 	}
 	return nil
 }
 
-func (addApplicationServers *AddApplicationServers) getServiceInfo(newServiceInfo domain.ServiceInfo,
-	addApplicationServersUUID string) (domain.ServiceInfo, error) {
+func (addApplicationServers *AddApplicationServers) getServiceInfo(newServiceInfo *domain.ServiceInfo,
+	addApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	return addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
 }
 
-func (addApplicationServers *AddApplicationServers) formUpdateServiceInfo(currentServiceInfo, newServiceInfo domain.ServiceInfo, eventUUID string) (domain.ServiceInfo, error) {
-	var resultServiceInfo domain.ServiceInfo
+func (addApplicationServers *AddApplicationServers) formUpdateServiceInfo(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
+	var resultServiceInfo *domain.ServiceInfo
 	if err := checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo, eventUUID); err != nil {
 		return resultServiceInfo, fmt.Errorf("new application server not unique: %v", err)
 	}
 	// concatenate two slices
 	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
 
-	resultServiceInfo = domain.ServiceInfo{
+	resultServiceInfo = &domain.ServiceInfo{
 		ServiceIP:          newServiceInfo.ServiceIP,
 		ServicePort:        newServiceInfo.ServicePort,
 		ApplicationServers: resultApplicationServers,

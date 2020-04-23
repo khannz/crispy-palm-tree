@@ -249,7 +249,7 @@ func trimSuffix(filePath, suffix string) (string, error) {
 }
 
 // TODO: logic bellow must be not in portadapter, it's domain
-func compareDomainServicesData(actualServicesInfo, storageServicesInfo []domain.ServiceInfo) error {
+func compareDomainServicesData(actualServicesInfo, storageServicesInfo []*domain.ServiceInfo) error {
 	sortedActualServicesInfo := SortServicesInfoAndApplicationServers(actualServicesInfo)
 	sortedStorageServicesInfo := SortServicesInfoAndApplicationServers(storageServicesInfo)
 
@@ -275,15 +275,15 @@ func compareDomainServicesData(actualServicesInfo, storageServicesInfo []domain.
 }
 
 // SortServicesInfoAndApplicationServers - sort all services include child object application servers
-func SortServicesInfoAndApplicationServers(unsortedServicesInfo []domain.ServiceInfo) []domain.ServiceInfo {
-	sortedServicesInfo := []domain.ServiceInfo{}
+func SortServicesInfoAndApplicationServers(unsortedServicesInfo []*domain.ServiceInfo) []*domain.ServiceInfo {
+	sortedServicesInfo := []*domain.ServiceInfo{}
 	newServicesInfo := sortedOnlyServices(unsortedServicesInfo)
 	for _, sortedOnlyServiceInfo := range newServicesInfo { // terrible second 'for' loop..
 		for _, unsortedServiceInfo := range unsortedServicesInfo {
 			if sortedOnlyServiceInfo.ServiceIP == unsortedServiceInfo.ServiceIP &&
 				sortedOnlyServiceInfo.ServicePort == unsortedServiceInfo.ServicePort {
 				sortedApplicationServers := sortApplicationServers(unsortedServiceInfo.ApplicationServers)
-				sortedServiceInfo := domain.ServiceInfo{
+				sortedServiceInfo := &domain.ServiceInfo{
 					ServiceIP:          sortedOnlyServiceInfo.ServiceIP,
 					ServicePort:        sortedOnlyServiceInfo.ServicePort,
 					ApplicationServers: sortedApplicationServers,
@@ -298,13 +298,13 @@ func SortServicesInfoAndApplicationServers(unsortedServicesInfo []domain.Service
 	return sortedServicesInfo
 }
 
-func sortedOnlyServices(unsortedServicesInfo []domain.ServiceInfo) []domain.ServiceInfo {
+func sortedOnlyServices(unsortedServicesInfo []*domain.ServiceInfo) []*domain.ServiceInfo {
 	servicesInfoSlice := formServicesInfoFromDomainModel(unsortedServicesInfo)
 	onlyServicesInfoSortedSlice := sortIPs(servicesInfoSlice)
 	return formServicesInfoDomainModelFromSlice(onlyServicesInfoSortedSlice)
 }
 
-func formServicesInfoFromDomainModel(servicesInfo []domain.ServiceInfo) []string {
+func formServicesInfoFromDomainModel(servicesInfo []*domain.ServiceInfo) []string {
 	servicesInfoSlice := []string{}
 	for _, serviceInfo := range servicesInfo {
 		servicesInfoSlice = append(servicesInfoSlice, serviceInfo.ServiceIP+":"+serviceInfo.ServicePort)
@@ -312,11 +312,11 @@ func formServicesInfoFromDomainModel(servicesInfo []domain.ServiceInfo) []string
 	return servicesInfoSlice
 }
 
-func formServicesInfoDomainModelFromSlice(servicesInfoSlice []string) []domain.ServiceInfo { // never check len servicesInfoSlice 2, hardcoded
-	servicesInfo := []domain.ServiceInfo{}
+func formServicesInfoDomainModelFromSlice(servicesInfoSlice []string) []*domain.ServiceInfo { // never check len servicesInfoSlice 2, hardcoded
+	servicesInfo := []*domain.ServiceInfo{}
 	for _, serviceInfo := range servicesInfoSlice {
 		serviceInfoSlice := strings.Split(serviceInfo, ":")
-		serviceInfo := domain.ServiceInfo{
+		serviceInfo := &domain.ServiceInfo{
 			ServiceIP:   serviceInfoSlice[0],
 			ServicePort: serviceInfoSlice[1],
 		}

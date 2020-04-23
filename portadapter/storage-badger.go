@@ -55,7 +55,8 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 }
 
 // NewServiceDataToStorage add new service to storage. Also check unique data
-func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData domain.ServiceInfo, eventUUID string) error {
+func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData *domain.ServiceInfo,
+	eventUUID string) error {
 	serviceDataKey, serviceDataValue, err := transformServiceDataForDatabase(serviceData)
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)
@@ -74,7 +75,7 @@ func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData domain.S
 	return nil
 }
 
-func transformServiceDataForDatabase(serviceData domain.ServiceInfo) ([]byte,
+func transformServiceDataForDatabase(serviceData *domain.ServiceInfo) ([]byte,
 	[]byte,
 	error) {
 	serviceDataKey := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
@@ -104,7 +105,7 @@ func (storageEntity *StorageEntity) checkServiceUniqueInDatabase(key []byte) err
 }
 
 func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
-	serviceInfo domain.ServiceInfo) error {
+	serviceInfo *domain.ServiceInfo) error {
 	var err error
 	err = storageEntity.checkServiceUniqueInDatabase(serviceDataKey)
 	if err != nil {
@@ -171,7 +172,7 @@ func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 }
 
 // RemoveServiceDataFromStorage ...
-func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData domain.ServiceInfo, eventUUID string) error {
+func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *domain.ServiceInfo, eventUUID string) error {
 	keyData := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
 	if err := storageEntity.checkServiceUniqueInDatabase(keyData); err == nil { // if err not nil key exist
 		return fmt.Errorf("key %s not exist in database", keyData)
@@ -189,8 +190,8 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData dom
 }
 
 // GetServiceInfo ...
-func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData domain.ServiceInfo, eventUUID string) (domain.ServiceInfo, error) {
-	var currentServiceInfo domain.ServiceInfo
+func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
+	var currentServiceInfo *domain.ServiceInfo
 	currentApplicationServers := []domain.ApplicationServer{}
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(incomeServiceData.ServiceIP + ":" + incomeServiceData.ServicePort))
@@ -213,7 +214,7 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData domain.Serv
 		return currentServiceInfo, err
 	}
 
-	return domain.ServiceInfo{
+	return &domain.ServiceInfo{
 		ServiceIP:          incomeServiceData.ServiceIP,
 		ServicePort:        incomeServiceData.ServicePort,
 		ApplicationServers: currentApplicationServers,
@@ -221,8 +222,8 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData domain.Serv
 }
 
 // LoadAllStorageDataToDomainModel ...
-func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]domain.ServiceInfo, error) {
-	servicesInfo := []domain.ServiceInfo{}
+func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain.ServiceInfo, error) {
+	servicesInfo := []*domain.ServiceInfo{}
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -240,7 +241,7 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]domain.
 				if len(rawServiceData) != 2 {
 					return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
 				}
-				serviceInfo := domain.ServiceInfo{
+				serviceInfo := &domain.ServiceInfo{
 					ServiceIP:          rawServiceData[0],
 					ServicePort:        rawServiceData[1],
 					ApplicationServers: oldApplicationServers,
@@ -289,7 +290,7 @@ func (storageEntity *StorageEntity) LoadCacheFromStorage(oldStorageEntity *Stora
 }
 
 // UpdateServiceInfo validate and update service
-func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData domain.ServiceInfo, eventUUID string) error {
+func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData *domain.ServiceInfo, eventUUID string) error {
 	serviceDataKey, serviceDataValue, err := transformServiceDataForDatabase(newServiceData)
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)
