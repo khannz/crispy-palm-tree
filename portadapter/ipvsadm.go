@@ -181,8 +181,8 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 	return nil
 }
 
-// AddApplicationServersFromService ...
-func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo *domain.ServiceInfo,
+// AddApplicationServersForService ...
+func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(serviceInfo *domain.ServiceInfo,
 	updateServiceUUID string) error {
 
 	ipvs, err := ipvsInit()

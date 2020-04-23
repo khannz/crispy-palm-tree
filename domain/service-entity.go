@@ -26,6 +26,6 @@ type ServiceInfo struct {
 type ServiceWorker interface {
 	CreateService(*ServiceInfo, string) error
 	RemoveService(*ServiceInfo, string) error
-	AddApplicationServersFromService(*ServiceInfo, string) error
+	AddApplicationServersForService(*ServiceInfo, string) error
 	RemoveApplicationServersFromService(*ServiceInfo, string) error
 }

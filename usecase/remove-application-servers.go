@@ -102,7 +102,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 			// TODO: log: cant roll back
 		}
 
-		if errRollBackCache := removeApplicationServers.configuratorVRRP.AddApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+		if errRollBackCache := removeApplicationServers.configuratorVRRP.AddApplicationServersForService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
 			// TODO: log: cant roll back
 		}
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)

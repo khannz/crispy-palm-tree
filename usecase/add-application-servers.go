@@ -95,7 +95,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return updatedServiceInfo, err
 	}
 
-	if err = addApplicationServers.configuratorVRRP.AddApplicationServersFromService(newServiceInfo, addApplicationServersUUID); err != nil {
+	if err = addApplicationServers.configuratorVRRP.AddApplicationServersForService(newServiceInfo, addApplicationServersUUID); err != nil {
 		if errRollBackTunnels := addApplicationServers.tunnelConfig.RemoveTunnels(enrichedApplicationServers, addApplicationServersUUID); err != nil {
 			addApplicationServers.logging.WithFields(logrus.Fields{
 				"entity":     addApplicationServersName,
