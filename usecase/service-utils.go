@@ -24,7 +24,7 @@ func checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo *doma
 }
 
 func validateRemoveApplicationServers(currentApplicattionServers,
-	applicattionServersForRemove []domain.ApplicationServer) error {
+	applicattionServersForRemove []*domain.ApplicationServer) error {
 	if len(currentApplicattionServers) <= len(applicattionServersForRemove) {
 		return fmt.Errorf("lenght applications servers for remove: %v. Have application servers for service: %v",
 			len(applicattionServersForRemove),
@@ -34,7 +34,7 @@ func validateRemoveApplicationServers(currentApplicattionServers,
 	var i []int
 	for j, applicattionServerForRemove := range applicattionServersForRemove {
 		for _, currentApplicattionServer := range currentApplicattionServers {
-			if applicattionServerForRemove == currentApplicattionServer {
+			if *applicattionServerForRemove == *currentApplicattionServer {
 				i = append(i, j)
 			}
 		}
@@ -50,12 +50,12 @@ func validateRemoveApplicationServers(currentApplicattionServers,
 	return nil
 }
 
-func formNewApplicationServersSlice(currentApplicattionServers, applicattionServersForRemove []domain.ApplicationServer) []domain.ApplicationServer {
+func formNewApplicationServersSlice(currentApplicattionServers, applicattionServersForRemove []*domain.ApplicationServer) []*domain.ApplicationServer {
 loop:
 	for i := 0; i < len(currentApplicattionServers); i++ {
 		url := currentApplicattionServers[i]
 		for _, rem := range applicattionServersForRemove {
-			if url == rem {
+			if *url == *rem {
 				currentApplicattionServers = append(currentApplicattionServers[:i], currentApplicattionServers[i+1:]...)
 				i-- // decrease index
 				continue loop
@@ -72,14 +72,14 @@ func decreaseJobs(gracefullShutdown *domain.GracefullShutdown) {
 }
 
 // need to be sure fullApplicationServersInfo contain incompleteApplicationServersInfo
-func enrichApplicationServersInfo(fullApplicationServersInfo []domain.ApplicationServer,
-	incompleteApplicationServersInfo []domain.ApplicationServer) []domain.ApplicationServer {
-	enrichApplicationServersInfo := []domain.ApplicationServer{}
+func enrichApplicationServersInfo(fullApplicationServersInfo []*domain.ApplicationServer,
+	incompleteApplicationServersInfo []*domain.ApplicationServer) []*domain.ApplicationServer {
+	enrichApplicationServersInfo := []*domain.ApplicationServer{}
 	for _, incompleteApplicationServerInfo := range incompleteApplicationServersInfo {
 		for _, fullApplicationServerInfo := range fullApplicationServersInfo {
 			if incompleteApplicationServerInfo.ServerIP == fullApplicationServerInfo.ServerIP &&
 				incompleteApplicationServerInfo.ServerPort == fullApplicationServerInfo.ServerPort {
-				enrichApplicationServerInfo := domain.ApplicationServer{
+				enrichApplicationServerInfo := &domain.ApplicationServer{
 					ServerIP:        incompleteApplicationServerInfo.ServerIP,
 					ServerPort:      incompleteApplicationServerInfo.ServerPort,
 					State:           fullApplicationServerInfo.State,

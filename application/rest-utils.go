@@ -82,7 +82,7 @@ func transformDomainServicesInfoToResponseData(nwbServices []*domain.ServiceInfo
 	return UniversalResponses
 }
 
-func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []domain.ApplicationServer) []ServerApplication {
+func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []*domain.ApplicationServer) []ServerApplication {
 	applicationServers := []ServerApplication{}
 	for _, domainApplicationServer := range domainApplicationServers {
 		applicationServer := ServerApplication{

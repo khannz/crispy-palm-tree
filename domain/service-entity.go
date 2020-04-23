@@ -14,12 +14,12 @@ type ApplicationServer struct {
 
 // ServiceInfo ...
 type ServiceInfo struct {
-	ServiceIP          string              `json:"serviceIP"`
-	ServicePort        string              `json:"servicePort"`
-	ApplicationServers []ApplicationServer `json:"applicationServers"`
-	HealthcheckType    string              `json:"healthcheckType"` // TODO: must be struct
-	ExtraInfo          []string            `json:"extraInfo"`
-	State              bool                `json:"state"`
+	ServiceIP          string               `json:"serviceIP"`
+	ServicePort        string               `json:"servicePort"`
+	ApplicationServers []*ApplicationServer `json:"applicationServers"`
+	HealthcheckType    string               `json:"healthcheckType"` // TODO: must be struct
+	ExtraInfo          []string             `json:"extraInfo"`
+	State              bool                 `json:"state"`
 }
 
 // ServiceWorker ...

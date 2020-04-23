@@ -48,9 +48,9 @@ func NewTunnelFileMaker(pathToIfcfgTunnelFiles string,
 }
 
 // EnrichApplicationServersInfo add tunnel info to application servers struct
-func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServersInfo(applicationServers []domain.ApplicationServer,
-	requestUUID string) ([]domain.ApplicationServer, error) {
-	enrichedApplicationServers := []domain.ApplicationServer{}
+func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServersInfo(applicationServers []*domain.ApplicationServer,
+	requestUUID string) ([]*domain.ApplicationServer, error) {
+	enrichedApplicationServers := []*domain.ApplicationServer{}
 	for _, applicationServer := range applicationServers {
 		enrichedApplicationServer, err := tunnelFileMaker.EnrichApplicationServerInfo(applicationServer, requestUUID)
 		if err != nil {
@@ -62,11 +62,11 @@ func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServersInfo(application
 }
 
 // EnrichApplicationServerInfo add tunnel info to application servers struct
-func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServerInfo(applicationServers domain.ApplicationServer,
-	requestUUID string) (domain.ApplicationServer, error) {
+func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServerInfo(applicationServers *domain.ApplicationServer,
+	requestUUID string) (*domain.ApplicationServer, error) {
 	newTunnelName, err := tunnelFileMaker.chooseNewTunnelName()
 	if err != nil {
-		return domain.ApplicationServer{}, fmt.Errorf("can't choose new tunnel name: %v", err)
+		return &domain.ApplicationServer{}, fmt.Errorf("can't choose new tunnel name: %v", err)
 	}
 
 	newIfcfgTunnelFileFullPath := tunnelFileMaker.pathToIfcfgTunnelFiles + "ifcfg-" + "tun" + newTunnelName
@@ -75,7 +75,7 @@ func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServerInfo(applicationS
 
 	newSysctlConfFileFullPath := tunnelFileMaker.sysctlConfFilePath + newTunnelName + "-sysctl.conf"
 
-	enrichedApplicationServer := domain.ApplicationServer{
+	enrichedApplicationServer := &domain.ApplicationServer{
 		ServerIP:        applicationServers.ServerIP,
 		ServerPort:      applicationServers.ServerPort,
 		IfcfgTunnelFile: newIfcfgTunnelFileFullPath,
@@ -87,7 +87,7 @@ func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServerInfo(applicationS
 }
 
 // CreateTunnels ...
-func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(applicationServers []domain.ApplicationServer,
+func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(applicationServers []*domain.ApplicationServer,
 	createTunnelUUID string) error {
 	for _, applicationServer := range applicationServers {
 		if err := tunnelFileMaker.CreateTunnel(applicationServer, createTunnelUUID); err != nil {
@@ -98,7 +98,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(applicationServers []domai
 }
 
 // CreateTunnel ...
-func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(applicationServer domain.ApplicationServer,
+func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(applicationServer *domain.ApplicationServer,
 	createTunnelUUID string) error {
 	if err := tunnelFileMaker.writeNewTunnelFile(applicationServer, createTunnelUUID); err != nil {
 		return fmt.Errorf("can't write new tunnel files: %v", err)
@@ -137,7 +137,7 @@ func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (string, error) { 
 	return strconv.Itoa(nextTunnelName), nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFile(applicationServer domain.ApplicationServer,
+func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFile(applicationServer *domain.ApplicationServer,
 	createTunnelUUID string) error {
 	newDataForTunnelFile := strings.ReplaceAll(rawDataForTunnelFile, "TUNNEL_NAME", applicationServer.TunnelName)
 	newDataForTunnelFile = strings.ReplaceAll(newDataForTunnelFile, "REAL_SERVER_IP", applicationServer.ServerIP)
@@ -207,7 +207,7 @@ func (tunnelFileMaker *TunnelFileMaker) ExecuteCommandForTunnel(tunnelName strin
 }
 
 // RemoveTunnels ...
-func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(applicationServers []domain.ApplicationServer,
+func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(applicationServers []*domain.ApplicationServer,
 	removeTunnelUUID string) error {
 	for _, applicationServer := range applicationServers {
 		if err := tunnelFileMaker.RemoveTunnel(applicationServer, removeTunnelUUID); err != nil {
@@ -218,7 +218,7 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(applicationServers []domai
 }
 
 // RemoveTunnel ...
-func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(applicationServer domain.ApplicationServer,
+func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(applicationServer *domain.ApplicationServer,
 	removeTunnelUUID string) error {
 	var err error
 	if err = tunnelFileMaker.removeFile(applicationServer.IfcfgTunnelFile, removeTunnelUUID); err != nil {

@@ -69,7 +69,7 @@ func ipvsInit() (*gnl2go.IpvsClient, error) {
 	return ipvs, nil
 }
 
-func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServer) (map[string]uint16, error) {
+func convertRawApplicationServers(rawApplicationServers []*domain.ApplicationServer) (map[string]uint16, error) {
 	applicationServers := map[string]uint16{}
 
 	for _, applicationServer := range rawApplicationServers {
@@ -105,7 +105,6 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInf
 
 // ValidateHistoricalConfig ...
 func (ipvsadmEntity *IPVSADMEntity) ValidateHistoricalConfig(storage *StorageEntity) error {
-
 	pools, err := ipvsadmEntity.readActualConfig()
 	if err != nil {
 		return fmt.Errorf("can't read actual config: %v", err)
@@ -138,9 +137,9 @@ func (ipvsadmEntity *IPVSADMEntity) readActualConfig() ([]gnl2go.Pool, error) {
 func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []*domain.ServiceInfo {
 	servicesInfo := []*domain.ServiceInfo{}
 	for _, pool := range pools {
-		applicationServers := []domain.ApplicationServer{}
+		applicationServers := []*domain.ApplicationServer{}
 		for _, dest := range pool.Dests {
-			applocationServer := domain.ApplicationServer{
+			applocationServer := &domain.ApplicationServer{
 				ServerIP:   dest.IP,
 				ServerPort: strconv.Itoa(int(dest.Port)),
 			}

@@ -250,9 +250,19 @@ func trimSuffix(filePath, suffix string) (string, error) {
 
 // TODO: logic bellow must be not in portadapter, it's domain
 func compareDomainServicesData(actualServicesInfo, storageServicesInfo []*domain.ServiceInfo) error {
-	sortedActualServicesInfo := SortServicesInfoAndApplicationServers(actualServicesInfo)
-	sortedStorageServicesInfo := SortServicesInfoAndApplicationServers(storageServicesInfo)
+	if len(actualServicesInfo) == 0 && len(storageServicesInfo) == 0 {
+		return nil
+	}
 
+	// var sortedActualServicesInfo []*domain.ServiceInfo
+	// if len(actualServicesInfo) == 0 {
+	sortedActualServicesInfo := SortServicesInfoAndApplicationServers(actualServicesInfo)
+	// }
+
+	// var sortedStorageServicesInfo []*domain.ServiceInfo
+	// if len(actualServicesInfo) == 0 {
+	sortedStorageServicesInfo := SortServicesInfoAndApplicationServers(storageServicesInfo)
+	// }
 	changelog, err := diff.Diff(sortedActualServicesInfo, sortedStorageServicesInfo)
 	if err != nil {
 		return fmt.Errorf("can't get diff between current and storage config: %v", err)
@@ -325,17 +335,18 @@ func formServicesInfoDomainModelFromSlice(servicesInfoSlice []string) []*domain.
 	return servicesInfo
 }
 
-func sortApplicationServers(applicationServers []domain.ApplicationServer) []domain.ApplicationServer {
+func sortApplicationServers(applicationServers []*domain.ApplicationServer) []*domain.ApplicationServer {
 	applicationServersSlice := formApplicationServersSliceFromDomainModel(applicationServers)
 	sortedApplicationServersSlice := sortIPs(applicationServersSlice)
 	return formApplicationServersDomainModelFromSlice(sortedApplicationServersSlice)
 }
 
-func formApplicationServersDomainModelFromSlice(applicationServersSlice []string) []domain.ApplicationServer { // never check len applicationServersSlice 2, hardcoded
-	applicationServers := []domain.ApplicationServer{}
+func formApplicationServersDomainModelFromSlice(applicationServersSlice []string) []*domain.ApplicationServer { // never check len applicationServersSlice 2, hardcoded
+	applicationServers := []*domain.ApplicationServer{}
 	for _, applicationServer := range applicationServersSlice {
 		applicationServerSlice := strings.Split(applicationServer, ":")
-		applicationServer := domain.ApplicationServer{
+		//
+		applicationServer := &domain.ApplicationServer{
 			ServerIP:   applicationServerSlice[0],
 			ServerPort: applicationServerSlice[1],
 		}
@@ -344,7 +355,7 @@ func formApplicationServersDomainModelFromSlice(applicationServersSlice []string
 	return applicationServers
 }
 
-func formApplicationServersSliceFromDomainModel(applicationServers []domain.ApplicationServer) []string {
+func formApplicationServersSliceFromDomainModel(applicationServers []*domain.ApplicationServer) []string {
 	applicationServersSlice := []string{}
 	for _, applicationServer := range applicationServers {
 		applicationServersSlice = append(applicationServersSlice, applicationServer.ServerIP+":"+applicationServer.ServerPort)

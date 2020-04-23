@@ -126,7 +126,8 @@ func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
 }
 
 // TODO: need better check unique, app srv to services too
-func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(checkIP, checkPort string) error {
+func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(checkIP,
+	checkPort string) error {
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -144,7 +145,7 @@ func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(
 				for _, oldApplicationServer := range oldApplicationServers {
 					if checkIP == oldApplicationServer.ServerIP &&
 						checkPort == oldApplicationServer.ServerPort {
-						return fmt.Errorf("in service %s application server %s already exist", serviceData, oldApplicationServer)
+						return fmt.Errorf("in service %s application server %v already exist", serviceData, oldApplicationServer)
 					}
 				}
 
@@ -192,7 +193,7 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *do
 // GetServiceInfo ...
 func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
 	var currentServiceInfo *domain.ServiceInfo
-	currentApplicationServers := []domain.ApplicationServer{}
+	currentApplicationServers := []*domain.ApplicationServer{}
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(incomeServiceData.ServiceIP + ":" + incomeServiceData.ServicePort))
 		if err != nil {
@@ -208,7 +209,10 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		}); err != nil {
 			return err
 		}
-		currentApplicationServers = oldApplicationServers // is that work?
+		for _, oldApplicationServer := range oldApplicationServers {
+			renewPointerForOldApplicationServer := oldApplicationServer
+			currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
+		}
 		return nil
 	}); err != nil {
 		return currentServiceInfo, err
@@ -224,6 +228,7 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 // LoadAllStorageDataToDomainModel ...
 func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain.ServiceInfo, error) {
 	servicesInfo := []*domain.ServiceInfo{}
+
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -241,10 +246,15 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 				if len(rawServiceData) != 2 {
 					return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
 				}
+				currentApplicationServers := []*domain.ApplicationServer{}
+				for _, oldApplicationServer := range oldApplicationServers {
+					renewPointerForOldApplicationServer := oldApplicationServer
+					currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
+				}
 				serviceInfo := &domain.ServiceInfo{
 					ServiceIP:          rawServiceData[0],
 					ServicePort:        rawServiceData[1],
-					ApplicationServers: oldApplicationServers,
+					ApplicationServers: currentApplicationServers,
 				}
 				servicesInfo = append(servicesInfo, serviceInfo)
 				return nil

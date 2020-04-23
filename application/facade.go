@@ -135,9 +135,9 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 func incomeServiceDataToDomainModel(serviceIP,
 	servicePort string,
 	rawApplicationServers map[string]string) *domain.ServiceInfo {
-	applicationServers := []domain.ApplicationServer{}
+	applicationServers := []*domain.ApplicationServer{}
 	for ip, port := range rawApplicationServers {
-		applicationServer := domain.ApplicationServer{
+		applicationServer := &domain.ApplicationServer{
 			ServerIP:   ip,
 			ServerPort: port,
 		}
