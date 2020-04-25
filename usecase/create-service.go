@@ -17,6 +17,7 @@ type CreateServiceEntity struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
+	hc                *HeathcheckEntity
 	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
@@ -28,6 +29,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity, // so dirty
 	persistentStorage *portadapter.StorageEntity, // so dirty
 	tunnelConfig domain.TunnelMaker,
+	hc *HeathcheckEntity,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *CreateServiceEntity {
@@ -37,6 +39,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
+		hc:                hc,
 		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
@@ -129,6 +132,6 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 
 		return fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
-
+	createService.hc.CheckApplicationServersInService(serviceInfo)
 	return nil
 }

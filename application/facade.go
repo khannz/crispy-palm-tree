@@ -16,6 +16,7 @@ type BalancerFacade struct {
 	CacheStorage      *portadapter.StorageEntity // so dirty
 	PersistentStorage *portadapter.StorageEntity // so dirty
 	TunnelConfig      domain.TunnelMaker
+	HeathcheckEntity  *usecase.HeathcheckEntity
 	GracefullShutdown *domain.GracefullShutdown
 	UUIDgenerator     domain.UUIDgenerator
 	Logging           *logrus.Logger
@@ -27,6 +28,7 @@ func NewBalancerFacade(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
+	hc *usecase.HeathcheckEntity,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
@@ -53,6 +55,7 @@ func (balancerFacade *BalancerFacade) CreateService(serviceIP,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
@@ -98,6 +101,7 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
@@ -120,6 +124,7 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)

@@ -17,6 +17,7 @@ type AddApplicationServers struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
+	hc                *HeathcheckEntity
 	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
@@ -28,6 +29,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
+	hc *HeathcheckEntity,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *AddApplicationServers {
@@ -37,6 +39,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
+		hc:                hc,
 		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
@@ -129,7 +132,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		}
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
-
+	addApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo)
 	return updatedServiceInfo, nil
 }
 
