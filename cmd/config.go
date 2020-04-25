@@ -29,12 +29,11 @@ const (
 	defaultFwmarkNumber  = "" // must be set
 	// defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
 	// defaultSysctlConfigsPath      = "/etc/sysctl.d/"
-	// defaultKeepalivedConfigPath   = "/etc/keepalived/keepalived.conf"
 	defaultDatabasePath           = "./database"
 	defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/nw-pr-lb/network-scripts/"
 	defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/nw-pr-lb/sysctl.d/"
 	defaultMockMode               = true
-	defaultValidateStorageConfig  = 10 * time.Minute
+	defaultHealtcheckTime         = 1 * time.Minute
 	defaultMaxShutdownTimeName    = 20 * time.Second
 )
 
@@ -55,7 +54,7 @@ const (
 	sysctlConfigsPathName      = "sysctl-configs-path"
 	databasePathName           = "database-path"
 	mockMode                   = "mock-mode"
-	validateStorageConfigName  = "validate-storage-config"
+	HealthcheckTimeName        = "validate-storage-config"
 	maxShutdownTimeName        = "max-shutdown-time"
 )
 
@@ -94,7 +93,7 @@ func init() {
 	pflag.String(sysctlConfigsPathName, defaultSysctlConfigsPath, "sysctl config path")
 
 	pflag.String(databasePathName, defaultDatabasePath, "Path to persistent database")
-	pflag.Duration(validateStorageConfigName, defaultValidateStorageConfig, "Time interval for validate storage config")
+	pflag.Duration(HealthcheckTimeName, defaultHealtcheckTime, "Time interval for validate storage config")
 	pflag.Duration(maxShutdownTimeName, defaultMaxShutdownTimeName, "Max time for graceful shutdown")
 
 	pflag.Bool(mockMode, defaultMockMode, "Mock mode. No commands will be executed")

@@ -13,6 +13,7 @@ import (
 	"github.com/khannz/crispy-palm-tree/application"
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -40,14 +41,14 @@ var rootCmd = &cobra.Command{
 			"Rest API ip":   viperConfig.GetString(restAPIIPName),
 			"Rest API port": viperConfig.GetString(restAPIPortName),
 
-			"tech interface":             viperConfig.GetString(techInterfaceName),
-			"fwmark number":              viperConfig.GetString(fwmarkNumberName),
-			"path to ifcfg tunnel files": viperConfig.GetString(pathToIfcfgTunnelFilesName),
-			"sysctl config path":         viperConfig.GetString(sysctlConfigsPathName),
-			"database path":              viperConfig.GetString(databasePathName),
-			"mock mode":                  viperConfig.GetBool(mockMode),
-			"time interval for validate storage config": viperConfig.GetDuration(validateStorageConfigName),
-			"max shutdown time":                         viperConfig.GetDuration(maxShutdownTimeName),
+			"tech interface":                viperConfig.GetString(techInterfaceName),
+			"fwmark number":                 viperConfig.GetString(fwmarkNumberName),
+			"path to ifcfg tunnel files":    viperConfig.GetString(pathToIfcfgTunnelFilesName),
+			"sysctl config path":            viperConfig.GetString(sysctlConfigsPathName),
+			"database path":                 viperConfig.GetString(databasePathName),
+			"mock mode":                     viperConfig.GetBool(mockMode),
+			"time interval for healthcheck": viperConfig.GetDuration(HealthcheckTimeName),
+			"max shutdown time":             viperConfig.GetDuration(maxShutdownTimeName),
 		}).Info("")
 
 		if isColdStart() && !viperConfig.GetBool(mockMode) {
@@ -80,7 +81,7 @@ var rootCmd = &cobra.Command{
 			logging)
 		// tunnel maker end
 
-		// db and cache init
+		// db and caches init
 		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
@@ -101,6 +102,16 @@ var rootCmd = &cobra.Command{
 		}
 		// vrrpConfigurator end
 
+		//  healthchecks start
+		hc := usecase.NewHeathcheckEntity(cacheDB,
+			persistentDB,
+			vrrpConfigurator,
+			locker,
+			gracefullShutdown, signalChan,
+			logging)
+		// go hc.StartHealthchecks(viperConfig.GetDuration(HealthcheckTimeName))
+		// healthchecks end
+
 		// init config start
 		if errValidate := validateActualAndStorageConfigs(vrrpConfigurator, cacheDB); errValidate != nil {
 			logging.WithFields(logrus.Fields{
@@ -119,23 +130,26 @@ var rootCmd = &cobra.Command{
 			}).Warnf("init storage config successful", errValidate)
 		}
 		// init config end
-		// scheduler start
-		scheduler := application.NewValidateConfigScheduler(cacheDB, vrrpConfigurator, locker, signalChan, logging)
-		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
+		services, err := cacheDB.LoadAllStorageDataToDomainModel()
+		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Fatalf("can't start scheduler: %v", err)
+			}).Fatalf("load services fail: %v", err)
 		}
-		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("can't start scheduler: %v", err)
-		}
-		// scheduler end
+		locker.Lock()
+		hc.AtStartCheckAllApplicationServersInServices(services)
+		locker.Unlock()
 
-		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, gracefullShutdown, uuidGenerator, logging)
+		facade := application.NewBalancerFacade(locker,
+			vrrpConfigurator,
+			cacheDB,
+			persistentDB,
+			tunnelMaker,
+			hc,
+			gracefullShutdown,
+			uuidGenerator,
+			logging)
 
 		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade)
 		go restAPI.UpRestAPI()
