@@ -113,7 +113,12 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 					serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
 					applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
 				applicationServerInfo.State = false
-				hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
+				if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+					hc.logging.WithFields(logrus.Fields{
+						"entity":     healthcheckName,
+						"event uuid": healthcheckUUID,
+					}).Errorf("Heathcheck error: RemoveApplicationServersFromService error: %v", err)
+				}
 			}
 			continue
 		}
@@ -125,13 +130,17 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 				serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
 				applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
 			applicationServerInfo.State = true
-			hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo)
+			if err := hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Errorf("Heathcheck error: AddApplicationServersForService error: %v", err)
+			}
 			continue
 		}
 	}
 	if len(serviceInfo.ApplicationServers)-failedServices < 2 { // hardcode
 		serviceInfo.State = false
-		return
 	} else if !serviceInfo.State {
 		serviceInfo.State = true
 	}
@@ -184,33 +193,75 @@ func (hc *HeathcheckEntity) tcpCheckFail(ip, port string) bool {
 }
 
 func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(allServiceInfo *domain.ServiceInfo,
-	applicationServer *domain.ApplicationServer) {
+	applicationServer *domain.ApplicationServer) error {
 	formedServiceData := &domain.ServiceInfo{
 		ServiceIP:          allServiceInfo.ServiceIP,
 		ServicePort:        allServiceInfo.ServicePort,
 		ApplicationServers: []*domain.ApplicationServer{applicationServer},
 	}
-	err := hc.configuratorVRRP.RemoveApplicationServersFromService(formedServiceData, healthcheckUUID)
-	if err != nil {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Errorf("Heathcheck error: RemoveApplicationServersFromService error: %v", err)
-	}
+	return hc.configuratorVRRP.RemoveApplicationServersFromService(formedServiceData, healthcheckUUID)
 }
 
 func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(allServiceInfo *domain.ServiceInfo,
-	applicationServer *domain.ApplicationServer) {
+	applicationServer *domain.ApplicationServer) error {
 	formedServiceData := &domain.ServiceInfo{
 		ServiceIP:          allServiceInfo.ServiceIP,
 		ServicePort:        allServiceInfo.ServicePort,
 		ApplicationServers: []*domain.ApplicationServer{applicationServer},
 	}
-	err := hc.configuratorVRRP.AddApplicationServersForService(formedServiceData, healthcheckUUID)
-	if err != nil {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Errorf("Heathcheck error: AddApplicationServersForService error: %v", err)
+	return hc.configuratorVRRP.AddApplicationServersForService(formedServiceData, healthcheckUUID)
+
+}
+
+// AtStartCheckAllApplicationServersInServices ...
+func (hc *HeathcheckEntity) AtStartCheckAllApplicationServersInServices(servicesInfo []*domain.ServiceInfo) {
+	for _, serviceInfo := range servicesInfo {
+		hc.AtStartCheckApplicationServersInService(serviceInfo)
 	}
+}
+
+// AtStartCheckApplicationServersInService ...
+func (hc *HeathcheckEntity) AtStartCheckApplicationServersInService(serviceInfo *domain.ServiceInfo) {
+	var failedServices int
+	for _, applicationServerInfo := range serviceInfo.ApplicationServers {
+		if hc.tcpCheckFail(applicationServerInfo.ServerIP, applicationServerInfo.ServerPort) {
+			failedServices++
+			hc.logging.WithFields(logrus.Fields{
+				"entity":     healthcheckName,
+				"event uuid": healthcheckUUID,
+			}).Infof("is service %v application server %v is down",
+				serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
+				applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
+			applicationServerInfo.State = false
+			if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Errorf("Heathcheck error: RemoveApplicationServersFromService error: %v", err)
+			}
+			continue
+		}
+		if !applicationServerInfo.State {
+			hc.logging.WithFields(logrus.Fields{
+				"entity":     healthcheckName,
+				"event uuid": healthcheckUUID,
+			}).Infof("is service %v application server %v is up",
+				serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
+				applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
+			applicationServerInfo.State = true
+			if err := hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Errorf("Heathcheck error: AddApplicationServersForService error: %v", err)
+			}
+			continue
+		}
+	}
+	if len(serviceInfo.ApplicationServers)-failedServices < 2 { // hardcode
+		serviceInfo.State = false
+	} else if !serviceInfo.State {
+		serviceInfo.State = true
+	}
+	hc.updateInStorages(serviceInfo)
 }
