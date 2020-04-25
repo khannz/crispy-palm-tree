@@ -235,3 +235,18 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 	// TODO: log that ok
 	return nil
 }
+
+// Flush remove all ipvsadm data
+func (ipvsadmEntity *IPVSADMEntity) Flush() error {
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+
+	err = ipvs.Flush()
+	if err != nil {
+		return fmt.Errorf("can't ipvs Flush: %v", err)
+	}
+	return nil
+}

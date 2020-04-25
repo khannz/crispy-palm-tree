@@ -100,6 +100,12 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
+		if err := vrrpConfigurator.Flush(); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("IPVSADM can't flush data at start: %v", err)
+		}
 		// vrrpConfigurator end
 
 		//  healthchecks start
@@ -109,26 +115,21 @@ var rootCmd = &cobra.Command{
 			locker,
 			gracefullShutdown, signalChan,
 			logging)
-		// go hc.StartHealthchecks(viperConfig.GetDuration(HealthcheckTimeName))
+		go hc.StartHealthchecks(viperConfig.GetDuration(HealthcheckTimeName))
 		// healthchecks end
 
 		// init config start
-		if errValidate := validateActualAndStorageConfigs(vrrpConfigurator, cacheDB); errValidate != nil {
+		if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Warnf("validate actual and storage configs warning: %v.\nWill try init storage config", errValidate)
-			if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
-				logging.WithFields(logrus.Fields{
-					"entity":     rootEntity,
-					"event uuid": uuidForRootProcess,
-				}).Fatalf("init config from storage fail: %v", err)
-			}
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Warnf("init storage config successful", errValidate)
+			}).Fatalf("init config from storage fail: %v", err)
 		}
+		logging.WithFields(logrus.Fields{
+			"entity":     rootEntity,
+			"event uuid": uuidForRootProcess,
+		}).Debug("init storage config successful")
+
 		// init config end
 		services, err := cacheDB.LoadAllStorageDataToDomainModel()
 		if err != nil {
@@ -156,7 +157,12 @@ var rootCmd = &cobra.Command{
 		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
 
 		<-signalChan // shutdown signal
-
+		if err := vrrpConfigurator.Flush(); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("IPVSADM can't flush data at stop: %v", err)
+		}
 		gracefulShutdownCommandForRestAPI <- struct{}{}
 		gracefulShutdownUsecases(gracefullShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
@@ -265,15 +271,6 @@ func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadap
 	}
 
 	return cacheDB, persistentDB, nil
-}
-
-func validateActualAndStorageConfigs(ipvsadmEntity *portadapter.IPVSADMEntity,
-	storage *portadapter.StorageEntity) error {
-	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
-	if err != nil {
-		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
-	}
-	return nil
 }
 
 func initConfigFromStorage(vrrpConfigurator *portadapter.IPVSADMEntity,
