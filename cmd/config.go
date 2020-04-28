@@ -25,16 +25,16 @@ const (
 	defaultRestAPIIP   = "0.0.0.0"
 	defaultRestAPIPort = "7000"
 
-	defaultTechInterface = "" // must be set
-	defaultFwmarkNumber  = "" // must be set
-	// defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
-	// defaultSysctlConfigsPath      = "/etc/sysctl.d/"
+	defaultTechInterface          = "" // must be set
+	defaultFwmarkNumber           = "" // must be set
+	defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
+	defaultSysctlConfigsPath      = "/etc/sysctl.d/"
 	defaultDatabasePath           = "./database"
-	defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/nw-pr-lb/network-scripts/"
-	defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/nw-pr-lb/sysctl.d/"
-	defaultMockMode               = true
-	defaultHealtcheckTime         = 1 * time.Minute
-	defaultMaxShutdownTimeName    = 20 * time.Second
+	// defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/crispy-palm-tree/tests/network-scripts/"
+	// defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/crispy-palm-tree/tests/sysctl.d/"
+	defaultMockMode            = true
+	defaultHealtcheckTime      = 1 * time.Minute
+	defaultMaxShutdownTimeName = 20 * time.Second
 )
 
 // Config names
