@@ -37,6 +37,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
+		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
@@ -60,7 +61,6 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	removeServiceEntity.gracefullShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefullShutdown)
 	// gracefull shutdown part end
-
 	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
 	if err = removeServiceEntity.configuratorVRRP.RemoveService(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("can't get current service info: %v", serviceInfo)

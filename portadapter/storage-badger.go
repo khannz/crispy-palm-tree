@@ -216,7 +216,14 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *do
 
 // GetServiceInfo ...
 func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
-	var currentServiceInfo *domain.ServiceInfo
+	currentServiceInfo := &domain.ServiceInfo{
+		ServiceIP:          "",
+		ServicePort:        "",
+		ApplicationServers: []*domain.ApplicationServer{},
+		HealthcheckType:    "",
+		ExtraInfo:          []string{},
+		State:              false,
+	}
 	currentApplicationServers := []*domain.ApplicationServer{}
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(incomeServiceData.ServiceIP + ":" + incomeServiceData.ServicePort))
@@ -237,16 +244,27 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 			renewPointerForOldApplicationServer := oldApplicationServer
 			currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
 		}
-		currentServiceInfo.HealthcheckType = oldExtendedServiceData.ServiceHealthcheckType
-		currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
-		currentServiceInfo.State = oldExtendedServiceData.ServiceState
+
+		if oldExtendedServiceData.ServiceHealthcheckType != "" {
+			currentServiceInfo.HealthcheckType = oldExtendedServiceData.ServiceHealthcheckType
+		}
+		if oldExtendedServiceData.ServiceExtraInfo != nil {
+			currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
+		}
+		if oldExtendedServiceData.ServiceState {
+			currentServiceInfo.State = oldExtendedServiceData.ServiceState
+		}
 
 		return nil
 	}); err != nil {
 		return currentServiceInfo, err
 	}
-	currentServiceInfo.ServiceIP = incomeServiceData.ServiceIP
-	currentServiceInfo.ServicePort = incomeServiceData.ServicePort
+
+	tmpIncomeServiceIP := incomeServiceData.ServiceIP
+	tmpIncomeServicePort := incomeServiceData.ServicePort
+
+	currentServiceInfo.ServiceIP = tmpIncomeServiceIP
+	currentServiceInfo.ServicePort = tmpIncomeServicePort
 	currentServiceInfo.ApplicationServers = currentApplicationServers
 
 	return currentServiceInfo, nil
