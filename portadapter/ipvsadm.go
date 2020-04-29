@@ -142,6 +142,7 @@ func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []*domain.ServiceIn
 			applocationServer := &domain.ApplicationServer{
 				ServerIP:   dest.IP,
 				ServerPort: strconv.Itoa(int(dest.Port)),
+				State:      true,
 			}
 			applicationServers = append(applicationServers, applocationServer)
 		}
@@ -249,4 +250,14 @@ func (ipvsadmEntity *IPVSADMEntity) Flush() error {
 		return fmt.Errorf("can't ipvs Flush: %v", err)
 	}
 	return nil
+}
+
+// ReadCurrentConfig ...
+func (ipvsadmEntity *IPVSADMEntity) ReadCurrentConfig() ([]*domain.ServiceInfo, error) {
+	pools, err := ipvsadmEntity.readActualConfig()
+	if err != nil {
+		return nil, fmt.Errorf("can't read actual config: %v", err)
+	}
+	return transformRawIPVSPoolsToDomainModel(pools), nil
+
 }

@@ -28,4 +28,5 @@ type ServiceWorker interface {
 	RemoveService(*ServiceInfo, string) error
 	AddApplicationServersForService(*ServiceInfo, string) error
 	RemoveApplicationServersFromService(*ServiceInfo, string) error
+	ReadCurrentConfig() ([]*ServiceInfo, error)
 }

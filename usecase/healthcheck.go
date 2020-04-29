@@ -2,6 +2,7 @@ package usecase
 
 // TODO: healthchecks != usecase!
 import (
+	"fmt"
 	"net"
 	"os"
 	"time"
@@ -101,6 +102,13 @@ func (hc *HeathcheckEntity) CheckAllApplicationServersInServices(servicesInfo []
 
 // CheckApplicationServersInService ...
 func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain.ServiceInfo) {
+	if err := hc.updateApplicationServicesState(serviceInfo); err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Errorf("Heathcheck error: update application services state error: %v", err)
+		return
+	}
 	var failedServices int
 	for _, applicationServerInfo := range serviceInfo.ApplicationServers {
 		if hc.tcpCheckFail(applicationServerInfo.ServerIP, applicationServerInfo.ServerPort) {
@@ -264,4 +272,30 @@ func (hc *HeathcheckEntity) AtStartCheckApplicationServersInService(serviceInfo 
 		serviceInfo.State = true
 	}
 	hc.updateInStorages(serviceInfo)
+}
+
+func (hc *HeathcheckEntity) updateApplicationServicesState(serviceInfo *domain.ServiceInfo) error {
+	currentConfig, err := hc.configuratorVRRP.ReadCurrentConfig()
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Errorf("can't read current config: %v", err)
+		return nil
+	}
+	for _, currentServiceInfo := range currentConfig {
+		if currentServiceInfo.ServiceIP == serviceInfo.ServiceIP &&
+			currentServiceInfo.ServicePort == serviceInfo.ServicePort {
+			for _, applicationServiceInfo := range serviceInfo.ApplicationServers {
+				for _, currentApplicationServer := range currentServiceInfo.ApplicationServers {
+					if applicationServiceInfo.ServerIP == currentApplicationServer.ServerIP &&
+						applicationServiceInfo.ServerPort == currentApplicationServer.ServerPort {
+						applicationServiceInfo.State = currentApplicationServer.State
+					}
+				}
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("service %v:%v not found in current services", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 }
