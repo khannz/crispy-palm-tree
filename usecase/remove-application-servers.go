@@ -72,11 +72,12 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
 
+	enrichedApplicationServersForRemove := enrichApplicationServersInfo(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
+	removeServiceInfo.ApplicationServers = enrichedApplicationServersForRemove
+
 	if err = validateRemoveApplicationServers(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers); err != nil {
 		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
 	}
-
-	enrichedApplicationServersForRemove := enrichApplicationServersInfo(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
 
 	updatedServiceInfo = removeApplicationServers.formUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID)
 	// add to cache storage
