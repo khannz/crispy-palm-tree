@@ -65,6 +65,14 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	defer decreaseJobs(addApplicationServers.gracefullShutdown)
 	// gracefull shutdown part end
 
+	// enrich application servers info start
+	enrichedApplicationServers, err := addApplicationServers.tunnelConfig.EnrichApplicationServersInfo(newServiceInfo.ApplicationServers, addApplicationServersUUID)
+	if err != nil {
+		return updatedServiceInfo, err
+	}
+	newServiceInfo.ApplicationServers = enrichedApplicationServers
+	// enrich application servers info end
+
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := addApplicationServers.getServiceInfo(newServiceInfo, addApplicationServersUUID)
 	if err != nil {
@@ -79,14 +87,6 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		}
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
-
-	// enrich application servers info start
-	enrichedApplicationServers, err := addApplicationServers.tunnelConfig.EnrichApplicationServersInfo(newServiceInfo.ApplicationServers, addApplicationServersUUID)
-	if err != nil {
-		return updatedServiceInfo, err
-	}
-	newServiceInfo.ApplicationServers = enrichedApplicationServers
-	// enrich application servers info end
 
 	if err = addApplicationServers.tunnelConfig.CreateTunnels(enrichedApplicationServers, addApplicationServersUUID); err != nil {
 		if errRollBackCache := addApplicationServers.cacheStorage.RemoveServiceDataFromStorage(newServiceInfo, addApplicationServersUUID); err != nil {
