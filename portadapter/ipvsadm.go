@@ -95,9 +95,9 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInf
 		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
 	}
 
-	err = ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
-	if err != nil {
-		return fmt.Errorf("error while running DelService for ipv4: %v", err)
+	errDel := ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
+	if errDel != nil {
+		return fmt.Errorf("error while running DelService for ipv4: %v", errDel)
 	}
 
 	return nil
@@ -224,7 +224,19 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
 	}
 
-	applicationServers, err := convertRawApplicationServers(serviceInfo.ApplicationServers)
+	pools, err := ipvs.GetPools()
+	if err != nil {
+		return fmt.Errorf("ipvs can't get pools: %v", err)
+	}
+
+	actualConfig := transformRawIPVSPoolsToDomainModel(pools)
+	if err != nil {
+		return fmt.Errorf("can't read current config: %v", err)
+	}
+
+	updatedApplicationServers := actualizesApplicationServersInCurrentConfig(actualConfig, serviceInfo)
+
+	applicationServers, err := convertRawApplicationServers(updatedApplicationServers)
 	if err != nil {
 		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
 	}
@@ -260,4 +272,27 @@ func (ipvsadmEntity *IPVSADMEntity) ReadCurrentConfig() ([]*domain.ServiceInfo, 
 	}
 	return transformRawIPVSPoolsToDomainModel(pools), nil
 
+}
+
+// actualizesApplicationServersInCurrentConfig - actualizes application servers state
+func actualizesApplicationServersInCurrentConfig(currentConfig []*domain.ServiceInfo, serviceInfo *domain.ServiceInfo) []*domain.ApplicationServer {
+	updatedApplicationServersInfo := []*domain.ApplicationServer{}
+	for _, cc := range currentConfig {
+		if cc.ServiceIP == serviceInfo.ServiceIP &&
+			cc.ServicePort == serviceInfo.ServicePort {
+			for _, sia := range serviceInfo.ApplicationServers {
+				for _, cca := range cc.ApplicationServers {
+					if sia.ServerIP == cca.ServerIP &&
+						sia.ServerPort == cca.ServerPort {
+						serverIP := sia.ServerIP
+						serverPort := sia.ServerPort
+						us := &domain.ApplicationServer{ServerIP: serverIP, ServerPort: serverPort}
+						updatedApplicationServersInfo = append(updatedApplicationServersInfo, us)
+					}
+				}
+			}
+		}
+	}
+
+	return updatedApplicationServersInfo
 }
