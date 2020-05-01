@@ -222,8 +222,8 @@ func isColdStart() bool { // TODO: write logic
 
 func checkPrerequisites() error {
 	var err error
-	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf"         // TODO: remove hardcode
-	expectDummyModprobContains := "options dummy numdummies=1" // TODO: remove hardcode
+	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf" // TODO: remove hardcode
+	expectDummyModprobContains := "numdummies=1"       // TODO: remove hardcode
 	if err = checkFileContains(dummyModprobeDPath, expectDummyModprobContains); err != nil {
 		return fmt.Errorf("error when check dummy file: %v", err)
 	}
