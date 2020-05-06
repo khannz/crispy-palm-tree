@@ -11,6 +11,7 @@ import (
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 )
 
 const healthcheckName = "healthcheck"
@@ -153,10 +154,22 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 			continue
 		}
 	}
-	if len(serviceInfo.ApplicationServers)-failedServices < 2 { // hardcode
+	if len(serviceInfo.ApplicationServers)-failedServices < 1 { // FIXME: hardcode
 		serviceInfo.State = false
+		if err := removeFromDummy(serviceInfo.ServiceIP); err != nil {
+			hc.logging.WithFields(logrus.Fields{
+				"entity":     healthcheckName,
+				"event uuid": healthcheckUUID,
+			}).Errorf("Heathcheck error: can't remove service ip from dummy: %v", err)
+		}
 	} else if !serviceInfo.State {
 		serviceInfo.State = true
+		if err := addToDummy(serviceInfo.ServiceIP); err != nil {
+			hc.logging.WithFields(logrus.Fields{
+				"entity":     healthcheckName,
+				"event uuid": healthcheckUUID,
+			}).Errorf("Heathcheck error: can't add service ip to dummy: %v", err)
+		}
 	}
 	hc.updateInStorages(serviceInfo)
 }
@@ -282,7 +295,7 @@ func (hc *HeathcheckEntity) AtStartCheckApplicationServersInService(serviceInfo 
 			continue
 		}
 	}
-	if len(serviceInfo.ApplicationServers)-failedServices < 2 { // hardcode
+	if len(serviceInfo.ApplicationServers)-failedServices < 1 { // hardcode
 		serviceInfo.State = false
 	} else if !serviceInfo.State {
 		serviceInfo.State = true
@@ -314,4 +327,86 @@ func (hc *HeathcheckEntity) updateApplicationServicesState(serviceInfo *domain.S
 		}
 	}
 	return fmt.Errorf("service %v:%v not found in current services", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+}
+
+func addToDummy(serviceIP string) error {
+	addrs, err := getDummyAddrs()
+	if err != nil {
+		return err
+	}
+	var addrIsFounded bool
+	incomeIPAndMask := serviceIP + "/32"
+	for _, addr := range addrs {
+		if incomeIPAndMask == addr.String() {
+			addrIsFounded = true
+			break
+
+		}
+	}
+	if !addrIsFounded {
+		if err := addAddr(incomeIPAndMask); err != nil {
+			return fmt.Errorf("can't add ip addr %v, got err %v", incomeIPAndMask, err)
+		}
+	}
+	return nil
+}
+
+func removeFromDummy(serviceIP string) error {
+	addrs, err := getDummyAddrs()
+	if err != nil {
+		return err
+	}
+	var addrIsFounded bool
+	incomeIPAndMask := serviceIP + "/32"
+	for _, addr := range addrs {
+		if incomeIPAndMask == addr.String() {
+			addrIsFounded = true
+			break
+
+		}
+	}
+	if addrIsFounded {
+		if err := removeAddr(incomeIPAndMask); err != nil {
+			return fmt.Errorf("can't remove ip addr %v, got err %v", incomeIPAndMask, err)
+		}
+	}
+	return nil
+}
+
+func getDummyAddrs() ([]net.Addr, error) {
+	i, err := net.InterfaceByName("lo")
+	if err != nil {
+		return nil, fmt.Errorf("can't get InterfaceByName: %v", err)
+	}
+	addrs, err := i.Addrs()
+	if err != nil {
+		return nil, fmt.Errorf("can't addrs in interfaces: %v", err)
+	}
+	return addrs, err
+}
+
+func removeAddr(addrForDel string) error {
+	dummy, err := netlink.LinkByName("dummy0") // hardcoded
+	if err != nil {
+		return err
+	}
+
+	addr, err := netlink.ParseAddr(addrForDel)
+	if err = netlink.AddrDel(dummy, addr); err != nil {
+		return err
+	}
+	return nil
+}
+
+func addAddr(addrForAdd string) error {
+	dummy, err := netlink.LinkByName("dummy0") // hardcoded
+	if err != nil {
+		return err
+	}
+
+	addr, err := netlink.ParseAddr(addrForAdd)
+	if err = netlink.AddrAdd(dummy, addr); err != nil {
+		return err
+	}
+	return nil
 }
