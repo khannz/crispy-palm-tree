@@ -106,7 +106,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(applicationServer *domain.A
 		return fmt.Errorf("can't write new tunnel files: %v", err)
 	}
 
-	if err := tunnelFileMaker.ExecuteCommandForTunnel(applicationServer.TunnelName, "up", createTunnelUUID); err != nil {
+	if err := tunnelFileMaker.ExecuteCommandForTunnel("tun"+applicationServer.TunnelName, "up", createTunnelUUID); err != nil {
 		return fmt.Errorf("can't execute command for up tunnel: %v", err)
 	}
 
@@ -236,7 +236,7 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(applicationServer *domain.A
 		return err
 	}
 
-	if err := tunnelFileMaker.ExecuteCommandForTunnel(applicationServer.TunnelName, "down", removeTunnelUUID); err != nil {
+	if err := tunnelFileMaker.ExecuteCommandForTunnel("tun"+applicationServer.TunnelName, "down", removeTunnelUUID); err != nil {
 		return fmt.Errorf("can't execute command for down tunnel: %v", err)
 	}
 
