@@ -112,6 +112,7 @@ var rootCmd = &cobra.Command{
 		hc := usecase.NewHeathcheckEntity(cacheDB,
 			persistentDB,
 			vrrpConfigurator,
+			viperConfig.GetString(techInterfaceName),
 			locker,
 			gracefullShutdown, signalChan,
 			logging)

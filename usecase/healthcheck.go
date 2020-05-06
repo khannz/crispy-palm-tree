@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/khannz/crispy-palm-tree/domain"
@@ -20,6 +21,7 @@ type HeathcheckEntity struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	configuratorVRRP  domain.ServiceWorker
+	techInterface     *net.TCPAddr
 	locker            *domain.Locker
 	gracefullShutdown *domain.GracefullShutdown
 	signalChan        chan os.Signal
@@ -31,14 +33,18 @@ type HeathcheckEntity struct {
 func NewHeathcheckEntity(cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	configuratorVRRP domain.ServiceWorker,
+	rawTechInterface string,
 	locker *domain.Locker,
 	gracefullShutdown *domain.GracefullShutdown,
 	signalChan chan os.Signal,
 	logging *logrus.Logger) *HeathcheckEntity {
+	ti, _, _ := net.ParseCIDR(rawTechInterface + "/32")
+
 	return &HeathcheckEntity{
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		configuratorVRRP:  configuratorVRRP,
+		techInterface:     &net.TCPAddr{IP: ti},
 		locker:            locker,
 		gracefullShutdown: gracefullShutdown,
 		signalChan:        signalChan,
@@ -175,7 +181,16 @@ func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
 
 func (hc *HeathcheckEntity) tcpCheckFail(ip, port string) bool {
 	timeout := time.Second * 2
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ip, port), timeout)
+	// FIXME: refactor that
+	nip, _ := strconv.Atoi(port)
+	nip += 10000
+	np := strconv.Itoa(nip)
+
+	dialer := net.Dialer{
+		LocalAddr: hc.techInterface,
+		Timeout:   timeout}
+
+	conn, err := dialer.Dial("tcp", net.JoinHostPort(ip, np))
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
@@ -183,12 +198,13 @@ func (hc *HeathcheckEntity) tcpCheckFail(ip, port string) bool {
 		}).Debugf("Heathcheck error: Connecting error: %v", err)
 		return true
 	}
+	defer conn.Close()
+
 	if conn != nil {
-		defer conn.Close()
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
-		}).Debugf("Heathcheck info port opened: %v", net.JoinHostPort(ip, port))
+		}).Debugf("Heathcheck info port opened: %v", net.JoinHostPort(ip, np))
 		return false
 	}
 
