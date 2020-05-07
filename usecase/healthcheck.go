@@ -109,13 +109,13 @@ func (hc *HeathcheckEntity) CheckAllApplicationServersInServices(servicesInfo []
 
 // CheckApplicationServersInService ...
 func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain.ServiceInfo) {
-	if err := hc.updateApplicationServicesState(serviceInfo); err != nil {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Errorf("Heathcheck error: update application services state error: %v", err)
-		return
-	}
+	// if err := hc.updateApplicationServicesState(serviceInfo); err != nil {
+	// 	hc.logging.WithFields(logrus.Fields{
+	// 		"entity":     healthcheckName,
+	// 		"event uuid": healthcheckUUID,
+	// 	}).Errorf("Heathcheck error: update application services state error: %v", err)
+	// 	return
+	// }
 	var failedServices int
 	for _, applicationServerInfo := range serviceInfo.ApplicationServers {
 		if hc.tcpCheckFail(applicationServerInfo.ServerIP, applicationServerInfo.ServerPort) {
@@ -154,15 +154,23 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 			continue
 		}
 	}
+	hc.logging.WithFields(logrus.Fields{
+		"entity":     healthcheckName,
+		"event uuid": healthcheckUUID,
+	}).Debugf("Heathcheck: in service %v:%v failed services is %v of %v",
+		serviceInfo.ServiceIP,
+		serviceInfo.ServicePort,
+		failedServices,
+		len(serviceInfo.ApplicationServers))
 	if len(serviceInfo.ApplicationServers)-failedServices < 1 { // FIXME: hardcode
 		serviceInfo.State = false
-		if err := removeFromDummy(serviceInfo.ServiceIP); err != nil {
+		if err := RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":     healthcheckName,
 				"event uuid": healthcheckUUID,
 			}).Errorf("Heathcheck error: can't remove service ip from dummy: %v", err)
 		}
-	} else if !serviceInfo.State {
+	} else {
 		serviceInfo.State = true
 		if err := addToDummy(serviceInfo.ServiceIP); err != nil {
 			hc.logging.WithFields(logrus.Fields{
@@ -250,59 +258,6 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(allServiceInfo *domai
 
 }
 
-// AtStartCheckAllApplicationServersInServices ...
-func (hc *HeathcheckEntity) AtStartCheckAllApplicationServersInServices(servicesInfo []*domain.ServiceInfo) {
-	for _, serviceInfo := range servicesInfo {
-		hc.AtStartCheckApplicationServersInService(serviceInfo)
-	}
-}
-
-// AtStartCheckApplicationServersInService ...
-func (hc *HeathcheckEntity) AtStartCheckApplicationServersInService(serviceInfo *domain.ServiceInfo) {
-	var failedServices int
-	for _, applicationServerInfo := range serviceInfo.ApplicationServers {
-		if hc.tcpCheckFail(applicationServerInfo.ServerIP, applicationServerInfo.ServerPort) {
-			failedServices++
-			hc.logging.WithFields(logrus.Fields{
-				"entity":     healthcheckName,
-				"event uuid": healthcheckUUID,
-			}).Infof("is service %v application server %v is down",
-				serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
-				applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
-			applicationServerInfo.State = false
-			if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
-				hc.logging.WithFields(logrus.Fields{
-					"entity":     healthcheckName,
-					"event uuid": healthcheckUUID,
-				}).Errorf("Heathcheck error: RemoveApplicationServersFromService error: %v", err)
-			}
-			continue
-		}
-		if !applicationServerInfo.State {
-			hc.logging.WithFields(logrus.Fields{
-				"entity":     healthcheckName,
-				"event uuid": healthcheckUUID,
-			}).Infof("is service %v application server %v is up",
-				serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
-				applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
-			applicationServerInfo.State = true
-			if err := hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo); err != nil {
-				hc.logging.WithFields(logrus.Fields{
-					"entity":     healthcheckName,
-					"event uuid": healthcheckUUID,
-				}).Errorf("Heathcheck error: AddApplicationServersForService error: %v", err)
-			}
-			continue
-		}
-	}
-	if len(serviceInfo.ApplicationServers)-failedServices < 1 { // hardcode
-		serviceInfo.State = false
-	} else if !serviceInfo.State {
-		serviceInfo.State = true
-	}
-	hc.updateInStorages(serviceInfo)
-}
-
 func (hc *HeathcheckEntity) updateApplicationServicesState(serviceInfo *domain.ServiceInfo) error {
 	currentConfig, err := hc.configuratorVRRP.ReadCurrentConfig()
 	if err != nil {
@@ -351,7 +306,8 @@ func addToDummy(serviceIP string) error {
 	return nil
 }
 
-func removeFromDummy(serviceIP string) error {
+// RemoveFromDummy remove service from dummy
+func RemoveFromDummy(serviceIP string) error {
 	addrs, err := getDummyAddrs()
 	if err != nil {
 		return err
@@ -362,7 +318,6 @@ func removeFromDummy(serviceIP string) error {
 		if incomeIPAndMask == addr.String() {
 			addrIsFounded = true
 			break
-
 		}
 	}
 	if addrIsFounded {
@@ -374,7 +329,7 @@ func removeFromDummy(serviceIP string) error {
 }
 
 func getDummyAddrs() ([]net.Addr, error) {
-	i, err := net.InterfaceByName("lo")
+	i, err := net.InterfaceByName("dummy0")
 	if err != nil {
 		return nil, fmt.Errorf("can't get InterfaceByName: %v", err)
 	}

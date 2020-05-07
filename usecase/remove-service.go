@@ -63,7 +63,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	// gracefull shutdown part end
 	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
 	if err != nil {
-		return fmt.Errorf("can't get current service info: %v", serviceInfo)
+		return fmt.Errorf("can't get current service info: %v", err)
 	}
 
 	if err = removeServiceEntity.tunnelConfig.RemoveTunnels(currentServiceInfo.ApplicationServers, removeServiceUUID); err != nil {
@@ -85,5 +85,9 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	if err = removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
+	if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
+		return err
+	}
+
 	return nil
 }

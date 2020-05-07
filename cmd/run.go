@@ -140,7 +140,7 @@ var rootCmd = &cobra.Command{
 			}).Fatalf("load services fail: %v", err)
 		}
 		locker.Lock()
-		hc.AtStartCheckAllApplicationServersInServices(services)
+		hc.CheckAllApplicationServersInServices(services)
 		locker.Unlock()
 
 		facade := application.NewBalancerFacade(locker,
