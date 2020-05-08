@@ -297,7 +297,7 @@ func SortServicesInfoAndApplicationServers(unsortedServicesInfo []*domain.Servic
 					ServiceIP:          sortedOnlyServiceInfo.ServiceIP,
 					ServicePort:        sortedOnlyServiceInfo.ServicePort,
 					ApplicationServers: sortedApplicationServers,
-					HealthcheckType:    unsortedServiceInfo.HealthcheckType,
+					Healthcheck:        unsortedServiceInfo.Healthcheck,
 					ExtraInfo:          unsortedServiceInfo.ExtraInfo,
 				}
 				sortedServicesInfo = append(sortedServicesInfo, sortedServiceInfo)

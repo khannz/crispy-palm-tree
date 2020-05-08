@@ -1,8 +1,8 @@
 package portadapter
 
 import (
-	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/gofrs/uuid"
+	"github.com/khannz/crispy-palm-tree/domain"
 )
 
 // UUIDGenerator ...

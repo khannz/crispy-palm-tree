@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"sync"
+	"time"
 
 	badger "github.com/dgraph-io/badger/v2"
 	"github.com/khannz/crispy-palm-tree/domain"
@@ -56,10 +57,11 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 
 // ExtendedServiceData have application servers info and info abou service
 type ExtendedServiceData struct {
-	ServiceHealthcheckType string                     `json:"serviceHealthcheckType"` // TODO: must be struct
-	ServiceExtraInfo       []string                   `json:"serviceExtraInfo"`
-	ServiceState           bool                       `json:"serviceState"`
-	ApplicationServers     []domain.ApplicationServer `json:"applicationServers"`
+	ServiceHealthcheckType    string                     `json:"serviceHealthcheckType"`
+	ServiceHealthcheckTimeout time.Duration              `json:"serviceHealthcheckTimeout"`
+	ServiceExtraInfo          []string                   `json:"serviceExtraInfo"`
+	ServiceState              bool                       `json:"serviceState"`
+	ApplicationServers        []domain.ApplicationServer `json:"applicationServers"`
 }
 
 // NewServiceDataToStorage add new service to storage. Also check unique data
@@ -95,10 +97,11 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 
 	transformedServiceData := ExtendedServiceData{
-		ServiceHealthcheckType: serviceData.HealthcheckType,
-		ServiceExtraInfo:       serviceData.ExtraInfo,
-		ServiceState:           serviceData.State,
-		ApplicationServers:     renewApplicationServers,
+		ServiceHealthcheckType:    serviceData.Healthcheck.Type,
+		ServiceHealthcheckTimeout: serviceData.Healthcheck.Timeout,
+		ServiceExtraInfo:          serviceData.ExtraInfo,
+		ServiceState:              serviceData.State,
+		ApplicationServers:        renewApplicationServers,
 	}
 	serviceDataValue, err := json.Marshal(transformedServiceData)
 	if err != nil {
@@ -216,11 +219,15 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *do
 
 // GetServiceInfo ...
 func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
+	shc := domain.ServiceHealthcheck{
+		Type:    "",
+		Timeout: time.Duration(999 * time.Second),
+	}
 	currentServiceInfo := &domain.ServiceInfo{
 		ServiceIP:          "",
 		ServicePort:        "",
 		ApplicationServers: []*domain.ApplicationServer{},
-		HealthcheckType:    "",
+		Healthcheck:        shc,
 		ExtraInfo:          []string{},
 		State:              false,
 	}
@@ -245,9 +252,18 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 			currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
 		}
 
-		if oldExtendedServiceData.ServiceHealthcheckType != "" {
-			currentServiceInfo.HealthcheckType = oldExtendedServiceData.ServiceHealthcheckType
+		hc := domain.ServiceHealthcheck{
+			Type:    "",
+			Timeout: time.Duration(999 * time.Second),
 		}
+		if oldExtendedServiceData.ServiceHealthcheckType != "" {
+			hc.Type = oldExtendedServiceData.ServiceHealthcheckType
+		}
+		if oldExtendedServiceData.ServiceHealthcheckTimeout != time.Duration(999*time.Second) {
+			hc.Timeout = oldExtendedServiceData.ServiceHealthcheckTimeout
+		}
+		currentServiceInfo.Healthcheck = hc
+
 		if oldExtendedServiceData.ServiceExtraInfo != nil {
 			currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
 		}
@@ -297,11 +313,22 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 					currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
 				}
 
+				hc := domain.ServiceHealthcheck{
+					Type:    "",
+					Timeout: time.Duration(999 * time.Second),
+				}
+				if oldExtendedServiceData.ServiceHealthcheckType != "" {
+					hc.Type = oldExtendedServiceData.ServiceHealthcheckType
+				}
+				if oldExtendedServiceData.ServiceHealthcheckTimeout != time.Duration(999*time.Second) {
+					hc.Timeout = oldExtendedServiceData.ServiceHealthcheckTimeout
+				}
+
 				serviceInfo := &domain.ServiceInfo{
 					ServiceIP:          rawServiceData[0],
 					ServicePort:        rawServiceData[1],
 					ApplicationServers: currentApplicationServers,
-					HealthcheckType:    oldExtendedServiceData.ServiceHealthcheckType,
+					Healthcheck:        hc,
 					ExtraInfo:          oldExtendedServiceData.ServiceExtraInfo,
 					State:              oldExtendedServiceData.ServiceState,
 				}

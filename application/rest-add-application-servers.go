@@ -15,6 +15,7 @@ type AddApplicationServersRequest struct {
 	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
+	Healtcheck         ServiceHealtcheck   `json:"Healtcheck" validate:"required"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
@@ -68,7 +69,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 		return
 	}
 
-	applicationServersMap, validateError := addApplicationServersRequest.validateAddApplicationServersRequest()
+	_, validateError := addApplicationServersRequest.validateAddApplicationServersRequest() // refactor, map not needed
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -98,9 +99,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 	}).Infof("change job uuid from %v to %v", addApplicationServersRequestUUID, addApplicationServersRequest.ID)
 	addApplicationServersRequestUUID = addApplicationServersRequest.ID
 
-	updatedServiceInfo, err := restAPI.balancerFacade.AddApplicationServers(addApplicationServersRequest.ServiceIP,
-		addApplicationServersRequest.ServicePort,
-		applicationServersMap,
+	updatedServiceInfo, err := restAPI.balancerFacade.AddApplicationServers(addApplicationServersRequest,
 		addApplicationServersRequestUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{

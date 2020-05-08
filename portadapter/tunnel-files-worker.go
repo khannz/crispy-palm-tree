@@ -78,12 +78,13 @@ func (tunnelFileMaker *TunnelFileMaker) EnrichApplicationServerInfo(applicationS
 	newSysctlConfFileFullPath := tunnelFileMaker.sysctlConfFilePath + sNewTunnelName + "-sysctl.conf"
 
 	enrichedApplicationServer := &domain.ApplicationServer{
-		ServerIP:        applicationServers.ServerIP,
-		ServerPort:      applicationServers.ServerPort,
-		IfcfgTunnelFile: newIfcfgTunnelFileFullPath,
-		RouteTunnelFile: newRouteTunnelFileFullPath,
-		SysctlConfFile:  newSysctlConfFileFullPath,
-		TunnelName:      sNewTunnelName,
+		ServerIP:          applicationServers.ServerIP,
+		ServerPort:        applicationServers.ServerPort,
+		IfcfgTunnelFile:   newIfcfgTunnelFileFullPath,
+		RouteTunnelFile:   newRouteTunnelFileFullPath,
+		SysctlConfFile:    newSysctlConfFileFullPath,
+		TunnelName:        sNewTunnelName,
+		ServerHealthcheck: applicationServers.ServerHealthcheck,
 	}
 	return enrichedApplicationServer, nil
 }
