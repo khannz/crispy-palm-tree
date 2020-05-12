@@ -57,12 +57,13 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 
 // ExtendedServiceData have application servers info and info abou service
 type ExtendedServiceData struct {
-	ServiceRepeatHealthcheck  time.Duration              `json:"serviceRepeatHealthcheck"`
-	ServiceHealthcheckType    string                     `json:"serviceHealthcheckType"`
-	ServiceHealthcheckTimeout time.Duration              `json:"serviceHealthcheckTimeout"`
-	ServiceExtraInfo          []string                   `json:"serviceExtraInfo"`
-	ServiceState              bool                       `json:"serviceState"`
-	ApplicationServers        []domain.ApplicationServer `json:"applicationServers"`
+	ServiceRepeatHealthcheck    time.Duration              `json:"serviceRepeatHealthcheck"`
+	ServicePercentOfAlivedForUp int                        `json:"servicePercentOfAlivedForUp"`
+	ServiceHealthcheckType      string                     `json:"serviceHealthcheckType"`
+	ServiceHealthcheckTimeout   time.Duration              `json:"serviceHealthcheckTimeout"`
+	ServiceExtraInfo            []string                   `json:"serviceExtraInfo"`
+	ServiceState                bool                       `json:"serviceState"`
+	ApplicationServers          []domain.ApplicationServer `json:"applicationServers"`
 }
 
 // NewServiceDataToStorage add new service to storage. Also check unique data
@@ -100,12 +101,13 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 
 	transformedServiceData := ExtendedServiceData{
-		ServiceRepeatHealthcheck:  serviceData.Healthcheck.RepeatHealthcheck,
-		ServiceHealthcheckType:    serviceData.Healthcheck.Type,
-		ServiceHealthcheckTimeout: serviceData.Healthcheck.Timeout,
-		ServiceExtraInfo:          serviceData.ExtraInfo,
-		ServiceState:              serviceData.State,
-		ApplicationServers:        renewApplicationServers,
+		ServiceRepeatHealthcheck:    serviceData.Healthcheck.RepeatHealthcheck,
+		ServicePercentOfAlivedForUp: serviceData.Healthcheck.PercentOfAlivedForUp,
+		ServiceHealthcheckType:      serviceData.Healthcheck.Type,
+		ServiceHealthcheckTimeout:   serviceData.Healthcheck.Timeout,
+		ServiceExtraInfo:            serviceData.ExtraInfo,
+		ServiceState:                serviceData.State,
+		ApplicationServers:          renewApplicationServers,
 	}
 	serviceDataValue, err := json.Marshal(transformedServiceData)
 	if err != nil {
@@ -257,18 +259,12 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 			currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
 		}
 
-		hc := domain.ServiceHealthcheck{
-			RepeatHealthcheck: oldExtendedServiceData.ServiceRepeatHealthcheck,
-			Type:              "",
-			Timeout:           time.Duration(999 * time.Second),
+		currentServiceInfo.Healthcheck = domain.ServiceHealthcheck{
+			RepeatHealthcheck:    oldExtendedServiceData.ServiceRepeatHealthcheck,
+			PercentOfAlivedForUp: oldExtendedServiceData.ServicePercentOfAlivedForUp,
+			Type:                 oldExtendedServiceData.ServiceHealthcheckType,
+			Timeout:              oldExtendedServiceData.ServiceHealthcheckTimeout,
 		}
-		if oldExtendedServiceData.ServiceHealthcheckType != "" {
-			hc.Type = oldExtendedServiceData.ServiceHealthcheckType
-		}
-		if oldExtendedServiceData.ServiceHealthcheckTimeout != time.Duration(999*time.Second) {
-			hc.Timeout = oldExtendedServiceData.ServiceHealthcheckTimeout
-		}
-		currentServiceInfo.Healthcheck = hc
 
 		if oldExtendedServiceData.ServiceExtraInfo != nil {
 			currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
@@ -321,18 +317,10 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 				}
 
 				hc := domain.ServiceHealthcheck{
-					RepeatHealthcheck: 3000000009,
-					Type:              "",
-					Timeout:           time.Duration(999 * time.Second),
-				}
-				if oldExtendedServiceData.ServiceHealthcheckType != "" {
-					hc.Type = oldExtendedServiceData.ServiceHealthcheckType
-				}
-				if oldExtendedServiceData.ServiceHealthcheckTimeout != time.Duration(999*time.Second) {
-					hc.Timeout = oldExtendedServiceData.ServiceHealthcheckTimeout
-				}
-				if oldExtendedServiceData.ServiceRepeatHealthcheck != 3000000009 {
-					hc.RepeatHealthcheck = oldExtendedServiceData.ServiceRepeatHealthcheck
+					RepeatHealthcheck:    oldExtendedServiceData.ServiceRepeatHealthcheck,
+					PercentOfAlivedForUp: oldExtendedServiceData.ServicePercentOfAlivedForUp,
+					Type:                 oldExtendedServiceData.ServiceHealthcheckType,
+					Timeout:              oldExtendedServiceData.ServiceHealthcheckTimeout,
 				}
 
 				serviceInfo := &domain.ServiceInfo{
