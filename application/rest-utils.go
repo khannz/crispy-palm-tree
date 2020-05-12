@@ -14,7 +14,7 @@ type ServiceHealtcheck struct {
 	Type                 string        `json:"type" validate:"required" example:"tcp"`
 	Timeout              time.Duration `json:"timeout" validate:"required" example:"1000000000"`
 	RepeatHealthcheck    time.Duration `json:"repeatHealthcheck" validate:"required" example:"3000000000"`
-	PercentOfAlivedForUp int           `json:"percentOfAlivedForUp"  validate:"required"`
+	PercentOfAlivedForUp int           `json:"percentOfAlivedForUp" validate:"gt=0,lte=100"`
 }
 
 // ServerHealthcheck ...
@@ -49,6 +49,19 @@ func customPortServerApplicationValidation(sl validator.StructLevel) {
 	}
 	if !(port > 0) || !(port < 20000) {
 		sl.ReportError(sA.ServerPort, "serverPort", "ServerPort", "port must gt=0 and lt=20000", "")
+	}
+}
+
+func customServiceHealthcheckValidation(sl validator.StructLevel) {
+	sHc := sl.Current().Interface().(ServiceHealtcheck)
+	switch sHc.Type {
+	case "tcp":
+	case "http":
+	default:
+		sl.ReportError(sHc.Type, "type", "Type", "unsupported healthcheck type", "")
+	}
+	if sHc.Timeout >= sHc.RepeatHealthcheck {
+		sl.ReportError(sHc.Timeout, "timeout", "Timeout", "timeout can't be more than repeat healthcheck", "")
 	}
 }
 
