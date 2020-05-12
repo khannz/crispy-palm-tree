@@ -3,6 +3,7 @@ package portadapter
 import (
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/tehnerd/gnl2go"
@@ -11,6 +12,7 @@ import (
 
 // IPVSADMEntity ...
 type IPVSADMEntity struct {
+	sync.Mutex
 }
 
 // NewIPVSADMEntity ...
@@ -25,6 +27,8 @@ func NewIPVSADMEntity() (*IPVSADMEntity, error) {
 // CreateService ... // TODO: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
 func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInfo,
 	createServiceUUID string) error {
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -84,6 +88,8 @@ func convertRawApplicationServers(rawApplicationServers []*domain.ApplicationSer
 
 // RemoveService ...
 func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInfo, requestUUID string) error {
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -122,6 +128,8 @@ func (ipvsadmEntity *IPVSADMEntity) ValidateHistoricalConfig(storage *StorageEnt
 }
 
 func (ipvsadmEntity *IPVSADMEntity) readActualConfig() ([]gnl2go.Pool, error) {
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return nil, fmt.Errorf("can't ipvs Init: %v", err)
@@ -185,7 +193,8 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 // AddApplicationServersForService ...
 func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(serviceInfo *domain.ServiceInfo,
 	updateServiceUUID string) error {
-
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -213,6 +222,8 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(serviceInfo 
 // RemoveApplicationServersFromService ...
 func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceInfo *domain.ServiceInfo,
 	updateServiceUUID string) error {
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -251,6 +262,8 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 
 // Flush remove all ipvsadm data
 func (ipvsadmEntity *IPVSADMEntity) Flush() error {
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)

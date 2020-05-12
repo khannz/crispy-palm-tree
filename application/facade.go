@@ -11,20 +11,20 @@ import (
 
 // BalancerFacade struct
 type BalancerFacade struct {
-	Locker            *domain.Locker
-	VRRPConfigurator  domain.ServiceWorker
-	CacheStorage      *portadapter.StorageEntity // so dirty
-	PersistentStorage *portadapter.StorageEntity // so dirty
-	TunnelConfig      domain.TunnelMaker
-	HeathcheckEntity  *usecase.HeathcheckEntity
-	GracefullShutdown *domain.GracefullShutdown
-	UUIDgenerator     domain.UUIDgenerator
-	Logging           *logrus.Logger
+	Locker              *domain.Locker
+	IPVSADMConfigurator *portadapter.IPVSADMEntity
+	CacheStorage        *portadapter.StorageEntity // so dirty
+	PersistentStorage   *portadapter.StorageEntity // so dirty
+	TunnelConfig        domain.TunnelMaker
+	HeathcheckEntity    *usecase.HeathcheckEntity
+	GracefullShutdown   *domain.GracefullShutdown
+	UUIDgenerator       domain.UUIDgenerator
+	Logging             *logrus.Logger
 }
 
 // NewBalancerFacade ...
 func NewBalancerFacade(locker *domain.Locker,
-	vrrpConfigurator domain.ServiceWorker,
+	ipvsadmConfigurator *portadapter.IPVSADMEntity,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
@@ -34,15 +34,15 @@ func NewBalancerFacade(locker *domain.Locker,
 	logging *logrus.Logger) *BalancerFacade {
 
 	return &BalancerFacade{
-		Locker:            locker,
-		VRRPConfigurator:  vrrpConfigurator,
-		CacheStorage:      cacheStorage,
-		PersistentStorage: persistentStorage,
-		TunnelConfig:      tunnelConfig,
-		HeathcheckEntity:  hc,
-		GracefullShutdown: gracefullShutdown,
-		UUIDgenerator:     uuidGenerator,
-		Logging:           logging,
+		Locker:              locker,
+		IPVSADMConfigurator: ipvsadmConfigurator,
+		CacheStorage:        cacheStorage,
+		PersistentStorage:   persistentStorage,
+		TunnelConfig:        tunnelConfig,
+		HeathcheckEntity:    hc,
+		GracefullShutdown:   gracefullShutdown,
+		UUIDgenerator:       uuidGenerator,
+		Logging:             logging,
 	}
 }
 
@@ -50,7 +50,7 @@ func NewBalancerFacade(locker *domain.Locker,
 func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInfo,
 	createServiceUUID string) error {
 	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
-		balancerFacade.VRRPConfigurator,
+		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
@@ -86,12 +86,13 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInf
 func (balancerFacade *BalancerFacade) RemoveService(serviceIP,
 	servicePort string, newNWBRequestUUID string) error {
 	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
-		balancerFacade.VRRPConfigurator,
+		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
+		balancerFacade.HeathcheckEntity,
 		balancerFacade.Logging)
 	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, nil)
 	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
@@ -114,7 +115,7 @@ func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]
 func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *AddApplicationServersRequest,
 	addApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
-		balancerFacade.VRRPConfigurator,
+		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
@@ -157,7 +158,7 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 	applicationServers map[string]string,
 	removeApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
-		balancerFacade.VRRPConfigurator,
+		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,

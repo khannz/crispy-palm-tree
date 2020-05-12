@@ -72,6 +72,8 @@ func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData *domain.
 		return fmt.Errorf("can't form data for storage: %v", err)
 	}
 
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
 	err = storageEntity.checkUnique(serviceDataKey, serviceData)
 	if err != nil {
 		return fmt.Errorf("some key not unique: %v", err)
@@ -109,10 +111,6 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 	return serviceDataKey, serviceDataValue, nil
 }
-
-// func transformStorageDataFormServiceData(serviceDataKey, serviceDataValue []byte) *domain.ServiceInfo {
-// 	serviceDataKey
-// }
 
 func updateDb(db *badger.DB, key, value []byte) error {
 	return db.Update(func(txn *badger.Txn) error {
@@ -202,6 +200,8 @@ func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 // RemoveServiceDataFromStorage ...
 func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *domain.ServiceInfo, eventUUID string) error {
 	keyData := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
 	if err := storageEntity.checkServiceUniqueInDatabase(keyData); err == nil { // if err not nil key exist
 		return fmt.Errorf("key %s not exist in database", keyData)
 	}
@@ -232,6 +232,8 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		State:              false,
 	}
 	currentApplicationServers := []*domain.ApplicationServer{}
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(incomeServiceData.ServiceIP + ":" + incomeServiceData.ServicePort))
 		if err != nil {
@@ -289,7 +291,8 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 // LoadAllStorageDataToDomainModel ...
 func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain.ServiceInfo, error) {
 	servicesInfo := []*domain.ServiceInfo{}
-
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -348,6 +351,8 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 
 // LoadCacheFromStorage ...
 func (storageEntity *StorageEntity) LoadCacheFromStorage(oldStorageEntity *StorageEntity) error {
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
 	err := oldStorageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -381,7 +386,8 @@ func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData *domain.Ser
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)
 	}
-
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
 	err = storageEntity.updateDatabaseServiceInfo(serviceDataKey, serviceDataValue)
 	if err != nil {
 		return fmt.Errorf("can't update storage for new service: %v", err)
