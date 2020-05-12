@@ -68,8 +68,7 @@ func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r 
 		return
 	}
 
-	applicationServersMap, validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest()
-	if validateError != nil {
+	if validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest(); validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
@@ -98,9 +97,7 @@ func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r 
 	}).Infof("change job uuid from %v to %v", removeApplicationServersRequestUUID, removeApplicationServersRequest.ID)
 	removeApplicationServersRequestUUID = removeApplicationServersRequest.ID
 
-	updatedServiceInfo, err := restAPI.balancerFacade.RemoveApplicationServers(removeApplicationServersRequest.ServiceIP,
-		removeApplicationServersRequest.ServicePort,
-		applicationServersMap,
+	updatedServiceInfo, err := restAPI.balancerFacade.RemoveApplicationServers(removeApplicationServersRequest,
 		removeApplicationServersRequestUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -145,20 +142,14 @@ func (removeApplicationServersRequest *RemoveApplicationServersRequest) convertD
 	return applicationServersMap
 }
 
-func (removeApplicationServersRequest *RemoveApplicationServersRequest) validateRemoveApplicationServersRequest() (map[string]string, error) {
+func (removeApplicationServersRequest *RemoveApplicationServersRequest) validateRemoveApplicationServersRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortRemoveApplicationServersRequestValidation, RemoveApplicationServersRequest{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	err := validate.Struct(removeApplicationServersRequest)
-	if err != nil {
-		return nil, err
+	if err := validate.Struct(removeApplicationServersRequest); err != nil {
+		return err
 	}
-	applicationServersMap := removeApplicationServersRequest.convertDataRemoveApplicationServersRequest()
-	err = deepValidateServiceInfo(removeApplicationServersRequest.ServiceIP, removeApplicationServersRequest.ServicePort, applicationServersMap)
-	if err != nil {
-		return nil, err
-	}
-	return applicationServersMap, nil
+	return nil
 }
 
 func customPortRemoveApplicationServersRequestValidation(sl validator.StructLevel) {

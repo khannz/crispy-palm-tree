@@ -69,8 +69,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 		return
 	}
 
-	_, validateError := addApplicationServersRequest.validateAddApplicationServersRequest() // refactor, map not needed
-	if validateError != nil {
+	if validateError := addApplicationServersRequest.validateAddApplicationServersRequest(); validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
@@ -144,20 +143,14 @@ func (addApplicationServersRequest *AddApplicationServersRequest) convertDataAdd
 	return applicationServersMap
 }
 
-func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApplicationServersRequest() (map[string]string, error) {
+func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApplicationServersRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortAddApplicationServersRequestValidation, AddApplicationServersRequest{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	err := validate.Struct(addApplicationServersRequest)
-	if err != nil {
-		return nil, err
+	if err := validate.Struct(addApplicationServersRequest); err != nil {
+		return err
 	}
-	applicationServersMap := addApplicationServersRequest.convertDataAddApplicationServersRequest()
-	err = deepValidateServiceInfo(addApplicationServersRequest.ServiceIP, addApplicationServersRequest.ServicePort, applicationServersMap)
-	if err != nil {
-		return nil, err
-	}
-	return applicationServersMap, nil
+	return nil
 }
 
 func customPortAddApplicationServersRequestValidation(sl validator.StructLevel) {

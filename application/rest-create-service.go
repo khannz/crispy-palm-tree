@@ -32,13 +32,14 @@ type NewServiceInfo struct {
 // @Router /create-service [post]
 func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Request) {
 	createServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-
+	// !!!1
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": createServiceUUID,
 	}).Info("got new add nwb request")
 
 	var err error
+	// !!!2
 	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
 	buf.ReadFrom(r.Body)
 	bytesFromBuf := buf.Bytes()
@@ -46,6 +47,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	createService := &NewServiceInfo{}
 
 	err = json.Unmarshal(bytesFromBuf, createService)
+	//!!!3
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
@@ -69,14 +71,15 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	//!!!4
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": createServiceUUID,
 	}).Infof("change job uuid from %v to %v", createServiceUUID, createService.ID)
 	createServiceUUID = createService.ID
 
-	_, validateError := createService.validateCreateService()
-	if validateError != nil {
+	if validateError := createService.validateCreateService(); validateError != nil {
+		//!!!5
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
@@ -102,6 +105,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	err = restAPI.balancerFacade.CreateService(createService,
 		createServiceUUID)
 	if err != nil {
+		//!!!6
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
 			"event uuid": createServiceUUID,
@@ -123,18 +127,19 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-
+	//!!!7
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": createServiceUUID,
 	}).Info("new nwb created")
 
+	//!!!8
 	nwbCreated := UniversalResponse{
-		ID:                       createServiceUUID,
-		ApplicationServers:       createService.ApplicationServers,
-		ServiceIP:                createService.ServiceIP,
-		ServicePort:              createService.ServicePort,
-		HealthcheckType:          "", // FIXME: must be set
+		ID:                 createServiceUUID,
+		ApplicationServers: createService.ApplicationServers,
+		ServiceIP:          createService.ServiceIP,
+		ServicePort:        createService.ServicePort,
+		// HealthcheckType:          "", // FIXME: must be set
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "new nwb created",
 	}
@@ -150,28 +155,15 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (createService *NewServiceInfo) convertDataForNWBService() map[string]string {
-	applicationServersMap := map[string]string{}
-	for _, d := range createService.ApplicationServers {
-		applicationServersMap[d.ServerIP] = d.ServerPort
-	}
-	return applicationServersMap
-}
-
-func (createService *NewServiceInfo) validateCreateService() (map[string]string, error) {
+func (createService *NewServiceInfo) validateCreateService() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortValidationForcreateService, NewServiceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	err := validate.Struct(createService)
-	if err != nil {
-		return nil, err
+	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealtcheck{})
+	if err := validate.Struct(createService); err != nil {
+		return err
 	}
-	applicationServersMap := createService.convertDataForNWBService()
-	err = deepValidateServiceInfo(createService.ServiceIP, createService.ServicePort, applicationServersMap)
-	if err != nil {
-		return nil, err
-	}
-	return applicationServersMap, err
+	return nil
 }
 
 func customPortValidationForcreateService(sl validator.StructLevel) {
