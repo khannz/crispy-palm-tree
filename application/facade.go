@@ -47,7 +47,7 @@ func NewBalancerFacade(locker *domain.Locker,
 }
 
 // CreateService ...
-func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInfo,
+func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInfo,
 	createServiceUUID string) error {
 	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,

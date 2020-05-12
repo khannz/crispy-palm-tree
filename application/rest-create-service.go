@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NewBalanceInfo ...
-type NewBalanceInfo struct {
+// NewServiceInfo ...
+type NewServiceInfo struct {
 	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
@@ -23,7 +23,7 @@ type NewBalanceInfo struct {
 // @tags Network balance services
 // @Summary Create service
 // @Description Make network balance service easier ;)
-// @Param incomeJSON body application.NewBalanceInfo true "Expected json"
+// @Param incomeJSON body application.NewServiceInfo true "Expected json"
 // @Accept json
 // @Produce json
 // @Success 200 {object} application.UniversalResponse "If all okay"
@@ -43,7 +43,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	buf.ReadFrom(r.Body)
 	bytesFromBuf := buf.Bytes()
 
-	createService := &NewBalanceInfo{}
+	createService := &NewServiceInfo{}
 
 	err = json.Unmarshal(bytesFromBuf, createService)
 	if err != nil {
@@ -150,7 +150,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (createService *NewBalanceInfo) convertDataForNWBService() map[string]string {
+func (createService *NewServiceInfo) convertDataForNWBService() map[string]string {
 	applicationServersMap := map[string]string{}
 	for _, d := range createService.ApplicationServers {
 		applicationServersMap[d.ServerIP] = d.ServerPort
@@ -158,9 +158,9 @@ func (createService *NewBalanceInfo) convertDataForNWBService() map[string]strin
 	return applicationServersMap
 }
 
-func (createService *NewBalanceInfo) validateCreateService() (map[string]string, error) {
+func (createService *NewServiceInfo) validateCreateService() (map[string]string, error) {
 	validate := validator.New()
-	validate.RegisterStructValidation(customPortValidationForcreateService, NewBalanceInfo{})
+	validate.RegisterStructValidation(customPortValidationForcreateService, NewServiceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	err := validate.Struct(createService)
 	if err != nil {
@@ -175,7 +175,7 @@ func (createService *NewBalanceInfo) validateCreateService() (map[string]string,
 }
 
 func customPortValidationForcreateService(sl validator.StructLevel) {
-	nbi := sl.Current().Interface().(NewBalanceInfo)
+	nbi := sl.Current().Interface().(NewServiceInfo)
 	port, err := strconv.Atoi(nbi.ServicePort)
 	if err != nil {
 		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
