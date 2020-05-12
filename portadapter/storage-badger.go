@@ -57,6 +57,7 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 
 // ExtendedServiceData have application servers info and info abou service
 type ExtendedServiceData struct {
+	ServiceRepeatHealthcheck  time.Duration              `json:"serviceRepeatHealthcheck"`
 	ServiceHealthcheckType    string                     `json:"serviceHealthcheckType"`
 	ServiceHealthcheckTimeout time.Duration              `json:"serviceHealthcheckTimeout"`
 	ServiceExtraInfo          []string                   `json:"serviceExtraInfo"`
@@ -99,6 +100,7 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 
 	transformedServiceData := ExtendedServiceData{
+		ServiceRepeatHealthcheck:  serviceData.Healthcheck.RepeatHealthcheck,
 		ServiceHealthcheckType:    serviceData.Healthcheck.Type,
 		ServiceHealthcheckTimeout: serviceData.Healthcheck.Timeout,
 		ServiceExtraInfo:          serviceData.ExtraInfo,
@@ -220,8 +222,9 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *do
 // GetServiceInfo ...
 func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
 	shc := domain.ServiceHealthcheck{
-		Type:    "",
-		Timeout: time.Duration(999 * time.Second),
+		RepeatHealthcheck: 3000000009,
+		Type:              "",
+		Timeout:           time.Duration(999 * time.Second),
 	}
 	currentServiceInfo := &domain.ServiceInfo{
 		ServiceIP:          "",
@@ -255,8 +258,9 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		}
 
 		hc := domain.ServiceHealthcheck{
-			Type:    "",
-			Timeout: time.Duration(999 * time.Second),
+			RepeatHealthcheck: oldExtendedServiceData.ServiceRepeatHealthcheck,
+			Type:              "",
+			Timeout:           time.Duration(999 * time.Second),
 		}
 		if oldExtendedServiceData.ServiceHealthcheckType != "" {
 			hc.Type = oldExtendedServiceData.ServiceHealthcheckType
@@ -317,14 +321,18 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 				}
 
 				hc := domain.ServiceHealthcheck{
-					Type:    "",
-					Timeout: time.Duration(999 * time.Second),
+					RepeatHealthcheck: 3000000009,
+					Type:              "",
+					Timeout:           time.Duration(999 * time.Second),
 				}
 				if oldExtendedServiceData.ServiceHealthcheckType != "" {
 					hc.Type = oldExtendedServiceData.ServiceHealthcheckType
 				}
 				if oldExtendedServiceData.ServiceHealthcheckTimeout != time.Duration(999*time.Second) {
 					hc.Timeout = oldExtendedServiceData.ServiceHealthcheckTimeout
+				}
+				if oldExtendedServiceData.ServiceRepeatHealthcheck != 3000000009 {
+					hc.RepeatHealthcheck = oldExtendedServiceData.ServiceRepeatHealthcheck
 				}
 
 				serviceInfo := &domain.ServiceInfo{

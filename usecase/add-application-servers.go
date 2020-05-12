@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
@@ -75,16 +74,21 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	// enrich application servers info end
 
 	// need for rollback. used only service ip and port
-	currentServiceInfo, err := addApplicationServers.getServiceInfo(newServiceInfo, addApplicationServersUUID)
+	currentServiceInfo, err := addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
-
-	updatedServiceInfo, err = addApplicationServers.formUpdateServiceInfo(currentServiceInfo, newServiceInfo, addApplicationServersUUID)
+	updatedServiceInfo, err = forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo, addApplicationServersUUID)
+	if err != nil {
+		return updatedServiceInfo, fmt.Errorf("can't form update service info: %v", err)
+	}
 	// add to cache storage
 	if err = addApplicationServers.updateServiceFromCacheStorage(updatedServiceInfo, addApplicationServersUUID); err != nil {
-		if errRollback := addApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, addApplicationServersUUID); errRollback != nil {
-			// TODO: log it
+		if errRollBackCache := addApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
+			addApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     addApplicationServersName,
+				"event uuid": addApplicationServersUUID,
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
 		}
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
@@ -110,7 +114,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 			addApplicationServers.logging.WithFields(logrus.Fields{
 				"entity":     addApplicationServersName,
 				"event uuid": addApplicationServersUUID,
-			}).Errorf("can't rollback tunnels, got error: %v", errRollBackCache)
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
 		}
 		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
@@ -124,19 +128,22 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		}
 
 		if errRollBackCache := addApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
-			// TODO: log: cant roll back
+			addApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     addApplicationServersName,
+				"event uuid": addApplicationServersUUID,
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
 		}
 
 		// TODO: when relese remove application service logic
-		if errRollBackCache := addApplicationServers.ipvsadm.RemoveApplicationServersFromService(newServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
-			// TODO: log: cant roll back
+		if errRollBackIPSVSADM := addApplicationServers.ipvsadm.RemoveApplicationServersFromService(newServiceInfo, addApplicationServersUUID); errRollBackIPSVSADM != nil {
+			addApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     addApplicationServersName,
+				"event uuid": addApplicationServersUUID,
+			}).Errorf("can't rollback ipvsadm, got error: %v", errRollBackIPSVSADM)
 		}
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
-	serviceWG := new(sync.WaitGroup)
-	serviceWG.Add(1)
-	go addApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo, serviceWG)
-	serviceWG.Wait()
+	addApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
 	return updatedServiceInfo, nil
 }
 
@@ -152,25 +159,4 @@ func (addApplicationServers *AddApplicationServers) updateServiceFromPersistentS
 		return fmt.Errorf("error add new service data to persistent storage: %v", err)
 	}
 	return nil
-}
-
-func (addApplicationServers *AddApplicationServers) getServiceInfo(newServiceInfo *domain.ServiceInfo,
-	addApplicationServersUUID string) (*domain.ServiceInfo, error) {
-	return addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
-}
-
-func (addApplicationServers *AddApplicationServers) formUpdateServiceInfo(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
-	var resultServiceInfo *domain.ServiceInfo
-	if err := checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo, eventUUID); err != nil {
-		return resultServiceInfo, fmt.Errorf("new application server not unique: %v", err)
-	}
-	// concatenate two slices
-	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
-
-	resultServiceInfo = &domain.ServiceInfo{
-		ServiceIP:          newServiceInfo.ServiceIP,
-		ServicePort:        newServiceInfo.ServicePort,
-		ApplicationServers: resultApplicationServers,
-	}
-	return resultServiceInfo, nil
 }

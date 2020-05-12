@@ -115,10 +115,15 @@ var rootCmd = &cobra.Command{
 			viperConfig.GetString(techInterfaceName),
 			locker,
 			gracefullShutdown,
-			signalChan,
 			viperConfig.GetBool(mockMode),
 			logging)
-		go hc.StartHealthchecks(viperConfig.GetDuration(HealthcheckTimeName))
+		if err = hc.StartHealthchecksForCurrentServices(); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("Fail to load storage data to services info for healthcheck")
+		}
+		go hc.StartGracefullShutdownControlForHealthchecks()
 		// healthchecks end
 
 		// init config start
@@ -134,16 +139,6 @@ var rootCmd = &cobra.Command{
 		}).Debug("init storage config successful")
 
 		// init config end
-		services, err := cacheDB.LoadAllStorageDataToDomainModel()
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("load services fail: %v", err)
-		}
-		locker.Lock()
-		hc.CheckAllApplicationServersInServices(services)
-		locker.Unlock()
 
 		facade := application.NewBalancerFacade(locker,
 			ipvsadmConfigurator,

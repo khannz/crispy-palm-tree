@@ -89,8 +89,8 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return err
 	}
 
-	removeServiceEntity.hc.dw.Lock()
-	defer removeServiceEntity.hc.dw.Unlock()
+	go removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
+
 	if !removeServiceEntity.hc.isMockMode {
 		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
 			return err

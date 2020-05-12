@@ -11,8 +11,9 @@ import (
 
 // ServiceHealtcheck ...
 type ServiceHealtcheck struct {
-	Type    string        `json:"type" example:"tcp"`
-	Timeout time.Duration `json:"timeout" example:"2000000000"` // 2 seconds
+	Type              string        `json:"type" validate:"required" example:"tcp"`
+	Timeout           time.Duration `json:"timeout" validate:"required" example:"1000000000"`
+	RepeatHealthcheck time.Duration `json:"repeatHealthcheck" validate:"required" example:"3000000000"`
 }
 
 // ServerHealthcheck ...

@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
@@ -133,9 +132,6 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 
 		return fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
-	serviceWG := new(sync.WaitGroup)
-	serviceWG.Add(1)
-	go createService.hc.CheckApplicationServersInService(serviceInfo, serviceWG)
-	serviceWG.Wait()
+	createService.hc.NewServiceToHealtchecks(serviceInfo)
 	return nil
 }

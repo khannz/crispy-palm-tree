@@ -2,14 +2,13 @@ package usecase
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
-const removeApplicationServers = "remove-application-servers"
+const removeApplicationServersName = "remove-application-servers"
 
 // RemoveApplicationServers ...
 type RemoveApplicationServers struct {
@@ -80,43 +79,55 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
 	}
 
-	updatedServiceInfo = removeApplicationServers.formUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID)
+	updatedServiceInfo = forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID) // ignore check unique error
 	// add to cache storage
 	if err = removeApplicationServers.updateServiceFromCacheStorage(updatedServiceInfo, removeApplicationServersUUID); err != nil {
-		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
-			// TODO: log it
+		if errRollBackCache := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+			removeApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     removeApplicationServersName,
+				"event uuid": removeApplicationServersUUID,
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
 		}
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
 
 	if err = removeApplicationServers.tunnelConfig.RemoveTunnels(enrichedApplicationServersForRemove, removeApplicationServersUUID); err != nil {
-		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
-			// TODO: log it
+		if errRollBackCache := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+			removeApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     removeApplicationServersName,
+				"event uuid": removeApplicationServersUUID,
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
 		}
 		return currentServiceInfo, fmt.Errorf("can't remove tunnels: %v", err)
 	}
 
 	if err = removeApplicationServers.ipvsadm.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {
-		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
-			// TODO: log it
+		if errRollBackCache := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+			removeApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     removeApplicationServersName,
+				"event uuid": removeApplicationServersUUID,
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
 		}
 		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
 
 	if err = removeApplicationServers.updateServiceFromPersistentStorage(updatedServiceInfo, removeApplicationServersUUID); err != nil {
 		if errRollBackCache := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
-			// TODO: log: cant roll back
+			removeApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     removeApplicationServersName,
+				"event uuid": removeApplicationServersUUID,
+			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
 		}
 
-		if errRollBackCache := removeApplicationServers.ipvsadm.AddApplicationServersForService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
-			// TODO: log: cant roll back
+		if errRollBackIPVSADM := removeApplicationServers.ipvsadm.AddApplicationServersForService(removeServiceInfo, removeApplicationServersUUID); errRollBackIPVSADM != nil {
+			removeApplicationServers.logging.WithFields(logrus.Fields{
+				"entity":     removeApplicationServersName,
+				"event uuid": removeApplicationServersUUID,
+			}).Errorf("can't rollback IPVSADM, got error: %v", errRollBackIPVSADM)
 		}
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
-	serviceWG := new(sync.WaitGroup)
-	serviceWG.Add(1)
-	go removeApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo, serviceWG)
-	serviceWG.Wait()
+	go removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
 	return updatedServiceInfo, nil
 }
 
@@ -137,15 +148,4 @@ func (removeApplicationServers *RemoveApplicationServers) updateServiceFromPersi
 func (removeApplicationServers *RemoveApplicationServers) getServiceInfo(removeServiceInfo *domain.ServiceInfo,
 	removeApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	return removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersUUID)
-}
-
-func (removeApplicationServers *RemoveApplicationServers) formUpdateServiceInfo(currentServiceInfo, removeServiceInfo *domain.ServiceInfo, eventUUID string) *domain.ServiceInfo {
-	var resultServiceInfo *domain.ServiceInfo
-	resultApplicationServers := formNewApplicationServersSlice(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
-	resultServiceInfo = &domain.ServiceInfo{
-		ServiceIP:          removeServiceInfo.ServiceIP,
-		ServicePort:        removeServiceInfo.ServicePort,
-		ApplicationServers: resultApplicationServers,
-	}
-	return resultServiceInfo
 }

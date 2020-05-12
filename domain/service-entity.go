@@ -1,11 +1,16 @@
 package domain
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // ServiceHealthcheck ...
 type ServiceHealthcheck struct {
-	Type    string        `json:"type" example:"http"`
-	Timeout time.Duration `json:"timeout" example:"2s"`
+	StopChecks        chan struct{} `json:"-"` // when need to stop checks
+	Type              string        `json:"type" example:"http"`
+	Timeout           time.Duration `json:"timeout" example:"1000000000"`
+	RepeatHealthcheck time.Duration `json:"repeatHealthcheck" example:"3000000000"`
 }
 
 // ServerHealthcheck ...
@@ -28,6 +33,7 @@ type ApplicationServer struct {
 
 // ServiceInfo ...
 type ServiceInfo struct {
+	sync.Mutex
 	ServiceIP          string               `json:"serviceIP"`
 	ServicePort        string               `json:"servicePort"`
 	ApplicationServers []*ApplicationServer `json:"applicationServers"`

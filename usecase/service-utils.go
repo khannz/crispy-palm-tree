@@ -34,7 +34,8 @@ func validateRemoveApplicationServers(currentApplicattionServers,
 	var i []int
 	for j, applicattionServerForRemove := range applicattionServersForRemove {
 		for _, currentApplicattionServer := range currentApplicattionServers {
-			if *applicattionServerForRemove == *currentApplicattionServer {
+			if applicattionServerForRemove.ServerIP == currentApplicattionServer.ServerIP &&
+				applicattionServerForRemove.ServerPort == currentApplicattionServer.ServerPort {
 				i = append(i, j)
 			}
 		}
@@ -46,7 +47,6 @@ func validateRemoveApplicationServers(currentApplicattionServers,
 		}
 		return fmt.Errorf("current config don't have application servers: %v", formError)
 	}
-
 	return nil
 }
 
@@ -80,13 +80,14 @@ func enrichApplicationServersInfo(fullApplicationServersInfo []*domain.Applicati
 			if incompleteApplicationServerInfo.ServerIP == fullApplicationServerInfo.ServerIP &&
 				incompleteApplicationServerInfo.ServerPort == fullApplicationServerInfo.ServerPort {
 				enrichApplicationServerInfo := &domain.ApplicationServer{
-					ServerIP:        incompleteApplicationServerInfo.ServerIP,
-					ServerPort:      incompleteApplicationServerInfo.ServerPort,
-					State:           fullApplicationServerInfo.State,
-					IfcfgTunnelFile: fullApplicationServerInfo.IfcfgTunnelFile,
-					RouteTunnelFile: fullApplicationServerInfo.RouteTunnelFile,
-					SysctlConfFile:  fullApplicationServerInfo.SysctlConfFile,
-					TunnelName:      fullApplicationServerInfo.TunnelName,
+					ServerIP:          incompleteApplicationServerInfo.ServerIP,
+					ServerPort:        incompleteApplicationServerInfo.ServerPort,
+					State:             fullApplicationServerInfo.State,
+					IfcfgTunnelFile:   fullApplicationServerInfo.IfcfgTunnelFile,
+					RouteTunnelFile:   fullApplicationServerInfo.RouteTunnelFile,
+					SysctlConfFile:    fullApplicationServerInfo.SysctlConfFile,
+					TunnelName:        fullApplicationServerInfo.TunnelName,
+					ServerHealthcheck: fullApplicationServerInfo.ServerHealthcheck,
 				}
 				enrichApplicationServersInfo = append(enrichApplicationServersInfo, enrichApplicationServerInfo)
 			}
@@ -94,3 +95,71 @@ func enrichApplicationServersInfo(fullApplicationServersInfo []*domain.Applicati
 	}
 	return enrichApplicationServersInfo
 }
+
+func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
+	var resultServiceInfo *domain.ServiceInfo
+	if err := checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo, eventUUID); err != nil {
+		return resultServiceInfo, fmt.Errorf("new application server not unique: %v", err)
+	}
+	// concatenate two slices
+	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
+
+	resultServiceInfo = &domain.ServiceInfo{
+		ServiceIP:          newServiceInfo.ServiceIP,
+		ServicePort:        newServiceInfo.ServicePort,
+		ApplicationServers: resultApplicationServers,
+		Healthcheck:        currentServiceInfo.Healthcheck,
+		State:              currentServiceInfo.State,
+	}
+	return resultServiceInfo, nil
+}
+
+func forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, removeServiceInfo *domain.ServiceInfo, eventUUID string) *domain.ServiceInfo {
+	copyOfCurrentApplicationServers := copyApplicationServers(currentServiceInfo.ApplicationServers)
+	for i := 0; i < len(copyOfCurrentApplicationServers); i++ {
+		if containForRemove(copyOfCurrentApplicationServers[i], removeServiceInfo.ApplicationServers) {
+			copyOfCurrentApplicationServers = append(copyOfCurrentApplicationServers[:i], copyOfCurrentApplicationServers[i+1:]...)
+			i--
+		}
+	}
+	return &domain.ServiceInfo{
+		ServiceIP:          currentServiceInfo.ServiceIP,
+		ServicePort:        currentServiceInfo.ServicePort,
+		ApplicationServers: copyOfCurrentApplicationServers,
+		Healthcheck:        currentServiceInfo.Healthcheck,
+		State:              currentServiceInfo.State,
+	}
+}
+
+func copyApplicationServers(applicationServers []*domain.ApplicationServer) []*domain.ApplicationServer {
+	newASs := []*domain.ApplicationServer{}
+	for _, as := range applicationServers {
+		copyAs := *as
+		newASs = append(newASs, &copyAs)
+	}
+	return newASs
+}
+
+func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.ApplicationServer) bool {
+	for _, tr := range toRemASs {
+		if tsIn.ServerIP == tr.ServerIP &&
+			tr.ServerPort == tr.ServerPort {
+			return true
+		}
+	}
+	return false
+}
+
+// func findApplicationServeInCurrentApplicationServers(serverIP, serverPort string, currentServiceInfo *domain.ServiceInfo) (int, bool) {
+// 	var findedIndex int
+// 	var isFinded bool
+// 	for index, currentApplicationServer := range currentServiceInfo.ApplicationServers {
+// 		if serverIP == currentApplicationServer.ServerIP &&
+// 			serverPort == currentApplicationServer.ServerPort {
+// 			findedIndex = index
+// 			isFinded = true
+// 			break
+// 		}
+// 	}
+// 	return findedIndex, isFinded
+// }

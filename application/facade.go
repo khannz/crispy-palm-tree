@@ -69,8 +69,9 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInf
 		appSvrs = append(appSvrs, as)
 	}
 	hcS := domain.ServiceHealthcheck{
-		Type:    createService.Healtcheck.Type,
-		Timeout: createService.Healtcheck.Timeout,
+		Type:              createService.Healtcheck.Type,
+		Timeout:           createService.Healtcheck.Timeout,
+		RepeatHealthcheck: createService.Healtcheck.RepeatHealthcheck,
 	}
 
 	serviceInfo := &domain.ServiceInfo{
