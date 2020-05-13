@@ -223,15 +223,18 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 			fs)
 	}
 	fs.wg.Wait()
+	percentageDown := percentageOfDown(len(serviceInfo.ApplicationServers), fs.count)
 	hc.logging.WithFields(logrus.Fields{
 		"entity":     healthcheckName,
 		"event uuid": healthcheckUUID,
-	}).Debugf("Heathcheck: in service %v:%v failed services is %v of %v",
+	}).Debugf("Heathcheck: in service %v:%v failed services is %v of %v; %v failed percent of %v max for this service",
 		serviceInfo.ServiceIP,
 		serviceInfo.ServicePort,
 		fs.count,
-		len(serviceInfo.ApplicationServers))
-	if len(serviceInfo.ApplicationServers)-fs.count < 1 { // FIXME: hardcode
+		len(serviceInfo.ApplicationServers),
+		percentageDown,
+		serviceInfo.Healthcheck.PercentOfAlivedForUp)
+	if percentageDown > serviceInfo.Healthcheck.PercentOfAlivedForUp {
 		serviceInfo.State = false
 		hc.removeFromDummyWrapper(serviceInfo.ServiceIP)
 	} else {
@@ -443,4 +446,11 @@ func (hc *HeathcheckEntity) updateApplicationServicesState(serviceInfo *domain.S
 		}
 	}
 	return fmt.Errorf("service %v:%v not found in current services", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+}
+
+func percentageOfDown(total, down int) int {
+	if total == down {
+		return 100
+	}
+	return (total - down) * 100 / total
 }
