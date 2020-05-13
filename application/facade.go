@@ -137,16 +137,11 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 		appSvrs = append(appSvrs, as)
 	}
 
-	hcS := domain.ServiceHealthcheck{
-		Type:    addApplicationServersRequest.Healtcheck.Type,
-		Timeout: addApplicationServersRequest.Healtcheck.Timeout,
-		//FIXME: not at all
-	}
 	incomeServiceInfo := &domain.ServiceInfo{
 		ServiceIP:          addApplicationServersRequest.ServiceIP,
 		ServicePort:        addApplicationServersRequest.ServicePort,
 		ApplicationServers: appSvrs,
-		Healthcheck:        hcS,
+		Healthcheck:        domain.ServiceHealthcheck{},
 	}
 	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestUUID)
 	if err != nil {
@@ -191,5 +186,5 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 	return currentserviceInfo, nil
 }
 
-// func incomeServiceDataToDomainModel( // FIXME: refactor
+// func incomeServiceDataToDomainModel( // TODO: refactor
 // }

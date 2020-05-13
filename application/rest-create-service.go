@@ -1,21 +1,21 @@
 package application
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 )
+
+const addServiceRequestName = "add service"
 
 // NewServiceInfo ...
 type NewServiceInfo struct {
 	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
-	Healtcheck         ServiceHealtcheck   `json:"Healtcheck" validate:"required"`
+	Healtcheck         ServiceHealthcheck  `json:"Healtcheck" validate:"required"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
@@ -32,134 +32,64 @@ type NewServiceInfo struct {
 // @Router /create-service [post]
 func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Request) {
 	createServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	// !!!1
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": createServiceUUID,
-	}).Info("got new add nwb request")
+	logNewRequest(addServiceRequestName, createServiceUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	// !!!2
-	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
-	buf.ReadFrom(r.Body)
-	bytesFromBuf := buf.Bytes()
-
+	bytesFromBuf := readIncomeBytes(r)
 	createService := &NewServiceInfo{}
 
 	err = json.Unmarshal(bytesFromBuf, createService)
-	//!!!3
 	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": createServiceUUID,
-		}).Errorf("can't unmarshal income nwb request: %v", err)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &UniversalResponse{
-			ID:                       createServiceUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't unmarshal income nwb request: " + err.Error(),
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		unmarshallIncomeError(err.Error(),
+			createServiceUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
-
-	//!!!4
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": createServiceUUID,
-	}).Infof("change job uuid from %v to %v", createServiceUUID, createService.ID)
-	createServiceUUID = createService.ID
 
 	if validateError := createService.validateCreateService(); validateError != nil {
-		//!!!5
 		stringValidateError := errorsValidateToString(validateError)
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": createServiceUUID,
-		}).Errorf("validate fail for income nwb request: %v", stringValidateError)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &UniversalResponse{
-			ID:                       createServiceUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't validate income nwb request: " + stringValidateError,
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		validateIncomeError(stringValidateError, createServiceUUID, w, restAPI.balancerFacade.Logging)
 		return
 	}
+
+	logChangeUUID(createServiceUUID, createService.ID, restAPI.balancerFacade.Logging)
+	createServiceUUID = createService.ID
 
 	err = restAPI.balancerFacade.CreateService(createService,
 		createServiceUUID)
 	if err != nil {
-		//!!!6
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": createServiceUUID,
-		}).Errorf("can't create new nwb, got error: %v", err)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		rError := &UniversalResponse{
-			ID:                       createServiceUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't create new nwb, got internal error: " + err.Error(),
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		uscaseFail(addServiceRequestName,
+			err.Error(),
+			createServiceUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
-	//!!!7
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": createServiceUUID,
-	}).Info("new nwb created")
 
-	//!!!8
-	nwbCreated := UniversalResponse{
-		ID:                 createServiceUUID,
-		ApplicationServers: createService.ApplicationServers,
-		ServiceIP:          createService.ServiceIP,
-		ServicePort:        createService.ServicePort,
-		// HealthcheckType:          "", // FIXME: must be set
+	logRequestIsDone(addServiceRequestName, createServiceUUID, restAPI.balancerFacade.Logging)
+
+	ur := UniversalResponse{
+		ID:                       createServiceUUID,
+		ApplicationServers:       createService.ApplicationServers,
+		ServiceIP:                createService.ServiceIP,
+		ServicePort:              createService.ServicePort,
+		Healthcheck:              createService.Healtcheck,
 		JobCompletedSuccessfully: true,
-		ExtraInfo:                "new nwb created",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(nwbCreated)
-	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": createServiceUUID,
-		}).Errorf("can't response by request: %v", err)
-	}
+	writeUniversalResponse(ur,
+		addServiceRequestName,
+		createServiceUUID,
+		w,
+		restAPI.balancerFacade.Logging)
 }
 
 func (createService *NewServiceInfo) validateCreateService() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortValidationForcreateService, NewServiceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealtcheck{})
+	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealthcheck{})
 	if err := validate.Struct(createService); err != nil {
 		return err
 	}

@@ -1,13 +1,14 @@
 package application
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
+
+const getServicesRequestName = "get services"
 
 // GetAllServicesRequest ...
 type GetAllServicesRequest struct {
@@ -34,120 +35,64 @@ type GetAllServicesResponse struct {
 // @Failure 500 {object} application.GetAllServicesResponse "Internal error"
 // @Router /get-services [post]
 func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request) {
-	getRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": getRequestUUID,
-	}).Info("got get services request")
+	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+	logNewRequest(getServicesRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
-	buf.ReadFrom(r.Body)
-	bytesFromBuf := buf.Bytes()
+	bytesFromBuf := readIncomeBytes(r)
 
 	newGetServicesRequest := &GetAllServicesRequest{}
 
 	err = json.Unmarshal(bytesFromBuf, newGetServicesRequest)
 	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": getRequestUUID,
-		}).Errorf("can't unmarshal income get services request: %v", err)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &GetAllServicesResponse{
-			ID:                       getRequestUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't unmarshal income get services request: " + err.Error(),
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": getRequestUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		unmarshallIncomeError(err.Error(),
+			getServicesRequestUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
 
 	validateError := newGetServicesRequest.validateGetServicesRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": getRequestUUID,
-		}).Errorf("validate fail for income get services request: %v", stringValidateError)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &UniversalResponse{
-			ID:                       getRequestUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't validate income get services request: " + stringValidateError,
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": getRequestUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		validateIncomeError(stringValidateError, getServicesRequestUUID, w, restAPI.balancerFacade.Logging)
 		return
 	}
 
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": getRequestUUID,
-	}).Infof("change job uuid from %v to %v", getRequestUUID, newGetServicesRequest.ID)
-	getRequestUUID = newGetServicesRequest.ID
+	logChangeUUID(getServicesRequestUUID, newGetServicesRequest.ID, restAPI.balancerFacade.Logging)
+	getServicesRequestUUID = newGetServicesRequest.ID
 
-	nwbServices, err := restAPI.balancerFacade.GetServices(getRequestUUID)
+	nwbServices, err := restAPI.balancerFacade.GetServices(getServicesRequestUUID)
 	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": getRequestUUID,
-		}).Errorf("can't get all nwb services, got error: %v", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		rError := &GetAllServicesResponse{
-			ID:                       getRequestUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't get all nwb services, got internal error: " + err.Error(),
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": getRequestUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		uscaseFail(getServicesRequestName,
+			err.Error(),
+			getServicesRequestUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
-	allNWBServicesResponse := transformDomainServicesInfoToResponseData(nwbServices, true)
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": getRequestUUID,
-	}).Info("job get services is done")
+
+	logRequestIsDone(getServicesRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
+	allServices := convertDomainServicesInfoToRestUniversalResponse(nwbServices, true)
 
 	var extraInfo string
-	if len(allNWBServicesResponse) == 0 {
+	if len(allServices) == 0 {
 		extraInfo = "No services here"
 	}
-	getNwbServicesResponse := GetAllServicesResponse{
-		ID:                       getRequestUUID,
+	getServicesResponse := GetAllServicesResponse{
+		ID:                       getServicesRequestUUID,
 		JobCompletedSuccessfully: true,
-		AllServices:              allNWBServicesResponse,
+		AllServices:              allServices,
 		ExtraInfo:                extraInfo,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(getNwbServicesResponse)
+	err = json.NewEncoder(w).Encode(getServicesResponse)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
 			"entity":     restAPIlogName,
-			"event uuid": getRequestUUID,
+			"event uuid": getServicesRequestUUID,
 		}).Errorf("can't response by request: %v", err)
 	}
 }

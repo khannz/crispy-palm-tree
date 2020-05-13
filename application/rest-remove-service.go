@@ -1,14 +1,14 @@
 package application
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 )
+
+const removeServiceRequestName = "remove service"
 
 // RemoveServiceInfo ...
 type RemoveServiceInfo struct {
@@ -31,118 +31,57 @@ type RemoveServiceInfo struct {
 func (restAPI *RestAPIstruct) removeService(w http.ResponseWriter, r *http.Request) {
 	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": removeServiceUUID,
-	}).Info("got new remove nwb request")
+	logNewRequest(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
-	buf.ReadFrom(r.Body)
-	bytesFromBuf := buf.Bytes()
+	bytesFromBuf := readIncomeBytes(r)
 
 	removeService := &RemoveServiceInfo{}
 
 	err = json.Unmarshal(bytesFromBuf, removeService)
 	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeServiceUUID,
-		}).Errorf("can't unmarshal income remove nwb request: %v", err)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &UniversalResponse{
-			ID:                       removeServiceUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't unmarshal income nwb request: " + err.Error(),
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": removeServiceUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		unmarshallIncomeError(err.Error(),
+			removeServiceUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
-
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": removeServiceUUID,
-	}).Infof("change job uuid from %v to %v", removeServiceUUID, removeService.ID)
-	removeServiceUUID = removeService.ID
 
 	validateError := removeService.validateRemoveNWBRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeServiceUUID,
-		}).Errorf("validate fail for income remove nwb request: %v", stringValidateError)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &UniversalResponse{
-			ID:                       removeServiceUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't validate income nwb request: " + stringValidateError,
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": removeServiceUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		validateIncomeError(stringValidateError, removeServiceUUID, w, restAPI.balancerFacade.Logging)
 		return
 	}
+
+	logChangeUUID(removeServiceUUID, removeService.ID, restAPI.balancerFacade.Logging)
+	removeServiceUUID = removeService.ID
 
 	err = restAPI.balancerFacade.RemoveService(removeService,
 		removeServiceUUID)
 	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeServiceUUID,
-		}).Errorf("can't remove old nwb, got error: %v", err)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		rError := &UniversalResponse{
-			ID:                       removeServiceUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't create new nwb, got internal error: " + err.Error(),
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": removeServiceUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		uscaseFail(removeServiceRequestName,
+			err.Error(),
+			removeServiceUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
 
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": removeServiceUUID,
-	}).Info("nwb removed")
+	logRequestIsDone(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
 
-	nwbRemoved := UniversalResponse{
+	serviceRemoved := UniversalResponse{
 		ID:                       removeServiceUUID,
 		ServiceIP:                removeService.ServiceIP,
 		ServicePort:              removeService.ServicePort,
 		JobCompletedSuccessfully: true,
-		ExtraInfo:                "nwb removed",
+		ExtraInfo:                "service removed",
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(nwbRemoved)
-	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeServiceUUID,
-		}).Errorf("can't response by request: %v", err)
-	}
+	writeUniversalResponse(serviceRemoved,
+		removeServiceRequestName,
+		removeServiceUUID,
+		w,
+		restAPI.balancerFacade.Logging)
 }
 
 func (removeService *RemoveServiceInfo) validateRemoveNWBRequest() error {
