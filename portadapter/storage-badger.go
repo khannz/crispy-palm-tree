@@ -66,6 +66,15 @@ type ExtendedServiceData struct {
 	ApplicationServers          []domain.ApplicationServer `json:"applicationServers"`
 }
 
+// TunnelForService ...
+type TunnelForService struct {
+	IfcfgTunnelFile       string `json:"ifcfgTunnelFile"` // full path to ifcfg file
+	RouteTunnelFile       string `json:"tunnelFile"`      // full path to route file
+	SysctlConfFile        string `json:"sysctlConf"`      // full path to sysctl conf file
+	TunnelName            string `json:"tunnelName"`
+	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
+}
+
 // NewServiceDataToStorage add new service to storage. Also check unique data
 func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData *domain.ServiceInfo,
 	eventUUID string) error {
@@ -389,5 +398,66 @@ func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData *domain.Ser
 		return fmt.Errorf("can't update storage for new service: %v", err)
 	}
 
+	return nil
+}
+
+// ReadTunnelInfoForApplicationServer return nil, if key not exist
+func (storageEntity *StorageEntity) ReadTunnelInfoForApplicationServer(ip string) *domain.TunnelForApplicationServer {
+	dTunnelInfo := &domain.TunnelForApplicationServer{}
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(ip))
+		if err != nil {
+			return fmt.Errorf("txn.Get fail: %v", err)
+		}
+		sTunnelInfo := &TunnelForService{}
+		if err = item.Value(func(val []byte) error {
+			if err := json.Unmarshal(val, &sTunnelInfo); err != nil {
+				return fmt.Errorf("can't unmarshall tunnnel data: %v", err)
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		if sTunnelInfo.ServicesToTunnelCount == 0 {
+			return fmt.Errorf("no tunnel files: %v", sTunnelInfo.ServicesToTunnelCount)
+		}
+
+		dTunnelInfo.ApplicationServerIP = ip
+		dTunnelInfo.IfcfgTunnelFile = sTunnelInfo.IfcfgTunnelFile
+		dTunnelInfo.RouteTunnelFile = sTunnelInfo.RouteTunnelFile
+		dTunnelInfo.ServicesToTunnelCount = sTunnelInfo.ServicesToTunnelCount
+		dTunnelInfo.SysctlConfFile = sTunnelInfo.SysctlConfFile
+		dTunnelInfo.TunnelName = sTunnelInfo.TunnelName
+
+		return nil
+	}); err != nil {
+		return nil
+	}
+	return dTunnelInfo
+}
+
+// UpdateTunnelFilesInfoAtStorage ...
+func (storageEntity *StorageEntity) UpdateTunnelFilesInfoAtStorage(tunnelsFilesInfo []*domain.TunnelForApplicationServer) error {
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+	for _, tunnelFilesInfo := range tunnelsFilesInfo {
+		key := []byte(tunnelFilesInfo.ApplicationServerIP)
+		transformedTunnelForService := TunnelForService{
+			IfcfgTunnelFile:       tunnelFilesInfo.IfcfgTunnelFile,
+			RouteTunnelFile:       tunnelFilesInfo.RouteTunnelFile,
+			SysctlConfFile:        tunnelFilesInfo.SysctlConfFile,
+			TunnelName:            tunnelFilesInfo.TunnelName,
+			ServicesToTunnelCount: tunnelFilesInfo.ServicesToTunnelCount,
+		}
+		tunnelsFilesInfoValue, err := json.Marshal(transformedTunnelForService)
+		if err != nil {
+			return fmt.Errorf("can't marshal transformedTunnelForService: %v", err)
+		}
+		if err := updateDb(storageEntity.Db, key, tunnelsFilesInfoValue); err != nil {
+			return fmt.Errorf("can't update db: %v", err)
+		}
+	}
 	return nil
 }

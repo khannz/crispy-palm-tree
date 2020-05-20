@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/portadapter"
 )
 
 // TODO: need better check unique, app srv to services too
@@ -71,30 +72,30 @@ func decreaseJobs(gracefullShutdown *domain.GracefullShutdown) {
 	gracefullShutdown.UsecasesJobs--
 }
 
-// need to be sure fullApplicationServersInfo contain incompleteApplicationServersInfo
-func enrichApplicationServersInfo(fullApplicationServersInfo []*domain.ApplicationServer,
-	incompleteApplicationServersInfo []*domain.ApplicationServer) []*domain.ApplicationServer {
-	enrichApplicationServersInfo := []*domain.ApplicationServer{}
-	for _, incompleteApplicationServerInfo := range incompleteApplicationServersInfo {
-		for _, fullApplicationServerInfo := range fullApplicationServersInfo {
-			if incompleteApplicationServerInfo.ServerIP == fullApplicationServerInfo.ServerIP &&
-				incompleteApplicationServerInfo.ServerPort == fullApplicationServerInfo.ServerPort {
-				enrichApplicationServerInfo := &domain.ApplicationServer{
-					ServerIP:          incompleteApplicationServerInfo.ServerIP,
-					ServerPort:        incompleteApplicationServerInfo.ServerPort,
-					State:             fullApplicationServerInfo.State,
-					IfcfgTunnelFile:   fullApplicationServerInfo.IfcfgTunnelFile,
-					RouteTunnelFile:   fullApplicationServerInfo.RouteTunnelFile,
-					SysctlConfFile:    fullApplicationServerInfo.SysctlConfFile,
-					TunnelName:        fullApplicationServerInfo.TunnelName,
-					ServerHealthcheck: fullApplicationServerInfo.ServerHealthcheck,
-				}
-				enrichApplicationServersInfo = append(enrichApplicationServersInfo, enrichApplicationServerInfo)
-			}
-		}
-	}
-	return enrichApplicationServersInfo
-}
+// // need to be sure fullApplicationServersInfo contain incompleteApplicationServersInfo
+// func enrichApplicationServersInfo(fullApplicationServersInfo []*domain.ApplicationServer,
+// 	incompleteApplicationServersInfo []*domain.ApplicationServer) []*domain.ApplicationServer {
+// 	enrichApplicationServersInfo := []*domain.ApplicationServer{}
+// 	for _, incompleteApplicationServerInfo := range incompleteApplicationServersInfo {
+// 		for _, fullApplicationServerInfo := range fullApplicationServersInfo {
+// 			if incompleteApplicationServerInfo.ServerIP == fullApplicationServerInfo.ServerIP &&
+// 				incompleteApplicationServerInfo.ServerPort == fullApplicationServerInfo.ServerPort {
+// 				enrichApplicationServerInfo := &domain.ApplicationServer{
+// 					ServerIP:          incompleteApplicationServerInfo.ServerIP,
+// 					ServerPort:        incompleteApplicationServerInfo.ServerPort,
+// 					State:             fullApplicationServerInfo.State,
+// 					IfcfgTunnelFile:   fullApplicationServerInfo.IfcfgTunnelFile,
+// 					RouteTunnelFile:   fullApplicationServerInfo.RouteTunnelFile,
+// 					SysctlConfFile:    fullApplicationServerInfo.SysctlConfFile,
+// 					TunnelName:        fullApplicationServerInfo.TunnelName,
+// 					ServerHealthcheck: fullApplicationServerInfo.ServerHealthcheck,
+// 				}
+// 				enrichApplicationServersInfo = append(enrichApplicationServersInfo, enrichApplicationServerInfo)
+// 			}
+// 		}
+// 	}
+// 	return enrichApplicationServersInfo
+// }
 
 func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
 	var resultServiceInfo *domain.ServiceInfo
@@ -163,3 +164,18 @@ func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.Applica
 // 	}
 // 	return findedIndex, isFinded
 // }
+
+func formTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheStorage *portadapter.StorageEntity) []*domain.TunnelForApplicationServer {
+	tunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
+	for _, applicationServer := range applicationServers {
+		tunnelFilesInfo := cacheStorage.ReadTunnelInfoForApplicationServer(applicationServer.ServerIP)
+		if tunnelFilesInfo == nil {
+			tunnelFilesInfo = &domain.TunnelForApplicationServer{
+				ApplicationServerIP:   applicationServer.ServerIP,
+				ServicesToTunnelCount: 0,
+			}
+		}
+		tunnelsFilesInfo = append(tunnelsFilesInfo, tunnelFilesInfo)
+	}
+	return tunnelsFilesInfo
+}

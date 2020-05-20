@@ -24,10 +24,6 @@ type ApplicationServer struct {
 	ServerIP           string            `json:"serverIP"`
 	ServerPort         string            `json:"serverPort"`
 	State              bool              `json:"state"`
-	IfcfgTunnelFile    string            `json:"ifcfgTunnelFile"` // full path to ifcfg file
-	RouteTunnelFile    string            `json:"tunnelFile"`      // full path to route file
-	SysctlConfFile     string            `json:"sysctlConf"`      // full path to sysctl conf file
-	TunnelName         string            `json:"tunnelName"`
 	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck"`
 	ServerBashCommands string            `json:"-"`
 }
@@ -41,4 +37,14 @@ type ServiceInfo struct {
 	Healthcheck        ServiceHealthcheck   `json:"serviceHealthcheck"`
 	ExtraInfo          []string             `json:"extraInfo"`
 	State              bool                 `json:"state"`
+}
+
+// TunnelForApplicationServer ...
+type TunnelForApplicationServer struct {
+	ApplicationServerIP   string `json:"applicationServerIP"`
+	IfcfgTunnelFile       string `json:"ifcfgTunnelFile"` // full path to ifcfg file
+	RouteTunnelFile       string `json:"tunnelFile"`      // full path to route file
+	SysctlConfFile        string `json:"sysctlConf"`      // full path to sysctl conf file
+	TunnelName            string `json:"tunnelName"`
+	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
 }
