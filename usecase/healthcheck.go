@@ -255,6 +255,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Lock()
 			fs.count++
 			fs.Unlock()
+			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
 			if applicationServerInfo.State {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
@@ -264,12 +265,12 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 					applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
 					applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
 				applicationServerInfo.State = false
-				if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
-					hc.logging.WithFields(logrus.Fields{
-						"entity":     healthcheckName,
-						"event uuid": healthcheckUUID,
-					}).Errorf("Heathcheck error: excludeApplicationServerFromIPVS error: %v", err)
-				}
+				// if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				// 	hc.logging.WithFields(logrus.Fields{
+				// 		"entity":     healthcheckName,
+				// 		"event uuid": healthcheckUUID,
+				// 	}).Debugf("Heathcheck error: excludeApplicationServerFromIPVS error: %v", err)
+				// }
 			}
 			return
 		}
@@ -279,6 +280,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Lock()
 			fs.count++
 			fs.Unlock()
+			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
 			if applicationServerInfo.State {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
@@ -288,12 +290,12 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 					applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
 					applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
 				applicationServerInfo.State = false
-				if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
-					hc.logging.WithFields(logrus.Fields{
-						"entity":     healthcheckName,
-						"event uuid": healthcheckUUID,
-					}).Errorf("Heathcheck error: excludeApplicationServerFromIPVS error: %v", err)
-				}
+				// if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				// 	hc.logging.WithFields(logrus.Fields{
+				// 		"entity":     healthcheckName,
+				// 		"event uuid": healthcheckUUID,
+				// 	}).Debugf("Heathcheck error: excludeApplicationServerFromIPVS error: %v", err)
+				// }
 			}
 			return
 		}
@@ -451,6 +453,9 @@ func (hc *HeathcheckEntity) updateApplicationServicesState(serviceInfo *domain.S
 func percentageOfDown(total, down int) int {
 	if total == down {
 		return 100
+	}
+	if down == 0 {
+		return 0
 	}
 	return (total - down) * 100 / total
 }
