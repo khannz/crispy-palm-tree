@@ -8,5 +8,4 @@ type TunnelMaker interface {
 	CreateTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
 	RemoveTunnel(*TunnelForApplicationServer, string) error
 	RemoveTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
-	ExecuteCommandForTunnel(string, string, string) error
 }
