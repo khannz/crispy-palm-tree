@@ -3,6 +3,7 @@ package portadapter
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"sort"
 	"strconv"
@@ -92,7 +93,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 		return fmt.Errorf("can't write new tunnel files: %v", err)
 	}
 
-	if err := tunnelFileMaker.linkUp("tun" + sNewTunnelName); err != nil {
+	if err := tunnelFileMaker.addAndUpNewLink("tun"+sNewTunnelName, tunnelFilesInfo.ApplicationServerIP+"/32"); err != nil {
 		return fmt.Errorf("can't up tunnel: %v", err)
 	}
 
@@ -174,24 +175,34 @@ func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFile(tunnelFilesInfo *doma
 	return nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) linkUp(tunnelName string) error {
-	link, err := netlink.LinkByName(tunnelName)
+func (tunnelFileMaker *TunnelFileMaker) addAndUpNewLink(tunnelName, applicationServerIPAndMask string) error {
+	ipNew, _, err := net.ParseCIDR(applicationServerIPAndMask)
 	if err != nil {
-		return fmt.Errorf("can't get LinkByName %v: %v", tunnelName, err)
+		return fmt.Errorf("parse ip from %v fail: %v", applicationServerIPAndMask, err)
 	}
-	if err := netlink.LinkSetUp(link); err != nil {
+	linkNew := &netlink.Iptun{LinkAttrs: netlink.LinkAttrs{Name: tunnelName}, Remote: ipNew}
+	err = netlink.LinkAdd(linkNew)
+	if err != nil {
+		return fmt.Errorf("can't LinkAdd for tunnel %v: %v", tunnelName, err)
+	}
+	if err := netlink.LinkSetUp(linkNew); err != nil {
 		return fmt.Errorf("can't LinkSetUp for device %v: %v", tunnelName, err)
 	}
 	return nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) linkDown(tunnelName string) error {
-	link, err := netlink.LinkByName(tunnelName)
+func (tunnelFileMaker *TunnelFileMaker) downAndRemoveOldLink(tunnelName string) error {
+	linkOld, err := netlink.LinkByName(tunnelName)
 	if err != nil {
 		return fmt.Errorf("can't get LinkByName %v: %v", tunnelName, err)
 	}
-	if err := netlink.LinkSetDown(link); err != nil {
+	if err := netlink.LinkSetDown(linkOld); err != nil {
 		return fmt.Errorf("can't LinkSetDown for device %v: %v", tunnelName, err)
+	}
+
+	err = netlink.LinkDel(linkOld)
+	if err != nil {
+		return fmt.Errorf("can't LinkDel for device %v: %v", tunnelName, err)
 	}
 	return nil
 }
@@ -232,8 +243,8 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.Tun
 		return err
 	}
 
-	if err := tunnelFileMaker.linkDown("tun" + tunnelFilesInfo.TunnelName); err != nil {
-		return fmt.Errorf("can't down tunnel: %v", err)
+	if err := tunnelFileMaker.downAndRemoveOldLink("tun" + tunnelFilesInfo.TunnelName); err != nil {
+		return fmt.Errorf("can't remove tunnel: %v", err)
 	}
 
 	return nil
