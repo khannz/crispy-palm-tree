@@ -10,7 +10,7 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/sirupsen/logrus"
-	"github.com/thevan4/go-billet/executor"
+	"github.com/vishvananda/netlink"
 )
 
 const tunnelFileMakerEntityName = "tunnel-file-maker"
@@ -92,8 +92,8 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 		return fmt.Errorf("can't write new tunnel files: %v", err)
 	}
 
-	if err := tunnelFileMaker.ExecuteCommandForTunnel("tun"+sNewTunnelName, "up", createTunnelUUID); err != nil {
-		return fmt.Errorf("can't execute command for up tunnel: %v", err)
+	if err := tunnelFileMaker.linkUp("tun" + sNewTunnelName); err != nil {
+		return fmt.Errorf("can't up tunnel: %v", err)
 	}
 
 	return nil
@@ -174,34 +174,25 @@ func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFile(tunnelFilesInfo *doma
 	return nil
 }
 
-// ExecuteCommandForTunnel ...
-func (tunnelFileMaker *TunnelFileMaker) ExecuteCommandForTunnel(tunnelName string,
-	arg string,
-	createTunnelUUID string) error {
-	if tunnelFileMaker.isMockMode {
-		tunnelFileMaker.logging.WithFields(logrus.Fields{
-			"entity":     tunnelFileMakerEntityName,
-			"event uuid": createTunnelUUID,
-		}).Infof("mock of execute ip command for tunnels %v", tunnelName)
-		return nil
-	}
-	args := []string{"link", "set", "dev", tunnelName, arg}
-	stdout, stderr, exitCode, err := executor.Execute("ip", "", args)
+func (tunnelFileMaker *TunnelFileMaker) linkUp(tunnelName string) error {
+	link, err := netlink.LinkByName(tunnelName)
 	if err != nil {
-		return fmt.Errorf("when execute command %v, got error: %v", "ip link set dev "+tunnelName+" "+arg, err)
+		return fmt.Errorf("can't get LinkByName %v: %v", tunnelName, err)
 	}
-	if exitCode != 0 {
-		return fmt.Errorf("when execute command %v, got exit code != 0: stdout: %v, stderr: %v, exitCode: %v",
-			"ip link set dev "+tunnelName+" "+arg,
-			string(stdout),
-			string(stderr),
-			string(exitCode))
+	if err := netlink.LinkSetUp(link); err != nil {
+		return fmt.Errorf("can't LinkSetUp for device %v: %v", tunnelName, err)
 	}
-	tunnelFileMaker.logging.WithFields(logrus.Fields{
-		"entity":     tunnelFileMakerEntityName,
-		"event uuid": createTunnelUUID,
-	}).Debugf("result of execute ip command: stdout: %v, stderr: %v, exitCode: %v", string(stdout), string(stderr), string(exitCode))
+	return nil
+}
 
+func (tunnelFileMaker *TunnelFileMaker) linkDown(tunnelName string) error {
+	link, err := netlink.LinkByName(tunnelName)
+	if err != nil {
+		return fmt.Errorf("can't get LinkByName %v: %v", tunnelName, err)
+	}
+	if err := netlink.LinkSetDown(link); err != nil {
+		return fmt.Errorf("can't LinkSetDown for device %v: %v", tunnelName, err)
+	}
 	return nil
 }
 
@@ -241,8 +232,8 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.Tun
 		return err
 	}
 
-	if err := tunnelFileMaker.ExecuteCommandForTunnel("tun"+tunnelFilesInfo.TunnelName, "down", removeTunnelUUID); err != nil {
-		return fmt.Errorf("can't execute command for down tunnel: %v", err)
+	if err := tunnelFileMaker.linkDown("tun" + tunnelFilesInfo.TunnelName); err != nil {
+		return fmt.Errorf("can't down tunnel: %v", err)
 	}
 
 	return nil
