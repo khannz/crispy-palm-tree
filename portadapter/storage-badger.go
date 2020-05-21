@@ -317,7 +317,8 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 				}
 				rawServiceData := strings.Split(string(key), ":")
 				if len(rawServiceData) != 2 {
-					return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
+					return nil
+					// return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
 				}
 				currentApplicationServers := []*domain.ApplicationServer{}
 				for _, oldApplicationServer := range oldExtendedServiceData.ApplicationServers {
