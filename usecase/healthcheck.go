@@ -97,7 +97,7 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	}
 	servicesInfo, err := hc.cacheStorage.LoadAllStorageDataToDomainModel()
 	if err != nil {
-		return err
+		return fmt.Errorf("fail when try LoadAllStorageDataToDomainModel: %v", err)
 	}
 
 	for _, serviceInfo := range servicesInfo {

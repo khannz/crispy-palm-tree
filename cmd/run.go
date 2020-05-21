@@ -121,7 +121,7 @@ var rootCmd = &cobra.Command{
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
-			}).Fatalf("Fail to load storage data to services info for healthcheck")
+			}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
 		}
 		go hc.StartGracefullShutdownControlForHealthchecks()
 		// healthchecks end
