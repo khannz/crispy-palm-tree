@@ -46,7 +46,7 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInf
 	}
 
 	// AddService for IPv4
-	err = ipvs.AddService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")), "rr")
+	err = ipvs.AddService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")), serviceInfo.BalanceType)
 	if err != nil {
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}

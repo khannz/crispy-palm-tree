@@ -64,6 +64,7 @@ type ExtendedServiceData struct {
 	ServiceExtraInfo            []string                   `json:"serviceExtraInfo"`
 	ServiceState                bool                       `json:"serviceState"`
 	ApplicationServers          []domain.ApplicationServer `json:"applicationServers"`
+	BalanceType                 string                     `json:"balanceType"`
 }
 
 // TunnelForService ...
@@ -117,6 +118,7 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 		ServiceExtraInfo:            serviceData.ExtraInfo,
 		ServiceState:                serviceData.State,
 		ApplicationServers:          renewApplicationServers,
+		BalanceType:                 serviceData.BalanceType,
 	}
 	serviceDataValue, err := json.Marshal(transformedServiceData)
 	if err != nil {
@@ -244,6 +246,7 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		Healthcheck:        shc,
 		ExtraInfo:          []string{},
 		State:              false,
+		BalanceType:        "",
 	}
 	currentApplicationServers := []*domain.ApplicationServer{}
 	storageEntity.Lock()
@@ -281,6 +284,8 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		if oldExtendedServiceData.ServiceState {
 			currentServiceInfo.State = oldExtendedServiceData.ServiceState
 		}
+		tmpBalanceType := oldExtendedServiceData.BalanceType
+		currentServiceInfo.BalanceType = tmpBalanceType
 
 		return nil
 	}); err != nil {
@@ -340,6 +345,7 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 					Healthcheck:        hc,
 					ExtraInfo:          oldExtendedServiceData.ServiceExtraInfo,
 					State:              oldExtendedServiceData.ServiceState,
+					BalanceType:        oldExtendedServiceData.BalanceType,
 				}
 				servicesInfo = append(servicesInfo, serviceInfo)
 				return nil

@@ -37,6 +37,7 @@ type ServiceInfo struct {
 	Healthcheck        ServiceHealthcheck   `json:"serviceHealthcheck"`
 	ExtraInfo          []string             `json:"extraInfo"`
 	State              bool                 `json:"state"`
+	BalanceType        string               `json:"balanceType"`
 }
 
 // TunnelForApplicationServer ...

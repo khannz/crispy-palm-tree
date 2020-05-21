@@ -80,6 +80,7 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		ServicePort:        createService.ServicePort,
 		ApplicationServers: appSvrs,
 		Healthcheck:        hcS,
+		BalanceType:        createService.BalanceType,
 	}
 	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
 }
