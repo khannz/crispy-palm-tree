@@ -23,7 +23,7 @@ TYPE=IPIP
 PEER_OUTER_IPADDR=REAL_SERVER_IP
 MTU=9000
 `
-	rawDataForTunnelRouteFile = `REAL_SERVER_IP/32 dev TUNNEL_NAME table srv_health_check`
+	rawDataForTunnelRouteFile = `REAL_SERVER_IP/32 dev TUNNEL_NAME table 10` // hardcoded table 10 srv_health_check
 	rowForSysctlConf          = `net.ipv4.conf.TUNNEL_NAME.rp_filter=0`
 )
 
