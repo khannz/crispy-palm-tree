@@ -51,7 +51,7 @@ type ServerApplicationWithStates struct {
 	ServerIP           string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
 	ServerPort         string            `json:"port" validate:"required" example:"1111"`
 	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck,omitempty"`
-	IsUp               bool              `json:"serverIsUp,omitempty"`
+	IsUp               bool              `json:"serverIsUp"`
 	ServerBashCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
 }
 
@@ -65,7 +65,7 @@ type UniversalResponseWithStates struct {
 	JobCompletedSuccessfully bool                          `json:"jobCompletedSuccessfully"`
 	ExtraInfo                string                        `json:"extraInfo,omitempty"`
 	BalanceType              string                        `json:"balanceType,omitempty"`
-	IsUp                     bool                          `json:"serviceIsUp,omitempty"`
+	IsUp                     bool                          `json:"serviceIsUp"`
 }
 
 func customPortServerApplicationValidation(sl validator.StructLevel) {
