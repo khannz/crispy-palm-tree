@@ -83,7 +83,7 @@ func decreaseJobs(gracefullShutdown *domain.GracefullShutdown) {
 // 				enrichApplicationServerInfo := &domain.ApplicationServer{
 // 					ServerIP:          incompleteApplicationServerInfo.ServerIP,
 // 					ServerPort:        incompleteApplicationServerInfo.ServerPort,
-// 					State:             fullApplicationServerInfo.State,
+// 					IsUp:             fullApplicationServerInfo.IsUp,
 // 					IfcfgTunnelFile:   fullApplicationServerInfo.IfcfgTunnelFile,
 // 					RouteTunnelFile:   fullApplicationServerInfo.RouteTunnelFile,
 // 					SysctlConfFile:    fullApplicationServerInfo.SysctlConfFile,
@@ -110,7 +110,7 @@ func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServic
 		ServicePort:        newServiceInfo.ServicePort,
 		ApplicationServers: resultApplicationServers,
 		Healthcheck:        currentServiceInfo.Healthcheck,
-		State:              currentServiceInfo.State,
+		IsUp:               currentServiceInfo.IsUp,
 	}
 	return resultServiceInfo, nil
 }
@@ -128,7 +128,7 @@ func forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, remove
 		ServicePort:        currentServiceInfo.ServicePort,
 		ApplicationServers: copyOfCurrentApplicationServers,
 		Healthcheck:        currentServiceInfo.Healthcheck,
-		State:              currentServiceInfo.State,
+		IsUp:               currentServiceInfo.IsUp,
 	}
 }
 

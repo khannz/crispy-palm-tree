@@ -150,7 +150,7 @@ func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []*domain.ServiceIn
 			applocationServer := &domain.ApplicationServer{
 				ServerIP:   dest.IP,
 				ServerPort: strconv.Itoa(int(dest.Port)),
-				State:      true,
+				IsUp:       true,
 			}
 			applicationServers = append(applicationServers, applocationServer)
 		}

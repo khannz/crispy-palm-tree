@@ -62,7 +62,7 @@ type ExtendedServiceData struct {
 	ServiceHealthcheckType      string                     `json:"serviceHealthcheckType"`
 	ServiceHealthcheckTimeout   time.Duration              `json:"serviceHealthcheckTimeout"`
 	ServiceExtraInfo            []string                   `json:"serviceExtraInfo"`
-	ServiceState                bool                       `json:"serviceState"`
+	ServiceIsUp                 bool                       `json:"serviceIsUp"`
 	ApplicationServers          []domain.ApplicationServer `json:"applicationServers"`
 	BalanceType                 string                     `json:"balanceType"`
 }
@@ -116,7 +116,7 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 		ServiceHealthcheckType:      serviceData.Healthcheck.Type,
 		ServiceHealthcheckTimeout:   serviceData.Healthcheck.Timeout,
 		ServiceExtraInfo:            serviceData.ExtraInfo,
-		ServiceState:                serviceData.State,
+		ServiceIsUp:                 serviceData.IsUp,
 		ApplicationServers:          renewApplicationServers,
 		BalanceType:                 serviceData.BalanceType,
 	}
@@ -245,7 +245,7 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		ApplicationServers: []*domain.ApplicationServer{},
 		Healthcheck:        shc,
 		ExtraInfo:          []string{},
-		State:              false,
+		IsUp:               false,
 		BalanceType:        "",
 	}
 	currentApplicationServers := []*domain.ApplicationServer{}
@@ -281,8 +281,8 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		if oldExtendedServiceData.ServiceExtraInfo != nil {
 			currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
 		}
-		if oldExtendedServiceData.ServiceState {
-			currentServiceInfo.State = oldExtendedServiceData.ServiceState
+		if oldExtendedServiceData.ServiceIsUp {
+			currentServiceInfo.IsUp = oldExtendedServiceData.ServiceIsUp
 		}
 		tmpBalanceType := oldExtendedServiceData.BalanceType
 		currentServiceInfo.BalanceType = tmpBalanceType
@@ -344,7 +344,7 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 					ApplicationServers: currentApplicationServers,
 					Healthcheck:        hc,
 					ExtraInfo:          oldExtendedServiceData.ServiceExtraInfo,
-					State:              oldExtendedServiceData.ServiceState,
+					IsUp:               oldExtendedServiceData.ServiceIsUp,
 					BalanceType:        oldExtendedServiceData.BalanceType,
 				}
 				servicesInfo = append(servicesInfo, serviceInfo)

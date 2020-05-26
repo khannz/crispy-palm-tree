@@ -65,6 +65,7 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 			ServerIP:          appSrvr.ServerIP,
 			ServerPort:        appSrvr.ServerPort,
 			ServerHealthcheck: hcA,
+			IsUp:              false,
 		}
 		appSvrs = append(appSvrs, as)
 	}
@@ -81,6 +82,7 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		ApplicationServers: appSvrs,
 		Healthcheck:        hcS,
 		BalanceType:        createService.BalanceType,
+		IsUp:               false,
 	}
 	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
 }
@@ -134,6 +136,7 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 			ServerIP:          appSrvr.ServerIP,
 			ServerPort:        appSrvr.ServerPort,
 			ServerHealthcheck: hcA,
+			IsUp:              false,
 		}
 		appSvrs = append(appSvrs, as)
 	}
@@ -186,6 +189,3 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 	}
 	return currentserviceInfo, nil
 }
-
-// func incomeServiceDataToDomainModel( // TODO: refactor
-// }

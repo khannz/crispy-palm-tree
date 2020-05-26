@@ -235,10 +235,10 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 		percentageDown,
 		serviceInfo.Healthcheck.PercentOfAlivedForUp)
 	if percentageDown > serviceInfo.Healthcheck.PercentOfAlivedForUp {
-		serviceInfo.State = false
+		serviceInfo.IsUp = false
 		hc.removeFromDummyWrapper(serviceInfo.ServiceIP)
 	} else {
-		serviceInfo.State = true
+		serviceInfo.IsUp = true
 		hc.addToDummyWrapper(serviceInfo.ServiceIP)
 	}
 	hc.updateInStorages(serviceInfo)
@@ -256,7 +256,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.count++
 			fs.Unlock()
 			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
-			if applicationServerInfo.State {
+			if applicationServerInfo.IsUp {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
 					"event uuid": healthcheckUUID,
@@ -264,7 +264,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 					serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
 					applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
 					applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
-				applicationServerInfo.State = false
+				applicationServerInfo.IsUp = false
 				// if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
 				// 	hc.logging.WithFields(logrus.Fields{
 				// 		"entity":     healthcheckName,
@@ -281,7 +281,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.count++
 			fs.Unlock()
 			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
-			if applicationServerInfo.State {
+			if applicationServerInfo.IsUp {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
 					"event uuid": healthcheckUUID,
@@ -289,7 +289,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 					serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
 					applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
 					applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
-				applicationServerInfo.State = false
+				applicationServerInfo.IsUp = false
 				// if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
 				// 	hc.logging.WithFields(logrus.Fields{
 				// 		"entity":     healthcheckName,
@@ -307,7 +307,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		return // must never will be. all data already validated
 	}
 
-	if !applicationServerInfo.State {
+	if !applicationServerInfo.IsUp {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
@@ -315,7 +315,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
 			applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
 			applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
-		applicationServerInfo.State = true
+		applicationServerInfo.IsUp = true
 		if err := hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo); err != nil {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":     healthcheckName,
@@ -424,7 +424,7 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(allServiceInfo *domai
 
 }
 
-func (hc *HeathcheckEntity) updateApplicationServicesState(serviceInfo *domain.ServiceInfo) error {
+func (hc *HeathcheckEntity) updateApplicationServicesIsUp(serviceInfo *domain.ServiceInfo) error {
 	currentConfig, err := hc.ipvsadm.ReadCurrentConfig()
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
@@ -440,7 +440,7 @@ func (hc *HeathcheckEntity) updateApplicationServicesState(serviceInfo *domain.S
 				for _, currentApplicationServer := range currentServiceInfo.ApplicationServers {
 					if applicationServiceInfo.ServerIP == currentApplicationServer.ServerIP &&
 						applicationServiceInfo.ServerPort == currentApplicationServer.ServerPort {
-						applicationServiceInfo.State = currentApplicationServer.State
+						applicationServiceInfo.IsUp = currentApplicationServer.IsUp
 					}
 				}
 			}
