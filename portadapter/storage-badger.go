@@ -281,9 +281,7 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		if oldExtendedServiceData.ServiceExtraInfo != nil {
 			currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
 		}
-		if oldExtendedServiceData.ServiceIsUp {
-			currentServiceInfo.IsUp = oldExtendedServiceData.ServiceIsUp
-		}
+		currentServiceInfo.IsUp = oldExtendedServiceData.ServiceIsUp
 		tmpBalanceType := oldExtendedServiceData.BalanceType
 		currentServiceInfo.BalanceType = tmpBalanceType
 
