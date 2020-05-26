@@ -64,6 +64,7 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.HandleFunc("/get-services", restAPI.getServices).Methods("POST")
 	restAPI.router.HandleFunc("/add-application-servers", restAPI.addApplicationServers).Methods("POST")
 	restAPI.router.HandleFunc("/remove-application-servers", restAPI.removeApplicationServers).Methods("POST")
+	restAPI.router.HandleFunc("/get-service-state", restAPI.getServiceState).Methods("POST")
 	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
 
 	err := restAPI.server.ListenAndServe()

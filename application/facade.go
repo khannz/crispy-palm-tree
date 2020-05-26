@@ -189,3 +189,15 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 	}
 	return currentserviceInfo, nil
 }
+
+// GetServiceState ...
+func (balancerFacade *BalancerFacade) GetServiceState(getServiceStateRequest *GetServiceStateRequest) (*domain.ServiceInfo, error) {
+	getServiceStateEntity := usecase.NewGetServiceStateEntity(balancerFacade.Locker,
+		balancerFacade.CacheStorage,
+		balancerFacade.GracefullShutdown)
+	incomeServiceInfo := &domain.ServiceInfo{
+		ServiceIP:   getServiceStateRequest.ServiceIP,
+		ServicePort: getServiceStateRequest.ServicePort,
+	}
+	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceStateRequest.ID)
+}

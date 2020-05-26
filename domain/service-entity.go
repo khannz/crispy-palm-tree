@@ -23,7 +23,7 @@ type ServerHealthcheck struct {
 type ApplicationServer struct {
 	ServerIP           string            `json:"serverIP"`
 	ServerPort         string            `json:"serverPort"`
-	IsUp               bool              `json:"state"`
+	IsUp               bool              `json:"serverIsUp"`
 	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck"`
 	ServerBashCommands string            `json:"-"`
 }
@@ -36,7 +36,7 @@ type ServiceInfo struct {
 	ApplicationServers []*ApplicationServer `json:"applicationServers"`
 	Healthcheck        ServiceHealthcheck   `json:"serviceHealthcheck"`
 	ExtraInfo          []string             `json:"extraInfo"`
-	IsUp               bool                 `json:"state"`
+	IsUp               bool                 `json:"serviceIsUp"`
 	BalanceType        string               `json:"balanceType"`
 }
 

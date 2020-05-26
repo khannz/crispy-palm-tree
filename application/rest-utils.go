@@ -46,6 +46,28 @@ type UniversalResponse struct {
 	BalanceType              string              `json:"balanceType,omitempty"`
 }
 
+// ServerApplicationWithStates ...
+type ServerApplicationWithStates struct {
+	ServerIP           string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
+	ServerPort         string            `json:"port" validate:"required" example:"1111"`
+	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck,omitempty"`
+	IsUp               bool              `json:"serverIsUp,omitempty"`
+	ServerBashCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
+}
+
+// UniversalResponseWithStates ...
+type UniversalResponseWithStates struct {
+	ID                       string                        `json:"id,omitempty"`
+	ApplicationServers       []ServerApplicationWithStates `json:"applicationServers,omitempty"`
+	ServiceIP                string                        `json:"serviceIP,omitempty"`
+	ServicePort              string                        `json:"servicePort,omitempty"`
+	Healthcheck              ServiceHealthcheck            `json:"healthcheck,omitempty"`
+	JobCompletedSuccessfully bool                          `json:"jobCompletedSuccessfully"`
+	ExtraInfo                string                        `json:"extraInfo,omitempty"`
+	BalanceType              string                        `json:"balanceType,omitempty"`
+	IsUp                     bool                          `json:"serviceIsUp,omitempty"`
+}
+
 func customPortServerApplicationValidation(sl validator.StructLevel) {
 	sA := sl.Current().Interface().(ServerApplication)
 	port, err := strconv.Atoi(sA.ServerPort)
@@ -236,4 +258,32 @@ func convertDomainServicesInfoToRestUniversalResponse(servicesInfo []*domain.Ser
 		urs = append(urs, convertDomainServiceInfoToRestUniversalResponse(serviceInfo, isOk))
 	}
 	return urs
+}
+
+func convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfo *domain.ServiceInfo, isOk bool) UniversalResponseWithStates {
+	return UniversalResponseWithStates{
+		ApplicationServers:       convertDomainApplicationServersToRestWithState(serviceInfo.ApplicationServers),
+		ServiceIP:                serviceInfo.ServiceIP,
+		ServicePort:              serviceInfo.ServicePort,
+		Healthcheck:              convertDomainHealthcheckToRest(serviceInfo.Healthcheck),
+		JobCompletedSuccessfully: isOk,
+		ExtraInfo:                transformSliceToString(serviceInfo.ExtraInfo),
+		BalanceType:              serviceInfo.BalanceType,
+		IsUp:                     serviceInfo.IsUp,
+	}
+}
+
+func convertDomainApplicationServersToRestWithState(dAS []*domain.ApplicationServer) []ServerApplicationWithStates {
+	sas := []ServerApplicationWithStates{}
+	for _, dSA := range dAS {
+		svHCAdr := ServerHealthcheck{HealthcheckAddress: dSA.ServerHealthcheck.HealthcheckAddress}
+		sa := ServerApplicationWithStates{
+			ServerIP:          dSA.ServerIP,
+			ServerPort:        dSA.ServerPort,
+			ServerHealthcheck: svHCAdr,
+			IsUp:              dSA.IsUp,
+		}
+		sas = append(sas, sa)
+	}
+	return sas
 }
