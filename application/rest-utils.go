@@ -30,7 +30,6 @@ type ServerHealthcheck struct {
 type ServerApplication struct {
 	ServerIP           string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
 	ServerPort         string            `json:"port" validate:"required" example:"1111"`
-	IsUp               bool              `json:"state,omitempty" swaggerignore:"true"`
 	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck,omitempty"`
 	ServerBashCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
 }
@@ -44,8 +43,7 @@ type UniversalResponse struct {
 	Healthcheck              ServiceHealthcheck  `json:"healthcheck,omitempty"`
 	JobCompletedSuccessfully bool                `json:"jobCompletedSuccessfully"`
 	ExtraInfo                string              `json:"extraInfo,omitempty"`
-	// TODO: BalanceType
-	// TODO: IsUp
+	BalanceType              string              `json:"balanceType,omitempty"`
 }
 
 func customPortServerApplicationValidation(sl validator.StructLevel) {
@@ -212,7 +210,6 @@ func convertDomainApplicationServersToRest(dAS []*domain.ApplicationServer) []Se
 		sa := ServerApplication{
 			ServerIP:           dSA.ServerIP,
 			ServerPort:         dSA.ServerPort,
-			IsUp:               dSA.IsUp,
 			ServerHealthcheck:  svHCAdr,
 			ServerBashCommands: dSA.ServerBashCommands,
 		}
@@ -229,6 +226,7 @@ func convertDomainServiceInfoToRestUniversalResponse(serviceInfo *domain.Service
 		Healthcheck:              convertDomainHealthcheckToRest(serviceInfo.Healthcheck),
 		JobCompletedSuccessfully: isOk,
 		ExtraInfo:                transformSliceToString(serviceInfo.ExtraInfo),
+		BalanceType:              serviceInfo.BalanceType,
 	}
 }
 

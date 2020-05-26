@@ -78,6 +78,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 		ServicePort:              createService.ServicePort,
 		Healthcheck:              createService.Healtcheck,
 		JobCompletedSuccessfully: true,
+		BalanceType:              createService.BalanceType,
 	}
 
 	writeUniversalResponse(ur,
