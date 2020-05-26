@@ -33,7 +33,6 @@ type HeathcheckEntity struct {
 	sync.Mutex
 	runningHeathchecks []*domain.ServiceInfo
 	cacheStorage       *portadapter.StorageEntity // so dirty
-	persistentStorage  *portadapter.StorageEntity // so dirty
 	ipvsadm            *portadapter.IPVSADMEntity // so dirty
 	techInterface      *net.TCPAddr
 	locker             *domain.Locker
@@ -45,7 +44,6 @@ type HeathcheckEntity struct {
 
 // NewHeathcheckEntity ...
 func NewHeathcheckEntity(cacheStorage *portadapter.StorageEntity,
-	persistentStorage *portadapter.StorageEntity,
 	ipvsadm *portadapter.IPVSADMEntity,
 	rawTechInterface string,
 	locker *domain.Locker,
@@ -57,7 +55,6 @@ func NewHeathcheckEntity(cacheStorage *portadapter.StorageEntity,
 	return &HeathcheckEntity{
 		runningHeathchecks: []*domain.ServiceInfo{}, // need for append
 		cacheStorage:       cacheStorage,
-		persistentStorage:  persistentStorage,
 		ipvsadm:            ipvsadm,
 		techInterface:      &net.TCPAddr{IP: ti},
 		locker:             locker,
@@ -241,7 +238,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 		serviceInfo.IsUp = true
 		hc.addToDummyWrapper(serviceInfo.ServiceIP)
 	}
-	hc.updateInStorages(serviceInfo)
+	hc.updateInCache(serviceInfo)
 }
 
 func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.ServiceInfo,
@@ -326,21 +323,13 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 	}
 }
 
-func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
+func (hc *HeathcheckEntity) updateInCache(serviceInfo *domain.ServiceInfo) {
 	errUpdataCache := hc.cacheStorage.UpdateServiceInfo(serviceInfo, healthcheckUUID)
 	if errUpdataCache != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Errorf("Heathcheck update info in cache fail: %v", errUpdataCache)
-	}
-
-	errPersistantStorage := hc.persistentStorage.UpdateServiceInfo(serviceInfo, healthcheckUUID)
-	if errPersistantStorage != nil {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Errorf("Heathcheck update info in persistent storage fail: %v", errPersistantStorage)
 	}
 }
 

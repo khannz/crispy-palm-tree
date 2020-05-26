@@ -110,7 +110,6 @@ var rootCmd = &cobra.Command{
 
 		//  healthchecks start
 		hc := usecase.NewHeathcheckEntity(cacheDB,
-			persistentDB,
 			ipvsadmConfigurator,
 			viperConfig.GetString(techInterfaceName),
 			locker,

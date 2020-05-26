@@ -328,6 +328,7 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 				currentApplicationServers := []*domain.ApplicationServer{}
 				for _, oldApplicationServer := range oldExtendedServiceData.ApplicationServers {
 					renewPointerForOldApplicationServer := oldApplicationServer
+					oldApplicationServer.IsUp = false
 					currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
 				}
 
@@ -344,7 +345,7 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 					ApplicationServers: currentApplicationServers,
 					Healthcheck:        hc,
 					ExtraInfo:          oldExtendedServiceData.ServiceExtraInfo,
-					IsUp:               oldExtendedServiceData.ServiceIsUp,
+					IsUp:               false,
 					BalanceType:        oldExtendedServiceData.BalanceType,
 				}
 				servicesInfo = append(servicesInfo, serviceInfo)
