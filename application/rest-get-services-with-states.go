@@ -17,10 +17,10 @@ type GetAllServicesRequest struct {
 
 // GetAllServicesResponse ...
 type GetAllServicesResponse struct {
-	ID                       string              `json:"id"`
-	JobCompletedSuccessfully bool                `json:"jobCompletedSuccessfully"`
-	AllServices              []UniversalResponse `json:"allServices,omitempty"`
-	ExtraInfo                string              `json:"extraInfo,omitempty"`
+	ID                       string                        `json:"id"`
+	JobCompletedSuccessfully bool                          `json:"jobCompletedSuccessfully"`
+	AllServices              []UniversalResponseWithStates `json:"allServices,omitempty"`
+	ExtraInfo                string                        `json:"extraInfo,omitempty"`
 }
 
 // getServices godoc
@@ -73,7 +73,7 @@ func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request
 	}
 
 	logRequestIsDone(getServicesRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
-	allServices := convertDomainServicesInfoToRestUniversalResponse(nwbServices, true)
+	allServices := convertDomainServicesInfoToRestUniversalResponseWithState(nwbServices, true)
 
 	var extraInfo string
 	if len(allServices) == 0 {

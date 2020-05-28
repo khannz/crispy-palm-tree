@@ -287,3 +287,11 @@ func convertDomainApplicationServersToRestWithState(dAS []*domain.ApplicationSer
 	}
 	return sas
 }
+
+func convertDomainServicesInfoToRestUniversalResponseWithState(servicesInfo []*domain.ServiceInfo, isOk bool) []UniversalResponseWithStates {
+	urs := []UniversalResponseWithStates{}
+	for _, serviceInfo := range servicesInfo {
+		urs = append(urs, convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfo, isOk))
+	}
+	return urs
+}
