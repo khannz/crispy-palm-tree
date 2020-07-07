@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// StorageEntity ...
+// StorageEntity ....
 type StorageEntity struct {
 	sync.Mutex
 	Db      *badger.DB
@@ -111,6 +111,10 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 	return serviceDataKey, serviceDataValue, nil
 }
+
+// func transformStorageDataFormServiceData(serviceDataKey, serviceDataValue []byte) *domain.ServiceInfo {
+// 	serviceDataKey
+// }
 
 func updateDb(db *badger.DB, key, value []byte) error {
 	return db.Update(func(txn *badger.Txn) error {
