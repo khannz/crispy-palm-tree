@@ -23,7 +23,7 @@ type ServiceHealthcheck struct {
 
 // ServerHealthcheck ...
 type ServerHealthcheck struct {
-	HealthcheckAddress string `json:"healthcheckAddress,omitempty"` //// FIXME: need extra validate; ip+port, http address or some one else
+	HealthcheckAddress string `json:"healthcheckAddress,omitempty"` // FIXME: need extra validate; ip+port, http address or some one else
 }
 
 // ServerApplication ...
