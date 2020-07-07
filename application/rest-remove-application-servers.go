@@ -1,14 +1,14 @@
 package application
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 )
+
+const removeApplicationServersRequestName = "remove application servers"
 
 // RemoveApplicationServersRequest ...
 type RemoveApplicationServersRequest struct {
@@ -32,133 +32,60 @@ type RemoveApplicationServersRequest struct {
 func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r *http.Request) {
 	removeApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": removeApplicationServersRequestUUID,
-	}).Info("got new remove application servers request")
+	logNewRequest(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	buf := new(bytes.Buffer) // read incoming data to buffer, beacose we can't reuse read-closer
-	buf.ReadFrom(r.Body)
-	bytesFromBuf := buf.Bytes()
+	bytesFromBuf := readIncomeBytes(r)
 
 	removeApplicationServersRequest := &RemoveApplicationServersRequest{}
 
 	err = json.Unmarshal(bytesFromBuf, removeApplicationServersRequest)
 	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeApplicationServersRequestUUID,
-		}).Errorf("can't unmarshal income remove application servers request: %v", err)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &UniversalResponse{
-			ID:                       removeApplicationServersRequestUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't unmarshal income remove application servers request: " + err.Error(),
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": removeApplicationServersRequestUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		unmarshallIncomeError(err.Error(),
+			removeApplicationServersRequestUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
 
-	applicationServersMap, validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest()
-	if validateError != nil {
+	if validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest(); validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeApplicationServersRequestUUID,
-		}).Errorf("validate fail for income remove application servers request: %v", stringValidateError)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		rError := &UniversalResponse{
-			ID:                       removeApplicationServersRequestUUID,
-			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't validate income remove application servers nwb request: " + stringValidateError,
-		}
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": removeApplicationServersRequestUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		validateIncomeError(stringValidateError, removeApplicationServersRequestUUID, w, restAPI.balancerFacade.Logging)
 		return
 	}
 
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": removeApplicationServersRequestUUID,
-	}).Infof("change job uuid from %v to %v", removeApplicationServersRequestUUID, removeApplicationServersRequest.ID)
+	logChangeUUID(removeApplicationServersRequestUUID, removeApplicationServersRequest.ID, restAPI.balancerFacade.Logging)
 	removeApplicationServersRequestUUID = removeApplicationServersRequest.ID
 
-	updatedServiceInfo, err := restAPI.balancerFacade.RemoveApplicationServers(removeApplicationServersRequest.ServiceIP,
-		removeApplicationServersRequest.ServicePort,
-		applicationServersMap,
+	updatedServiceInfo, err := restAPI.balancerFacade.RemoveApplicationServers(removeApplicationServersRequest,
 		removeApplicationServersRequestUUID)
 	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeApplicationServersRequestUUID,
-		}).Errorf("can't remove application servers, got error: %v", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		updatedServiceInfo.ExtraInfo = []string{"can't remove application servers, got internal error: " + err.Error()}
-		rError := transformDomainServiceInfoToResponseData(updatedServiceInfo, false)
-		err := json.NewEncoder(w).Encode(rError)
-		if err != nil {
-			restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-				"entity":     restAPIlogName,
-				"event uuid": removeApplicationServersRequestUUID,
-			}).Errorf("can't response by request: %v", err)
-		}
+		uscaseFail(removeApplicationServersRequestName,
+			err.Error(),
+			removeApplicationServersRequestUUID,
+			w,
+			restAPI.balancerFacade.Logging)
 		return
 	}
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": removeApplicationServersRequestUUID,
-	}).Info("job remove application servers is done")
 
-	convertedServiceInfo := transformDomainServiceInfoToResponseData(updatedServiceInfo, true)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(convertedServiceInfo)
-	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": removeApplicationServersRequestUUID,
-		}).Errorf("can't response by request: %v", err)
-	}
+	logRequestIsDone(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
+
+	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
+	writeUniversalResponse(convertedServiceInfo,
+		removeApplicationServersRequestName,
+		removeApplicationServersRequestUUID,
+		w,
+		restAPI.balancerFacade.Logging)
 }
 
-func (removeApplicationServersRequest *RemoveApplicationServersRequest) convertDataRemoveApplicationServersRequest() map[string]string {
-	applicationServersMap := map[string]string{}
-	for _, d := range removeApplicationServersRequest.ApplicationServers {
-		applicationServersMap[d.ServerIP] = d.ServerPort
-	}
-	return applicationServersMap
-}
-
-func (removeApplicationServersRequest *RemoveApplicationServersRequest) validateRemoveApplicationServersRequest() (map[string]string, error) {
+func (removeApplicationServersRequest *RemoveApplicationServersRequest) validateRemoveApplicationServersRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortRemoveApplicationServersRequestValidation, RemoveApplicationServersRequest{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	err := validate.Struct(removeApplicationServersRequest)
-	if err != nil {
-		return nil, err
+	if err := validate.Struct(removeApplicationServersRequest); err != nil {
+		return err
 	}
-	applicationServersMap := removeApplicationServersRequest.convertDataRemoveApplicationServersRequest()
-	err = deepValidateServiceInfo(removeApplicationServersRequest.ServiceIP, removeApplicationServersRequest.ServicePort, applicationServersMap)
-	if err != nil {
-		return nil, err
-	}
-	return applicationServersMap, nil
+	return nil
 }
 
 func customPortRemoveApplicationServersRequestValidation(sl validator.StructLevel) {

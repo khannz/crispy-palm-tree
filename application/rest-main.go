@@ -60,10 +60,11 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIs
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.HandleFunc("/create-service", restAPI.createService).Methods("POST")
-	restAPI.router.HandleFunc("/remove-service", restAPI.removeNWBRequest).Methods("POST")
+	restAPI.router.HandleFunc("/remove-service", restAPI.removeService).Methods("POST")
 	restAPI.router.HandleFunc("/get-services", restAPI.getServices).Methods("POST")
 	restAPI.router.HandleFunc("/add-application-servers", restAPI.addApplicationServers).Methods("POST")
 	restAPI.router.HandleFunc("/remove-application-servers", restAPI.removeApplicationServers).Methods("POST")
+	restAPI.router.HandleFunc("/get-service-state", restAPI.getServiceState).Methods("POST")
 	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
 
 	err := restAPI.server.ListenAndServe()

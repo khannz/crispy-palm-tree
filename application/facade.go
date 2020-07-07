@@ -47,7 +47,7 @@ func NewBalancerFacade(locker *domain.Locker,
 }
 
 // CreateService ...
-func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInfo,
+func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInfo,
 	createServiceUUID string) error {
 	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
@@ -65,12 +65,15 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInf
 			ServerIP:          appSrvr.ServerIP,
 			ServerPort:        appSrvr.ServerPort,
 			ServerHealthcheck: hcA,
+			IsUp:              false,
 		}
 		appSvrs = append(appSvrs, as)
 	}
 	hcS := domain.ServiceHealthcheck{
-		Type:    createService.Healtcheck.Type,
-		Timeout: createService.Healtcheck.Timeout,
+		Type:                 createService.Healtcheck.Type,
+		Timeout:              createService.Healtcheck.Timeout,
+		RepeatHealthcheck:    createService.Healtcheck.RepeatHealthcheck,
+		PercentOfAlivedForUp: createService.Healtcheck.PercentOfAlivedForUp,
 	}
 
 	serviceInfo := &domain.ServiceInfo{
@@ -78,13 +81,15 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInf
 		ServicePort:        createService.ServicePort,
 		ApplicationServers: appSvrs,
 		Healthcheck:        hcS,
+		BalanceType:        createService.BalanceType,
+		IsUp:               false,
 	}
 	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
 }
 
 // RemoveService ...
-func (balancerFacade *BalancerFacade) RemoveService(serviceIP,
-	servicePort string, newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) RemoveService(removeServiceRequest *RemoveServiceInfo,
+	newNWBRequestUUID string) error {
 	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -94,7 +99,7 @@ func (balancerFacade *BalancerFacade) RemoveService(serviceIP,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.Logging)
-	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, nil)
+	serviceInfo := &domain.ServiceInfo{ServiceIP: removeServiceRequest.ServiceIP, ServicePort: removeServiceRequest.ServicePort}
 	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
 }
 
@@ -131,19 +136,16 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 			ServerIP:          appSrvr.ServerIP,
 			ServerPort:        appSrvr.ServerPort,
 			ServerHealthcheck: hcA,
+			IsUp:              false,
 		}
 		appSvrs = append(appSvrs, as)
 	}
 
-	hcS := domain.ServiceHealthcheck{
-		Type:    addApplicationServersRequest.Healtcheck.Type,
-		Timeout: addApplicationServersRequest.Healtcheck.Timeout,
-	}
 	incomeServiceInfo := &domain.ServiceInfo{
 		ServiceIP:          addApplicationServersRequest.ServiceIP,
 		ServicePort:        addApplicationServersRequest.ServicePort,
 		ApplicationServers: appSvrs,
-		Healthcheck:        hcS,
+		Healthcheck:        domain.ServiceHealthcheck{},
 	}
 	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestUUID)
 	if err != nil {
@@ -153,9 +155,7 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 }
 
 // RemoveApplicationServers ...
-func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
-	servicePort string,
-	applicationServers map[string]string,
+func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplicationServersRequest *RemoveApplicationServersRequest,
 	removeApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
@@ -166,8 +166,23 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
+	appSvrs := []*domain.ApplicationServer{}
+	for _, appSrvr := range removeApplicationServersRequest.ApplicationServers {
+		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
+		as := &domain.ApplicationServer{
+			ServerIP:          appSrvr.ServerIP,
+			ServerPort:        appSrvr.ServerPort,
+			ServerHealthcheck: hcA,
+		}
+		appSvrs = append(appSvrs, as)
+	}
 
-	incomeServiceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
+	incomeServiceInfo := &domain.ServiceInfo{
+		ServiceIP:          removeApplicationServersRequest.ServiceIP,
+		ServicePort:        removeApplicationServersRequest.ServicePort,
+		ApplicationServers: appSvrs,
+	}
+
 	currentserviceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestUUID)
 	if err != nil {
 		return incomeServiceInfo, fmt.Errorf("can't remove application servers from service: %v", err)
@@ -175,20 +190,14 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 	return currentserviceInfo, nil
 }
 
-func incomeServiceDataToDomainModel(serviceIP,
-	servicePort string,
-	rawApplicationServers map[string]string) *domain.ServiceInfo {
-	applicationServers := []*domain.ApplicationServer{}
-	for ip, port := range rawApplicationServers {
-		applicationServer := &domain.ApplicationServer{
-			ServerIP:   ip,
-			ServerPort: port,
-		}
-		applicationServers = append(applicationServers, applicationServer)
+// GetServiceState ...
+func (balancerFacade *BalancerFacade) GetServiceState(getServiceStateRequest *GetServiceStateRequest) (*domain.ServiceInfo, error) {
+	getServiceStateEntity := usecase.NewGetServiceStateEntity(balancerFacade.Locker,
+		balancerFacade.CacheStorage,
+		balancerFacade.GracefullShutdown)
+	incomeServiceInfo := &domain.ServiceInfo{
+		ServiceIP:   getServiceStateRequest.ServiceIP,
+		ServicePort: getServiceStateRequest.ServicePort,
 	}
-	return &domain.ServiceInfo{
-		ServiceIP:          serviceIP,
-		ServicePort:        servicePort,
-		ApplicationServers: applicationServers,
-	}
+	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceStateRequest.ID)
 }

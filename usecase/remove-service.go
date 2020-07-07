@@ -69,14 +69,13 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return fmt.Errorf("can't get current service info: %v", err)
 	}
 
-	if err = removeServiceEntity.tunnelConfig.RemoveTunnels(currentServiceInfo.ApplicationServers, removeServiceUUID); err != nil {
-		if errRollback := removeServiceEntity.cacheStorage.UpdateServiceInfo(serviceInfo, removeServiceUUID); errRollback != nil {
-			removeServiceEntity.logging.WithFields(logrus.Fields{
-				"entity":     removeNlbServiceEntity,
-				"event uuid": removeServiceUUID,
-			}).Errorf("can't rollback cache storage, got error: %v", errRollback)
-		}
-		return fmt.Errorf("can't remove tunnels: %v", err)
+	tunnelsFilesInfo := formTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
+	oldTunnelsFilesInfo, err := removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceUUID)
+	if err != nil {
+		return fmt.Errorf("can't create tunnel files: %v", err)
+	}
+	if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+		return fmt.Errorf("can't update tunnel info")
 	}
 
 	if err = removeServiceEntity.ipvsadm.RemoveService(serviceInfo, removeServiceUUID); err != nil {
@@ -89,8 +88,12 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return err
 	}
 
-	removeServiceEntity.hc.dw.Lock()
-	defer removeServiceEntity.hc.dw.Unlock()
+	if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+		return fmt.Errorf("can't update tunnel info")
+	}
+
+	go removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
+
 	if !removeServiceEntity.hc.isMockMode {
 		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
 			return err

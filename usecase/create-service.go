@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
@@ -63,79 +62,30 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	defer decreaseJobs(createService.gracefullShutdown)
 	// gracefull shutdown part end
 
-	// enrich application servers info start
-	enrichedApplicationServers, err := createService.tunnelConfig.EnrichApplicationServersInfo(serviceInfo.ApplicationServers, createServiceUUID)
-	if err != nil {
-		return err
-	}
-	serviceInfo.ApplicationServers = enrichedApplicationServers
-	// enrich application servers info end
+	tunnelsFilesInfo := formTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
 
+	newTunnelsFilesInfo, err := createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)
+	if err != nil {
+		return fmt.Errorf("can't create tunnel files: %v", err)
+	}
 	// add to cache storage
-	if err = createService.cacheStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
+	if err := createService.cacheStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
+		return fmt.Errorf("can't add to cache storage :%v", err)
+	}
+	if err := createService.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return fmt.Errorf("can't add to cache storage :%v", err)
 	}
 
-	if err = createService.tunnelConfig.CreateTunnels(enrichedApplicationServers, createServiceUUID); err != nil {
-		if errRollBackCache := createService.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, createServiceUUID); err != nil {
-			createService.logging.WithFields(logrus.Fields{
-				"entity":     createServiceName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't rollback cache, got error: %v", errRollBackCache)
-		}
-		return err
-	}
-
-	if err = createService.ipvsadm.CreateService(serviceInfo, createServiceUUID); err != nil {
-		if errRollBackTunnels := createService.tunnelConfig.RemoveTunnels(enrichedApplicationServers, createServiceUUID); err != nil {
-			createService.logging.WithFields(logrus.Fields{
-				"entity":     createServiceName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't rollback tunnels, got error: %v", errRollBackTunnels)
-		}
-		if errRollBackCache := createService.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, createServiceUUID); err != nil {
-			createService.logging.WithFields(logrus.Fields{
-				"entity":     createServiceName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't rollback tunnels, got error: %v", errRollBackCache)
-		}
-		if errRollBackIPVSADM := createService.ipvsadm.RemoveService(serviceInfo, createServiceUUID); err != nil {
-			createService.logging.WithFields(logrus.Fields{
-				"entity":     createServiceName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't rollback tunnels, got error: %v", errRollBackIPVSADM)
-		}
-
+	if err := createService.ipvsadm.CreateService(serviceInfo, createServiceUUID); err != nil {
 		return fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
 
 	if err = createService.persistentStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
-		if errRollBackTunnels := createService.tunnelConfig.RemoveTunnels(enrichedApplicationServers, createServiceUUID); err != nil {
-			createService.logging.WithFields(logrus.Fields{
-				"entity":     createServiceName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't rollback tunnels, got error: %v", errRollBackTunnels)
-		}
-
-		if errRollBackCache := createService.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, createServiceUUID); err != nil {
-			createService.logging.WithFields(logrus.Fields{
-				"entity":     createServiceName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't rollback tunnels, got error: %v", errRollBackCache)
-		}
-
-		if errRollBackIPVSADM := createService.ipvsadm.RemoveService(serviceInfo, createServiceUUID); err != nil {
-			createService.logging.WithFields(logrus.Fields{
-				"entity":     createServiceName,
-				"event uuid": createServiceUUID,
-			}).Errorf("can't rollback tunnels, got error: %v", errRollBackIPVSADM)
-		}
-
-		return fmt.Errorf("Error when Configure VRRP: %v", err)
+		return fmt.Errorf("Error when save to persistent storage: %v", err)
 	}
-	serviceWG := new(sync.WaitGroup)
-	serviceWG.Add(1)
-	go createService.hc.CheckApplicationServersInService(serviceInfo, serviceWG)
-	serviceWG.Wait()
+	if err := createService.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
+		return fmt.Errorf("can't add to cache storage :%v", err)
+	}
+	createService.hc.NewServiceToHealtchecks(serviceInfo)
 	return nil
 }

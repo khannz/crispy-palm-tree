@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// StorageEntity ....
+// StorageEntity ...
 type StorageEntity struct {
 	sync.Mutex
 	Db      *badger.DB
@@ -57,11 +57,23 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 
 // ExtendedServiceData have application servers info and info abou service
 type ExtendedServiceData struct {
-	ServiceHealthcheckType    string                     `json:"serviceHealthcheckType"`
-	ServiceHealthcheckTimeout time.Duration              `json:"serviceHealthcheckTimeout"`
-	ServiceExtraInfo          []string                   `json:"serviceExtraInfo"`
-	ServiceState              bool                       `json:"serviceState"`
-	ApplicationServers        []domain.ApplicationServer `json:"applicationServers"`
+	ServiceRepeatHealthcheck    time.Duration              `json:"serviceRepeatHealthcheck"`
+	ServicePercentOfAlivedForUp int                        `json:"servicePercentOfAlivedForUp"`
+	ServiceHealthcheckType      string                     `json:"serviceHealthcheckType"`
+	ServiceHealthcheckTimeout   time.Duration              `json:"serviceHealthcheckTimeout"`
+	ServiceExtraInfo            []string                   `json:"serviceExtraInfo"`
+	ServiceIsUp                 bool                       `json:"serviceIsUp"`
+	ApplicationServers          []domain.ApplicationServer `json:"applicationServers"`
+	BalanceType                 string                     `json:"balanceType"`
+}
+
+// TunnelForService ...
+type TunnelForService struct {
+	IfcfgTunnelFile       string `json:"ifcfgTunnelFile"` // full path to ifcfg file
+	RouteTunnelFile       string `json:"tunnelFile"`      // full path to route file
+	SysctlConfFile        string `json:"sysctlConf"`      // full path to sysctl conf file
+	TunnelName            string `json:"tunnelName"`
+	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
 }
 
 // NewServiceDataToStorage add new service to storage. Also check unique data
@@ -99,11 +111,14 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 
 	transformedServiceData := ExtendedServiceData{
-		ServiceHealthcheckType:    serviceData.Healthcheck.Type,
-		ServiceHealthcheckTimeout: serviceData.Healthcheck.Timeout,
-		ServiceExtraInfo:          serviceData.ExtraInfo,
-		ServiceState:              serviceData.State,
-		ApplicationServers:        renewApplicationServers,
+		ServiceRepeatHealthcheck:    serviceData.Healthcheck.RepeatHealthcheck,
+		ServicePercentOfAlivedForUp: serviceData.Healthcheck.PercentOfAlivedForUp,
+		ServiceHealthcheckType:      serviceData.Healthcheck.Type,
+		ServiceHealthcheckTimeout:   serviceData.Healthcheck.Timeout,
+		ServiceExtraInfo:            serviceData.ExtraInfo,
+		ServiceIsUp:                 serviceData.IsUp,
+		ApplicationServers:          renewApplicationServers,
+		BalanceType:                 serviceData.BalanceType,
 	}
 	serviceDataValue, err := json.Marshal(transformedServiceData)
 	if err != nil {
@@ -111,10 +126,6 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 	return serviceDataKey, serviceDataValue, nil
 }
-
-// func transformStorageDataFormServiceData(serviceDataKey, serviceDataValue []byte) *domain.ServiceInfo {
-// 	serviceDataKey
-// }
 
 func updateDb(db *badger.DB, key, value []byte) error {
 	return db.Update(func(txn *badger.Txn) error {
@@ -224,8 +235,9 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *do
 // GetServiceInfo ...
 func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
 	shc := domain.ServiceHealthcheck{
-		Type:    "",
-		Timeout: time.Duration(999 * time.Second),
+		RepeatHealthcheck: 3000000009,
+		Type:              "",
+		Timeout:           time.Duration(999 * time.Second),
 	}
 	currentServiceInfo := &domain.ServiceInfo{
 		ServiceIP:          "",
@@ -233,7 +245,8 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		ApplicationServers: []*domain.ApplicationServer{},
 		Healthcheck:        shc,
 		ExtraInfo:          []string{},
-		State:              false,
+		IsUp:               false,
+		BalanceType:        "",
 	}
 	currentApplicationServers := []*domain.ApplicationServer{}
 	storageEntity.Lock()
@@ -258,24 +271,19 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 			currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
 		}
 
-		hc := domain.ServiceHealthcheck{
-			Type:    "",
-			Timeout: time.Duration(999 * time.Second),
+		currentServiceInfo.Healthcheck = domain.ServiceHealthcheck{
+			RepeatHealthcheck:    oldExtendedServiceData.ServiceRepeatHealthcheck,
+			PercentOfAlivedForUp: oldExtendedServiceData.ServicePercentOfAlivedForUp,
+			Type:                 oldExtendedServiceData.ServiceHealthcheckType,
+			Timeout:              oldExtendedServiceData.ServiceHealthcheckTimeout,
 		}
-		if oldExtendedServiceData.ServiceHealthcheckType != "" {
-			hc.Type = oldExtendedServiceData.ServiceHealthcheckType
-		}
-		if oldExtendedServiceData.ServiceHealthcheckTimeout != time.Duration(999*time.Second) {
-			hc.Timeout = oldExtendedServiceData.ServiceHealthcheckTimeout
-		}
-		currentServiceInfo.Healthcheck = hc
 
 		if oldExtendedServiceData.ServiceExtraInfo != nil {
 			currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
 		}
-		if oldExtendedServiceData.ServiceState {
-			currentServiceInfo.State = oldExtendedServiceData.ServiceState
-		}
+		currentServiceInfo.IsUp = oldExtendedServiceData.ServiceIsUp
+		tmpBalanceType := oldExtendedServiceData.BalanceType
+		currentServiceInfo.BalanceType = tmpBalanceType
 
 		return nil
 	}); err != nil {
@@ -312,7 +320,8 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 				}
 				rawServiceData := strings.Split(string(key), ":")
 				if len(rawServiceData) != 2 {
-					return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
+					return nil
+					// return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
 				}
 				currentApplicationServers := []*domain.ApplicationServer{}
 				for _, oldApplicationServer := range oldExtendedServiceData.ApplicationServers {
@@ -321,14 +330,10 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 				}
 
 				hc := domain.ServiceHealthcheck{
-					Type:    "",
-					Timeout: time.Duration(999 * time.Second),
-				}
-				if oldExtendedServiceData.ServiceHealthcheckType != "" {
-					hc.Type = oldExtendedServiceData.ServiceHealthcheckType
-				}
-				if oldExtendedServiceData.ServiceHealthcheckTimeout != time.Duration(999*time.Second) {
-					hc.Timeout = oldExtendedServiceData.ServiceHealthcheckTimeout
+					RepeatHealthcheck:    oldExtendedServiceData.ServiceRepeatHealthcheck,
+					PercentOfAlivedForUp: oldExtendedServiceData.ServicePercentOfAlivedForUp,
+					Type:                 oldExtendedServiceData.ServiceHealthcheckType,
+					Timeout:              oldExtendedServiceData.ServiceHealthcheckTimeout,
 				}
 
 				serviceInfo := &domain.ServiceInfo{
@@ -337,7 +342,8 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain
 					ApplicationServers: currentApplicationServers,
 					Healthcheck:        hc,
 					ExtraInfo:          oldExtendedServiceData.ServiceExtraInfo,
-					State:              oldExtendedServiceData.ServiceState,
+					IsUp:               oldExtendedServiceData.ServiceIsUp,
+					BalanceType:        oldExtendedServiceData.BalanceType,
 				}
 				servicesInfo = append(servicesInfo, serviceInfo)
 				return nil
@@ -397,5 +403,66 @@ func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData *domain.Ser
 		return fmt.Errorf("can't update storage for new service: %v", err)
 	}
 
+	return nil
+}
+
+// ReadTunnelInfoForApplicationServer return nil, if key not exist
+func (storageEntity *StorageEntity) ReadTunnelInfoForApplicationServer(ip string) *domain.TunnelForApplicationServer {
+	dTunnelInfo := &domain.TunnelForApplicationServer{}
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(ip))
+		if err != nil {
+			return fmt.Errorf("txn.Get fail: %v", err)
+		}
+		sTunnelInfo := &TunnelForService{}
+		if err = item.Value(func(val []byte) error {
+			if err := json.Unmarshal(val, &sTunnelInfo); err != nil {
+				return fmt.Errorf("can't unmarshall tunnnel data: %v", err)
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		if sTunnelInfo.ServicesToTunnelCount == 0 {
+			return fmt.Errorf("no tunnel files: %v", sTunnelInfo.ServicesToTunnelCount)
+		}
+
+		dTunnelInfo.ApplicationServerIP = ip
+		dTunnelInfo.IfcfgTunnelFile = sTunnelInfo.IfcfgTunnelFile
+		dTunnelInfo.RouteTunnelFile = sTunnelInfo.RouteTunnelFile
+		dTunnelInfo.ServicesToTunnelCount = sTunnelInfo.ServicesToTunnelCount
+		dTunnelInfo.SysctlConfFile = sTunnelInfo.SysctlConfFile
+		dTunnelInfo.TunnelName = sTunnelInfo.TunnelName
+
+		return nil
+	}); err != nil {
+		return nil
+	}
+	return dTunnelInfo
+}
+
+// UpdateTunnelFilesInfoAtStorage ...
+func (storageEntity *StorageEntity) UpdateTunnelFilesInfoAtStorage(tunnelsFilesInfo []*domain.TunnelForApplicationServer) error {
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+	for _, tunnelFilesInfo := range tunnelsFilesInfo {
+		key := []byte(tunnelFilesInfo.ApplicationServerIP)
+		transformedTunnelForService := TunnelForService{
+			IfcfgTunnelFile:       tunnelFilesInfo.IfcfgTunnelFile,
+			RouteTunnelFile:       tunnelFilesInfo.RouteTunnelFile,
+			SysctlConfFile:        tunnelFilesInfo.SysctlConfFile,
+			TunnelName:            tunnelFilesInfo.TunnelName,
+			ServicesToTunnelCount: tunnelFilesInfo.ServicesToTunnelCount,
+		}
+		tunnelsFilesInfoValue, err := json.Marshal(transformedTunnelForService)
+		if err != nil {
+			return fmt.Errorf("can't marshal transformedTunnelForService: %v", err)
+		}
+		if err := updateDb(storageEntity.Db, key, tunnelsFilesInfoValue); err != nil {
+			return fmt.Errorf("can't update db: %v", err)
+		}
+	}
 	return nil
 }
