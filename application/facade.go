@@ -16,6 +16,7 @@ type BalancerFacade struct {
 	CacheStorage      *portadapter.StorageEntity // so dirty
 	PersistentStorage *portadapter.StorageEntity // so dirty
 	TunnelConfig      domain.TunnelMaker
+	HeathcheckEntity  *usecase.HeathcheckEntity
 	GracefullShutdown *domain.GracefullShutdown
 	UUIDgenerator     domain.UUIDgenerator
 	Logging           *logrus.Logger
@@ -27,6 +28,7 @@ func NewBalancerFacade(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
+	hc *usecase.HeathcheckEntity,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
@@ -37,6 +39,7 @@ func NewBalancerFacade(locker *domain.Locker,
 		CacheStorage:      cacheStorage,
 		PersistentStorage: persistentStorage,
 		TunnelConfig:      tunnelConfig,
+		HeathcheckEntity:  hc,
 		GracefullShutdown: gracefullShutdown,
 		UUIDgenerator:     uuidGenerator,
 		Logging:           logging,
@@ -53,6 +56,7 @@ func (balancerFacade *BalancerFacade) CreateService(serviceIP,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
@@ -61,7 +65,8 @@ func (balancerFacade *BalancerFacade) CreateService(serviceIP,
 }
 
 // RemoveService ...
-func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort string, newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) RemoveService(serviceIP,
+	servicePort string, newNWBRequestUUID string) error {
 	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
 		balancerFacade.VRRPConfigurator,
 		balancerFacade.CacheStorage,
@@ -75,7 +80,7 @@ func (balancerFacade *BalancerFacade) RemoveService(serviceIP, servicePort strin
 }
 
 // GetServices ...
-func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]*domain.ServiceInfo, error) {
 	getNWBServices := usecase.NewGetAllServices(balancerFacade.CacheStorage,
 		balancerFacade.Locker,
 		balancerFacade.GracefullShutdown,
@@ -91,12 +96,13 @@ func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]
 func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
 	servicePort string,
 	applicationServers map[string]string,
-	addApplicationServersRequestUUID string) (domain.ServiceInfo, error) {
+	addApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
 		balancerFacade.VRRPConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
@@ -113,12 +119,13 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
 func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 	servicePort string,
 	applicationServers map[string]string,
-	removeApplicationServersRequestUUID string) (domain.ServiceInfo, error) {
+	removeApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
 		balancerFacade.VRRPConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
@@ -133,16 +140,16 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(serviceIP,
 
 func incomeServiceDataToDomainModel(serviceIP,
 	servicePort string,
-	rawApplicationServers map[string]string) domain.ServiceInfo {
-	applicationServers := []domain.ApplicationServer{}
+	rawApplicationServers map[string]string) *domain.ServiceInfo {
+	applicationServers := []*domain.ApplicationServer{}
 	for ip, port := range rawApplicationServers {
-		applicationServer := domain.ApplicationServer{
+		applicationServer := &domain.ApplicationServer{
 			ServerIP:   ip,
 			ServerPort: port,
 		}
 		applicationServers = append(applicationServers, applicationServer)
 	}
-	return domain.ServiceInfo{
+	return &domain.ServiceInfo{
 		ServiceIP:          serviceIP,
 		ServicePort:        servicePort,
 		ApplicationServers: applicationServers,

@@ -25,17 +25,16 @@ const (
 	defaultRestAPIIP   = "0.0.0.0"
 	defaultRestAPIPort = "7000"
 
-	defaultTechInterface = "" // must be set
-	defaultFwmarkNumber  = "" // must be set
-	// defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
-	// defaultSysctlConfigsPath      = "/etc/sysctl.d/"
-	// defaultKeepalivedConfigPath   = "/etc/keepalived/keepalived.conf"
+	defaultTechInterface          = "" // must be set
+	defaultFwmarkNumber           = "" // must be set
+	defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
+	defaultSysctlConfigsPath      = "/etc/sysctl.d/"
 	defaultDatabasePath           = "./database"
-	defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/nw-pr-lb/network-scripts/"
-	defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/nw-pr-lb/sysctl.d/"
-	defaultMockMode               = true
-	defaultValidateStorageConfig  = 10 * time.Minute
-	defaultMaxShutdownTimeName    = 20 * time.Second
+	// defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/crispy-palm-tree/tests/network-scripts/"
+	// defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/crispy-palm-tree/tests/sysctl.d/"
+	defaultMockMode            = true
+	defaultHealtcheckTime      = 1 * time.Minute
+	defaultMaxShutdownTimeName = 20 * time.Second
 )
 
 // Config names
@@ -55,7 +54,7 @@ const (
 	sysctlConfigsPathName      = "sysctl-configs-path"
 	databasePathName           = "database-path"
 	mockMode                   = "mock-mode"
-	validateStorageConfigName  = "validate-storage-config"
+	HealthcheckTimeName        = "validate-storage-config"
 	maxShutdownTimeName        = "max-shutdown-time"
 )
 
@@ -94,7 +93,7 @@ func init() {
 	pflag.String(sysctlConfigsPathName, defaultSysctlConfigsPath, "sysctl config path")
 
 	pflag.String(databasePathName, defaultDatabasePath, "Path to persistent database")
-	pflag.Duration(validateStorageConfigName, defaultValidateStorageConfig, "Time interval for validate storage config")
+	pflag.Duration(HealthcheckTimeName, defaultHealtcheckTime, "Time interval for validate storage config")
 	pflag.Duration(maxShutdownTimeName, defaultMaxShutdownTimeName, "Max time for graceful shutdown")
 
 	pflag.Bool(mockMode, defaultMockMode, "Mock mode. No commands will be executed")

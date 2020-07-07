@@ -23,7 +23,7 @@ func NewIPVSADMEntity() (*IPVSADMEntity, error) {
 }
 
 // CreateService ... // TODO: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
-func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo domain.ServiceInfo,
+func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInfo,
 	createServiceUUID string) error {
 	ipvs, err := ipvsInit()
 	if err != nil {
@@ -69,7 +69,7 @@ func ipvsInit() (*gnl2go.IpvsClient, error) {
 	return ipvs, nil
 }
 
-func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServer) (map[string]uint16, error) {
+func convertRawApplicationServers(rawApplicationServers []*domain.ApplicationServer) (map[string]uint16, error) {
 	applicationServers := map[string]uint16{}
 
 	for _, applicationServer := range rawApplicationServers {
@@ -83,7 +83,7 @@ func convertRawApplicationServers(rawApplicationServers []domain.ApplicationServ
 }
 
 // RemoveService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo domain.ServiceInfo, requestUUID string) error {
+func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInfo, requestUUID string) error {
 	ipvs, err := ipvsInit()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Init: %v", err)
@@ -95,9 +95,9 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo domain.ServiceInfo
 		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
 	}
 
-	err = ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
-	if err != nil {
-		return fmt.Errorf("error while running DelService for ipv4: %v", err)
+	errDel := ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
+	if errDel != nil {
+		return fmt.Errorf("error while running DelService for ipv4: %v", errDel)
 	}
 
 	return nil
@@ -105,7 +105,6 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo domain.ServiceInfo
 
 // ValidateHistoricalConfig ...
 func (ipvsadmEntity *IPVSADMEntity) ValidateHistoricalConfig(storage *StorageEntity) error {
-
 	pools, err := ipvsadmEntity.readActualConfig()
 	if err != nil {
 		return fmt.Errorf("can't read actual config: %v", err)
@@ -135,18 +134,19 @@ func (ipvsadmEntity *IPVSADMEntity) readActualConfig() ([]gnl2go.Pool, error) {
 	return pools, nil
 }
 
-func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []domain.ServiceInfo {
-	servicesInfo := []domain.ServiceInfo{}
+func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []*domain.ServiceInfo {
+	servicesInfo := []*domain.ServiceInfo{}
 	for _, pool := range pools {
-		applicationServers := []domain.ApplicationServer{}
+		applicationServers := []*domain.ApplicationServer{}
 		for _, dest := range pool.Dests {
-			applocationServer := domain.ApplicationServer{
+			applocationServer := &domain.ApplicationServer{
 				ServerIP:   dest.IP,
 				ServerPort: strconv.Itoa(int(dest.Port)),
+				State:      true,
 			}
 			applicationServers = append(applicationServers, applocationServer)
 		}
-		serviceInfo := domain.ServiceInfo{
+		serviceInfo := &domain.ServiceInfo{
 			ServiceIP:          pool.Service.VIP,
 			ServicePort:        strconv.Itoa(int(pool.Service.Port)),
 			ApplicationServers: applicationServers,
@@ -182,8 +182,8 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 	return nil
 }
 
-// AddApplicationServersFromService ...
-func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo domain.ServiceInfo,
+// AddApplicationServersForService ...
+func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(serviceInfo *domain.ServiceInfo,
 	updateServiceUUID string) error {
 
 	ipvs, err := ipvsInit()
@@ -211,7 +211,7 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersFromService(serviceInfo
 }
 
 // RemoveApplicationServersFromService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceInfo domain.ServiceInfo,
+func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceInfo *domain.ServiceInfo,
 	updateServiceUUID string) error {
 	ipvs, err := ipvsInit()
 	if err != nil {
@@ -224,7 +224,19 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
 	}
 
-	applicationServers, err := convertRawApplicationServers(serviceInfo.ApplicationServers)
+	pools, err := ipvs.GetPools()
+	if err != nil {
+		return fmt.Errorf("ipvs can't get pools: %v", err)
+	}
+
+	actualConfig := transformRawIPVSPoolsToDomainModel(pools)
+	if err != nil {
+		return fmt.Errorf("can't read current config: %v", err)
+	}
+
+	updatedApplicationServers := actualizesApplicationServersInCurrentConfig(actualConfig, serviceInfo)
+
+	applicationServers, err := convertRawApplicationServers(updatedApplicationServers)
 	if err != nil {
 		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
 	}
@@ -235,4 +247,52 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 
 	// TODO: log that ok
 	return nil
+}
+
+// Flush remove all ipvsadm data
+func (ipvsadmEntity *IPVSADMEntity) Flush() error {
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+
+	err = ipvs.Flush()
+	if err != nil {
+		return fmt.Errorf("can't ipvs Flush: %v", err)
+	}
+	return nil
+}
+
+// ReadCurrentConfig ...
+func (ipvsadmEntity *IPVSADMEntity) ReadCurrentConfig() ([]*domain.ServiceInfo, error) {
+	pools, err := ipvsadmEntity.readActualConfig()
+	if err != nil {
+		return nil, fmt.Errorf("can't read actual config: %v", err)
+	}
+	return transformRawIPVSPoolsToDomainModel(pools), nil
+
+}
+
+// actualizesApplicationServersInCurrentConfig - actualizes application servers state
+func actualizesApplicationServersInCurrentConfig(currentConfig []*domain.ServiceInfo, serviceInfo *domain.ServiceInfo) []*domain.ApplicationServer {
+	updatedApplicationServersInfo := []*domain.ApplicationServer{}
+	for _, cc := range currentConfig {
+		if cc.ServiceIP == serviceInfo.ServiceIP &&
+			cc.ServicePort == serviceInfo.ServicePort {
+			for _, sia := range serviceInfo.ApplicationServers {
+				for _, cca := range cc.ApplicationServers {
+					if sia.ServerIP == cca.ServerIP &&
+						sia.ServerPort == cca.ServerPort {
+						serverIP := sia.ServerIP
+						serverPort := sia.ServerPort
+						us := &domain.ApplicationServer{ServerIP: serverIP, ServerPort: serverPort}
+						updatedApplicationServersInfo = append(updatedApplicationServersInfo, us)
+					}
+				}
+			}
+		}
+	}
+
+	return updatedApplicationServersInfo
 }

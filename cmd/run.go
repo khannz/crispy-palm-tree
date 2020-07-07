@@ -13,6 +13,7 @@ import (
 	"github.com/khannz/crispy-palm-tree/application"
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -40,14 +41,14 @@ var rootCmd = &cobra.Command{
 			"Rest API ip":   viperConfig.GetString(restAPIIPName),
 			"Rest API port": viperConfig.GetString(restAPIPortName),
 
-			"tech interface":             viperConfig.GetString(techInterfaceName),
-			"fwmark number":              viperConfig.GetString(fwmarkNumberName),
-			"path to ifcfg tunnel files": viperConfig.GetString(pathToIfcfgTunnelFilesName),
-			"sysctl config path":         viperConfig.GetString(sysctlConfigsPathName),
-			"database path":              viperConfig.GetString(databasePathName),
-			"mock mode":                  viperConfig.GetBool(mockMode),
-			"time interval for validate storage config": viperConfig.GetDuration(validateStorageConfigName),
-			"max shutdown time":                         viperConfig.GetDuration(maxShutdownTimeName),
+			"tech interface":                viperConfig.GetString(techInterfaceName),
+			"fwmark number":                 viperConfig.GetString(fwmarkNumberName),
+			"path to ifcfg tunnel files":    viperConfig.GetString(pathToIfcfgTunnelFilesName),
+			"sysctl config path":            viperConfig.GetString(sysctlConfigsPathName),
+			"database path":                 viperConfig.GetString(databasePathName),
+			"mock mode":                     viperConfig.GetBool(mockMode),
+			"time interval for healthcheck": viperConfig.GetDuration(HealthcheckTimeName),
+			"max shutdown time":             viperConfig.GetDuration(maxShutdownTimeName),
 		}).Info("")
 
 		if isColdStart() && !viperConfig.GetBool(mockMode) {
@@ -80,7 +81,7 @@ var rootCmd = &cobra.Command{
 			logging)
 		// tunnel maker end
 
-		// db and cache init
+		// db and caches init
 		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
@@ -99,50 +100,70 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
+		if err := vrrpConfigurator.Flush(); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("IPVSADM can't flush data at start: %v", err)
+		}
 		// vrrpConfigurator end
 
-		// init config start
-		if errValidate := validateActualAndStorageConfigs(vrrpConfigurator, cacheDB); errValidate != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Warnf("validate actual and storage configs warning: %v.\nWill try init storage config", errValidate)
-			if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
-				logging.WithFields(logrus.Fields{
-					"entity":     rootEntity,
-					"event uuid": uuidForRootProcess,
-				}).Fatalf("init config from storage fail: %v", err)
-			}
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Warnf("init storage config successful", errValidate)
-		}
-		// init config end
-		// scheduler start
-		scheduler := application.NewValidateConfigScheduler(cacheDB, vrrpConfigurator, locker, signalChan, logging)
-		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("can't start scheduler: %v", err)
-		}
-		if err = scheduler.StartValidateConfigScheduler(viperConfig.GetDuration(validateStorageConfigName)); err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("can't start scheduler: %v", err)
-		}
-		// scheduler end
+		//  healthchecks start
+		hc := usecase.NewHeathcheckEntity(cacheDB,
+			persistentDB,
+			vrrpConfigurator,
+			viperConfig.GetString(techInterfaceName),
+			locker,
+			gracefullShutdown, signalChan,
+			logging)
+		go hc.StartHealthchecks(viperConfig.GetDuration(HealthcheckTimeName))
+		// healthchecks end
 
-		facade := application.NewBalancerFacade(locker, vrrpConfigurator, cacheDB, persistentDB, tunnelMaker, gracefullShutdown, uuidGenerator, logging)
+		// init config start
+		if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("init config from storage fail: %v", err)
+		}
+		logging.WithFields(logrus.Fields{
+			"entity":     rootEntity,
+			"event uuid": uuidForRootProcess,
+		}).Debug("init storage config successful")
+
+		// init config end
+		services, err := cacheDB.LoadAllStorageDataToDomainModel()
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("load services fail: %v", err)
+		}
+		locker.Lock()
+		hc.CheckAllApplicationServersInServices(services)
+		locker.Unlock()
+
+		facade := application.NewBalancerFacade(locker,
+			vrrpConfigurator,
+			cacheDB,
+			persistentDB,
+			tunnelMaker,
+			hc,
+			gracefullShutdown,
+			uuidGenerator,
+			logging)
 
 		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade)
 		go restAPI.UpRestAPI()
 		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
 
 		<-signalChan // shutdown signal
-
+		if err := vrrpConfigurator.Flush(); err != nil {
+			logging.WithFields(logrus.Fields{
+				"entity":     rootEntity,
+				"event uuid": uuidForRootProcess,
+			}).Fatalf("IPVSADM can't flush data at stop: %v", err)
+		}
 		gracefulShutdownCommandForRestAPI <- struct{}{}
 		gracefulShutdownUsecases(gracefullShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
@@ -202,8 +223,8 @@ func isColdStart() bool { // TODO: write logic
 
 func checkPrerequisites() error {
 	var err error
-	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf"         // TODO: remove hardcode
-	expectDummyModprobContains := "options dummy numdummies=1" // TODO: remove hardcode
+	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf" // TODO: remove hardcode
+	expectDummyModprobContains := "numdummies=1"       // TODO: remove hardcode
 	if err = checkFileContains(dummyModprobeDPath, expectDummyModprobContains); err != nil {
 		return fmt.Errorf("error when check dummy file: %v", err)
 	}
@@ -251,15 +272,6 @@ func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadap
 	}
 
 	return cacheDB, persistentDB, nil
-}
-
-func validateActualAndStorageConfigs(ipvsadmEntity *portadapter.IPVSADMEntity,
-	storage *portadapter.StorageEntity) error {
-	err := ipvsadmEntity.ValidateHistoricalConfig(storage)
-	if err != nil {
-		return fmt.Errorf("validate historic config by ipvsadm fail: %v", err)
-	}
-	return nil
 }
 
 func initConfigFromStorage(vrrpConfigurator *portadapter.IPVSADMEntity,

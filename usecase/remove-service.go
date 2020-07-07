@@ -37,15 +37,19 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
+		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
 }
 
 // RemoveService ...
-func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain.ServiceInfo,
+// FIXME: rollbacks need refactor
+func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domain.ServiceInfo,
 	removeServiceUUID string) error {
 	var err error
+
+	// gracefull shutdown part start
 	removeServiceEntity.locker.Lock()
 	defer removeServiceEntity.locker.Unlock()
 	removeServiceEntity.gracefullShutdown.Lock()
@@ -56,29 +60,34 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo domain
 	removeServiceEntity.gracefullShutdown.UsecasesJobs++
 	removeServiceEntity.gracefullShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefullShutdown)
+	// gracefull shutdown part end
+	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
+	if err != nil {
+		return fmt.Errorf("can't get current service info: %v", err)
+	}
+
+	if err = removeServiceEntity.tunnelConfig.RemoveTunnels(currentServiceInfo.ApplicationServers, removeServiceUUID); err != nil {
+		if errRollback := removeServiceEntity.cacheStorage.UpdateServiceInfo(serviceInfo, removeServiceUUID); errRollback != nil {
+			removeServiceEntity.logging.WithFields(logrus.Fields{
+				"entity":     removeNlbServiceEntity,
+				"event uuid": removeServiceUUID,
+			}).Errorf("can't rollback cache storage, got error: %v", errRollback)
+		}
+		return fmt.Errorf("can't remove tunnels: %v", err)
+	}
 
 	if err = removeServiceEntity.configuratorVRRP.RemoveService(serviceInfo, removeServiceUUID); err != nil {
-		return fmt.Errorf("configuratorVRRP can't remove service: %v", serviceInfo)
+		return fmt.Errorf("configuratorVRRP can't remove service: %v. got error: %v", serviceInfo, err)
 	}
-	if err = removeServiceEntity.removeServiceFromPersistentStorage(serviceInfo, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
-	if err = removeServiceEntity.removeNewServiceFromCacheStorage(serviceInfo, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (removeServiceEntity *RemoveServiceEntity) removeServiceFromPersistentStorage(serviceInfo domain.ServiceInfo, removeServiceUUID string) error {
-	if err := removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
-		return fmt.Errorf("error remove service %v from persistent storage: %v", serviceInfo, err)
+	if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
+		return err
 	}
-	return nil
-}
 
-func (removeServiceEntity *RemoveServiceEntity) removeNewServiceFromCacheStorage(serviceInfo domain.ServiceInfo, removeServiceUUID string) error {
-	if err := removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
-		return fmt.Errorf("error remove service %v data from cache storage: %v", serviceInfo, err)
-	}
 	return nil
 }

@@ -5,7 +5,6 @@ go 1.14
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/dgraph-io/badger/v2 v2.0.3
-	github.com/go-co-op/gocron v0.1.1
 	github.com/go-playground/validator/v10 v10.2.0
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gorilla/mux v1.7.4
@@ -18,4 +17,5 @@ require (
 	github.com/swaggo/swag v1.6.3
 	github.com/tehnerd/gnl2go v0.0.0-20161218223753-101b5c6e2d44
 	github.com/thevan4/go-billet v1.0.4
+	github.com/vishvananda/netlink v1.1.0
 )

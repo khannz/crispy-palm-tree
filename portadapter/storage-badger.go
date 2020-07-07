@@ -54,9 +54,18 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 	return defOpt
 }
 
+// ExtendedServiceData have application servers info and info abou service
+type ExtendedServiceData struct {
+	ServiceHealthcheckType string                     `json:"serviceHealthcheckType"` // TODO: must be struct
+	ServiceExtraInfo       []string                   `json:"serviceExtraInfo"`
+	ServiceState           bool                       `json:"serviceState"`
+	ApplicationServers     []domain.ApplicationServer `json:"applicationServers"`
+}
+
 // NewServiceDataToStorage add new service to storage. Also check unique data
-func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData domain.ServiceInfo, eventUUID string) error {
-	serviceDataKey, serviceDataValue, err := transformServiceDataForDatabase(serviceData)
+func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData *domain.ServiceInfo,
+	eventUUID string) error {
+	serviceDataKey, serviceDataValue, err := transformServiceDataForStorageData(serviceData)
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)
 	}
@@ -74,17 +83,33 @@ func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData domain.S
 	return nil
 }
 
-func transformServiceDataForDatabase(serviceData domain.ServiceInfo) ([]byte,
+func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte,
 	[]byte,
 	error) {
 	serviceDataKey := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
 
-	serviceDataValue, err := json.Marshal(serviceData.ApplicationServers)
+	renewApplicationServers := []domain.ApplicationServer{}
+	for _, applicationServer := range serviceData.ApplicationServers {
+		renewApplicationServer := *applicationServer
+		renewApplicationServers = append(renewApplicationServers, renewApplicationServer)
+	}
+
+	transformedServiceData := ExtendedServiceData{
+		ServiceHealthcheckType: serviceData.HealthcheckType,
+		ServiceExtraInfo:       serviceData.ExtraInfo,
+		ServiceState:           serviceData.State,
+		ApplicationServers:     renewApplicationServers,
+	}
+	serviceDataValue, err := json.Marshal(transformedServiceData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't marshal rawServiceDataValue: %v", err)
+		return nil, nil, fmt.Errorf("can't marshal transformedServiceData: %v", err)
 	}
 	return serviceDataKey, serviceDataValue, nil
 }
+
+// func transformStorageDataFormServiceData(serviceDataKey, serviceDataValue []byte) *domain.ServiceInfo {
+// 	serviceDataKey
+// }
 
 func updateDb(db *badger.DB, key, value []byte) error {
 	return db.Update(func(txn *badger.Txn) error {
@@ -104,7 +129,7 @@ func (storageEntity *StorageEntity) checkServiceUniqueInDatabase(key []byte) err
 }
 
 func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
-	serviceInfo domain.ServiceInfo) error {
+	serviceInfo *domain.ServiceInfo) error {
 	var err error
 	err = storageEntity.checkServiceUniqueInDatabase(serviceDataKey)
 	if err != nil {
@@ -125,7 +150,8 @@ func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
 }
 
 // TODO: need better check unique, app srv to services too
-func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(checkIP, checkPort string) error {
+func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(checkIP,
+	checkPort string) error {
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -135,15 +161,15 @@ func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(
 			item := it.Item()
 			serviceData := item.Key()
 			err := item.Value(func(v []byte) error {
-				oldApplicationServers := []domain.ApplicationServer{}
-				if err := json.Unmarshal(v, &oldApplicationServers); err != nil {
+				oldExtendedServiceData := ExtendedServiceData{}
+				if err := json.Unmarshal(v, &oldExtendedServiceData); err != nil {
 					return fmt.Errorf("can't unmarshall application servers data: %v", err)
 				}
 
-				for _, oldApplicationServer := range oldApplicationServers {
+				for _, oldApplicationServer := range oldExtendedServiceData.ApplicationServers {
 					if checkIP == oldApplicationServer.ServerIP &&
 						checkPort == oldApplicationServer.ServerPort {
-						return fmt.Errorf("in service %s application server %s already exist", serviceData, oldApplicationServer)
+						return fmt.Errorf("in service %s application server %v already exist", serviceData, oldApplicationServer)
 					}
 				}
 
@@ -171,7 +197,7 @@ func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 }
 
 // RemoveServiceDataFromStorage ...
-func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData domain.ServiceInfo, eventUUID string) error {
+func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *domain.ServiceInfo, eventUUID string) error {
 	keyData := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
 	if err := storageEntity.checkServiceUniqueInDatabase(keyData); err == nil { // if err not nil key exist
 		return fmt.Errorf("key %s not exist in database", keyData)
@@ -189,40 +215,65 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData dom
 }
 
 // GetServiceInfo ...
-func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData domain.ServiceInfo, eventUUID string) (domain.ServiceInfo, error) {
-	var currentServiceInfo domain.ServiceInfo
-	currentApplicationServers := []domain.ApplicationServer{}
+func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
+	currentServiceInfo := &domain.ServiceInfo{
+		ServiceIP:          "",
+		ServicePort:        "",
+		ApplicationServers: []*domain.ApplicationServer{},
+		HealthcheckType:    "",
+		ExtraInfo:          []string{},
+		State:              false,
+	}
+	currentApplicationServers := []*domain.ApplicationServer{}
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(incomeServiceData.ServiceIP + ":" + incomeServiceData.ServicePort))
 		if err != nil {
 			return fmt.Errorf("txn.Get fail: %v", err)
 		}
 
-		oldApplicationServers := []domain.ApplicationServer{}
+		oldExtendedServiceData := ExtendedServiceData{}
 		if err = item.Value(func(val []byte) error {
-			if err := json.Unmarshal(val, &oldApplicationServers); err != nil {
+			if err := json.Unmarshal(val, &oldExtendedServiceData); err != nil {
 				return fmt.Errorf("can't unmarshall application servers data: %v", err)
 			}
 			return nil
 		}); err != nil {
 			return err
 		}
-		currentApplicationServers = oldApplicationServers // is that work?
+		for _, oldApplicationServer := range oldExtendedServiceData.ApplicationServers {
+			renewPointerForOldApplicationServer := oldApplicationServer
+			currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
+		}
+
+		if oldExtendedServiceData.ServiceHealthcheckType != "" {
+			currentServiceInfo.HealthcheckType = oldExtendedServiceData.ServiceHealthcheckType
+		}
+		if oldExtendedServiceData.ServiceExtraInfo != nil {
+			currentServiceInfo.ExtraInfo = oldExtendedServiceData.ServiceExtraInfo
+		}
+		if oldExtendedServiceData.ServiceState {
+			currentServiceInfo.State = oldExtendedServiceData.ServiceState
+		}
+
 		return nil
 	}); err != nil {
 		return currentServiceInfo, err
 	}
 
-	return domain.ServiceInfo{
-		ServiceIP:          incomeServiceData.ServiceIP,
-		ServicePort:        incomeServiceData.ServicePort,
-		ApplicationServers: currentApplicationServers,
-	}, nil
+	tmpIncomeServiceIP := incomeServiceData.ServiceIP
+	tmpIncomeServicePort := incomeServiceData.ServicePort
+
+	currentServiceInfo.ServiceIP = tmpIncomeServiceIP
+	currentServiceInfo.ServicePort = tmpIncomeServicePort
+	currentServiceInfo.ApplicationServers = currentApplicationServers
+
+	return currentServiceInfo, nil
 }
 
 // LoadAllStorageDataToDomainModel ...
-func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]domain.ServiceInfo, error) {
-	servicesInfo := []domain.ServiceInfo{}
+func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain.ServiceInfo, error) {
+	servicesInfo := []*domain.ServiceInfo{}
+
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -232,18 +283,27 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]domain.
 			item := it.Item()
 			key := item.Key()
 			err := item.Value(func(val []byte) error {
-				oldApplicationServers := []domain.ApplicationServer{}
-				if err := json.Unmarshal(val, &oldApplicationServers); err != nil {
+				oldExtendedServiceData := ExtendedServiceData{}
+				if err := json.Unmarshal(val, &oldExtendedServiceData); err != nil {
 					return fmt.Errorf("can't unmarshall application servers data: %v", err)
 				}
 				rawServiceData := strings.Split(string(key), ":")
 				if len(rawServiceData) != 2 {
 					return fmt.Errorf("fail when take service data, expect format x.x.x.x:p, have: %s", key)
 				}
-				serviceInfo := domain.ServiceInfo{
+				currentApplicationServers := []*domain.ApplicationServer{}
+				for _, oldApplicationServer := range oldExtendedServiceData.ApplicationServers {
+					renewPointerForOldApplicationServer := oldApplicationServer
+					currentApplicationServers = append(currentApplicationServers, &renewPointerForOldApplicationServer)
+				}
+
+				serviceInfo := &domain.ServiceInfo{
 					ServiceIP:          rawServiceData[0],
 					ServicePort:        rawServiceData[1],
-					ApplicationServers: oldApplicationServers,
+					ApplicationServers: currentApplicationServers,
+					HealthcheckType:    oldExtendedServiceData.ServiceHealthcheckType,
+					ExtraInfo:          oldExtendedServiceData.ServiceExtraInfo,
+					State:              oldExtendedServiceData.ServiceState,
 				}
 				servicesInfo = append(servicesInfo, serviceInfo)
 				return nil
@@ -289,8 +349,8 @@ func (storageEntity *StorageEntity) LoadCacheFromStorage(oldStorageEntity *Stora
 }
 
 // UpdateServiceInfo validate and update service
-func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData domain.ServiceInfo, eventUUID string) error {
-	serviceDataKey, serviceDataValue, err := transformServiceDataForDatabase(newServiceData)
+func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData *domain.ServiceInfo, eventUUID string) error {
+	serviceDataKey, serviceDataValue, err := transformServiceDataForStorageData(newServiceData)
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)
 	}

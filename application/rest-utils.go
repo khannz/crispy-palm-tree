@@ -63,7 +63,7 @@ func deepValidateServiceInfo(serviceIP, servicePort string, applicationServers m
 	return nil
 }
 
-func transformDomainServiceInfoToResponseData(serviceInfo domain.ServiceInfo, isOk bool) UniversalResponse {
+func transformDomainServiceInfoToResponseData(serviceInfo *domain.ServiceInfo, isOk bool) UniversalResponse {
 	return UniversalResponse{
 		ApplicationServers:       transformDomainApplicationServersToRestApplicationServers(serviceInfo.ApplicationServers),
 		ServiceIP:                serviceInfo.ServiceIP,
@@ -74,7 +74,7 @@ func transformDomainServiceInfoToResponseData(serviceInfo domain.ServiceInfo, is
 	}
 }
 
-func transformDomainServicesInfoToResponseData(nwbServices []domain.ServiceInfo, isOk bool) []UniversalResponse {
+func transformDomainServicesInfoToResponseData(nwbServices []*domain.ServiceInfo, isOk bool) []UniversalResponse {
 	UniversalResponses := []UniversalResponse{}
 	for _, nwbService := range nwbServices {
 		UniversalResponses = append(UniversalResponses, transformDomainServiceInfoToResponseData(nwbService, isOk))
@@ -82,7 +82,7 @@ func transformDomainServicesInfoToResponseData(nwbServices []domain.ServiceInfo,
 	return UniversalResponses
 }
 
-func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []domain.ApplicationServer) []ServerApplication {
+func transformDomainApplicationServersToRestApplicationServers(domainApplicationServers []*domain.ApplicationServer) []ServerApplication {
 	applicationServers := []ServerApplication{}
 	for _, domainApplicationServer := range domainApplicationServers {
 		applicationServer := ServerApplication{

@@ -17,6 +17,7 @@ type RemoveApplicationServers struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
+	hc                *HeathcheckEntity
 	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
@@ -28,6 +29,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
+	hc *HeathcheckEntity,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *RemoveApplicationServers {
@@ -37,22 +39,21 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
+		hc:                hc,
+		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
 }
 
 // RemoveApplicationServers ...
-func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo domain.ServiceInfo,
-	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
+// FIXME: rollbacks need refactor
+func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo *domain.ServiceInfo,
+	removeApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	var err error
-	var updatedServiceInfo domain.ServiceInfo
-	// deployedEntities := map[string][]string{}
-	// deployedEntities, err = removeApplicationServers.tunnelConfig.CreateTunnel(deployedEntities, applicationServers, removeApplicationServersUUID)
-	// if err != nil {
-	// 	tunnelsRemove(deployedEntities, removeApplicationServers.tunnelConfig, removeApplicationServersUUID)
-	// 	return updatedServiceInfo, fmt.Errorf("Error when create tunnel: %v", err)
-	// }
+	var updatedServiceInfo *domain.ServiceInfo
+
+	// gracefull shutdown part start
 	removeApplicationServers.locker.Lock()
 	defer removeApplicationServers.locker.Unlock()
 	removeApplicationServers.gracefullShutdown.Lock()
@@ -63,6 +64,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	removeApplicationServers.gracefullShutdown.UsecasesJobs++
 	removeApplicationServers.gracefullShutdown.Unlock()
 	defer decreaseJobs(removeApplicationServers.gracefullShutdown)
+	// gracefull shutdown part end
 
 	// need for rollback. used only service ip and port
 	currentServiceInfo, err := removeApplicationServers.getServiceInfo(removeServiceInfo, removeApplicationServersUUID)
@@ -70,18 +72,27 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
 
+	enrichedApplicationServersForRemove := enrichApplicationServersInfo(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
+	removeServiceInfo.ApplicationServers = enrichedApplicationServersForRemove
+
 	if err = validateRemoveApplicationServers(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers); err != nil {
 		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
 	}
 
 	updatedServiceInfo = removeApplicationServers.formUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID)
-
 	// add to cache storage
 	if err = removeApplicationServers.updateServiceFromCacheStorage(updatedServiceInfo, removeApplicationServersUUID); err != nil {
 		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
 			// TODO: log it
 		}
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
+	}
+
+	if err = removeApplicationServers.tunnelConfig.RemoveTunnels(enrichedApplicationServersForRemove, removeApplicationServersUUID); err != nil {
+		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
+			// TODO: log it
+		}
+		return currentServiceInfo, fmt.Errorf("can't remove tunnels: %v", err)
 	}
 
 	if err = removeApplicationServers.configuratorVRRP.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {
@@ -96,38 +107,38 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 			// TODO: log: cant roll back
 		}
 
-		if errRollBackCache := removeApplicationServers.configuratorVRRP.AddApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+		if errRollBackCache := removeApplicationServers.configuratorVRRP.AddApplicationServersForService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
 			// TODO: log: cant roll back
 		}
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
-
+	removeApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo)
 	return updatedServiceInfo, nil
 }
 
-func (removeApplicationServers *RemoveApplicationServers) updateServiceFromCacheStorage(serviceInfo domain.ServiceInfo, removeApplicationServersUUID string) error {
+func (removeApplicationServers *RemoveApplicationServers) updateServiceFromCacheStorage(serviceInfo *domain.ServiceInfo, removeApplicationServersUUID string) error {
 	if err := removeApplicationServers.cacheStorage.UpdateServiceInfo(serviceInfo, removeApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to cache storage: %v", err)
 	}
 	return nil
 }
 
-func (removeApplicationServers *RemoveApplicationServers) updateServiceFromPersistentStorage(serviceInfo domain.ServiceInfo, removeApplicationServersUUID string) error {
+func (removeApplicationServers *RemoveApplicationServers) updateServiceFromPersistentStorage(serviceInfo *domain.ServiceInfo, removeApplicationServersUUID string) error {
 	if err := removeApplicationServers.persistentStorage.UpdateServiceInfo(serviceInfo, removeApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to persistent storage: %v", err)
 	}
 	return nil
 }
 
-func (removeApplicationServers *RemoveApplicationServers) getServiceInfo(removeServiceInfo domain.ServiceInfo,
-	removeApplicationServersUUID string) (domain.ServiceInfo, error) {
+func (removeApplicationServers *RemoveApplicationServers) getServiceInfo(removeServiceInfo *domain.ServiceInfo,
+	removeApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	return removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersUUID)
 }
 
-func (removeApplicationServers *RemoveApplicationServers) formUpdateServiceInfo(currentServiceInfo, removeServiceInfo domain.ServiceInfo, eventUUID string) domain.ServiceInfo {
-	var resultServiceInfo domain.ServiceInfo
+func (removeApplicationServers *RemoveApplicationServers) formUpdateServiceInfo(currentServiceInfo, removeServiceInfo *domain.ServiceInfo, eventUUID string) *domain.ServiceInfo {
+	var resultServiceInfo *domain.ServiceInfo
 	resultApplicationServers := formNewApplicationServersSlice(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers)
-	resultServiceInfo = domain.ServiceInfo{
+	resultServiceInfo = &domain.ServiceInfo{
 		ServiceIP:          removeServiceInfo.ServiceIP,
 		ServicePort:        removeServiceInfo.ServicePort,
 		ApplicationServers: resultApplicationServers,
