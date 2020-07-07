@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+
 	// Need for httpSwagger
 	_ "github.com/khannz/crispy-palm-tree/docs"
 	httpSwagger "github.com/swaggo/http-swagger"

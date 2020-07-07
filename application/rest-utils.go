@@ -3,16 +3,29 @@ package application
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/khannz/crispy-palm-tree/domain"
 )
 
+// ServiceHealtcheck ...
+type ServiceHealtcheck struct {
+	Type    string        `json:"type" example:"tcp"`
+	Timeout time.Duration `json:"timeout" example:"2000000000"` // 2 seconds
+}
+
+// ServerHealthcheck ...
+type ServerHealthcheck struct {
+	HealthcheckAddress string `json:"healthcheckAddress"` // ip+port, http address or some one else
+}
+
 // ServerApplication ...
 type ServerApplication struct {
-	ServerIP           string `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
-	ServerPort         string `json:"port" validate:"required" example:"1111"`
-	ServerBashCommands string `json:"bashCommands,omitempty" swaggerignore:"true"`
+	ServerIP           string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
+	ServerPort         string            `json:"port" validate:"required" example:"1111"`
+	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck"`
+	ServerBashCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
 }
 
 // UniversalResponse ...
@@ -68,7 +81,7 @@ func transformDomainServiceInfoToResponseData(serviceInfo *domain.ServiceInfo, i
 		ApplicationServers:       transformDomainApplicationServersToRestApplicationServers(serviceInfo.ApplicationServers),
 		ServiceIP:                serviceInfo.ServiceIP,
 		ServicePort:              serviceInfo.ServicePort,
-		HealthcheckType:          serviceInfo.HealthcheckType,
+		HealthcheckType:          "", // FIXME: must be set
 		JobCompletedSuccessfully: isOk,
 		ExtraInfo:                transformSliceToString(serviceInfo.ExtraInfo),
 	}

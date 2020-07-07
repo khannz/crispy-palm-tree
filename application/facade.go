@@ -47,9 +47,7 @@ func NewBalancerFacade(locker *domain.Locker,
 }
 
 // CreateService ...
-func (balancerFacade *BalancerFacade) CreateService(serviceIP,
-	servicePort string,
-	applicationServers map[string]string,
+func (balancerFacade *BalancerFacade) CreateService(createService *NewBalanceInfo,
 	createServiceUUID string) error {
 	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
 		balancerFacade.VRRPConfigurator,
@@ -60,7 +58,27 @@ func (balancerFacade *BalancerFacade) CreateService(serviceIP,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
-	serviceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
+	appSvrs := []*domain.ApplicationServer{}
+	for _, appSrvr := range createService.ApplicationServers {
+		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
+		as := &domain.ApplicationServer{
+			ServerIP:          appSrvr.ServerIP,
+			ServerPort:        appSrvr.ServerPort,
+			ServerHealthcheck: hcA,
+		}
+		appSvrs = append(appSvrs, as)
+	}
+	hcS := domain.ServiceHealthcheck{
+		Type:    createService.Healtcheck.Type,
+		Timeout: createService.Healtcheck.Timeout,
+	}
+
+	serviceInfo := &domain.ServiceInfo{
+		ServiceIP:          createService.ServiceIP,
+		ServicePort:        createService.ServicePort,
+		ApplicationServers: appSvrs,
+		Healthcheck:        hcS,
+	}
 	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
 }
 
@@ -93,9 +111,7 @@ func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]
 }
 
 // AddApplicationServers ...
-func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
-	servicePort string,
-	applicationServers map[string]string,
+func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *AddApplicationServersRequest,
 	addApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
 		balancerFacade.VRRPConfigurator,
@@ -107,7 +123,27 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(serviceIP,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 
-	incomeServiceInfo := incomeServiceDataToDomainModel(serviceIP, servicePort, applicationServers)
+	appSvrs := []*domain.ApplicationServer{}
+	for _, appSrvr := range addApplicationServersRequest.ApplicationServers {
+		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
+		as := &domain.ApplicationServer{
+			ServerIP:          appSrvr.ServerIP,
+			ServerPort:        appSrvr.ServerPort,
+			ServerHealthcheck: hcA,
+		}
+		appSvrs = append(appSvrs, as)
+	}
+
+	hcS := domain.ServiceHealthcheck{
+		Type:    addApplicationServersRequest.Healtcheck.Type,
+		Timeout: addApplicationServersRequest.Healtcheck.Timeout,
+	}
+	incomeServiceInfo := &domain.ServiceInfo{
+		ServiceIP:          addApplicationServersRequest.ServiceIP,
+		ServicePort:        addApplicationServersRequest.ServicePort,
+		ApplicationServers: appSvrs,
+		Healthcheck:        hcS,
+	}
 	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestUUID)
 	if err != nil {
 		return incomeServiceInfo, fmt.Errorf("can't add application servers to service: %v", err)

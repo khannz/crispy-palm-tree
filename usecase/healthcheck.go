@@ -3,9 +3,11 @@ package usecase
 // TODO: healthchecks != usecase!
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/khannz/crispy-palm-tree/domain"
@@ -14,7 +16,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-const healthcheckName = "healthcheck"
+const healthcheckName = "healthcheck" //
 const healthcheckUUID = "00000000-0000-0000-0000-000000000004"
 
 // HeathcheckEntity ...
@@ -118,38 +120,73 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 	// }
 	var failedServices int
 	for _, applicationServerInfo := range serviceInfo.ApplicationServers {
-		if hc.tcpCheckFail(applicationServerInfo.ServerIP, applicationServerInfo.ServerPort) {
-			failedServices++
-			if applicationServerInfo.State {
-				hc.logging.WithFields(logrus.Fields{
-					"entity":     healthcheckName,
-					"event uuid": healthcheckUUID,
-				}).Infof("is service %v application server %v is down",
-					serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
-					applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
-				applicationServerInfo.State = false
-				if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+		switch serviceInfo.Healthcheck.Type {
+		case "tcp":
+			if hc.tcpCheckFail(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+				serviceInfo.Healthcheck.Timeout) {
+				failedServices++
+				if applicationServerInfo.State {
 					hc.logging.WithFields(logrus.Fields{
 						"entity":     healthcheckName,
 						"event uuid": healthcheckUUID,
-					}).Errorf("Heathcheck error: RemoveApplicationServersFromService error: %v", err)
+					}).Infof("is service %v application server %v is down, healthcheck to %v fail",
+						serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
+						applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
+						applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
+					applicationServerInfo.State = false
+					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+						hc.logging.WithFields(logrus.Fields{
+							"entity":     healthcheckName,
+							"event uuid": healthcheckUUID,
+						}).Errorf("Heathcheck error: excludeApplicationServerFromIPVS error: %v", err)
+					}
 				}
+				continue
 			}
-			continue
+		case "http":
+			if hc.httpCheckFail(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+				serviceInfo.Healthcheck.Timeout) {
+				failedServices++
+				if applicationServerInfo.State {
+					hc.logging.WithFields(logrus.Fields{
+						"entity":     healthcheckName,
+						"event uuid": healthcheckUUID,
+					}).Infof("is service %v application server %v is down, healthcheck to %v fail",
+						serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
+						applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
+						applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
+					applicationServerInfo.State = false
+					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+						hc.logging.WithFields(logrus.Fields{
+							"entity":     healthcheckName,
+							"event uuid": healthcheckUUID,
+						}).Errorf("Heathcheck error: excludeApplicationServerFromIPVS error: %v", err)
+					}
+				}
+				continue
+			}
+		default:
+			hc.logging.WithFields(logrus.Fields{
+				"entity":     healthcheckName,
+				"event uuid": healthcheckUUID,
+			}).Errorf("Heathcheck error: unknown healtcheck type: %v", serviceInfo.Healthcheck.Type)
+			return // FIXME: must never will be. all data already validated
 		}
+
 		if !applicationServerInfo.State {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":     healthcheckName,
 				"event uuid": healthcheckUUID,
-			}).Infof("is service %v application server %v is up",
+			}).Infof("is service %v application server %v is up, healthcheck to %v is ok",
 				serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
-				applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort)
+				applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
+				applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
 			applicationServerInfo.State = true
 			if err := hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo); err != nil {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
 					"event uuid": healthcheckUUID,
-				}).Errorf("Heathcheck error: AddApplicationServersForService error: %v", err)
+				}).Errorf("Heathcheck error: inclideApplicationServerInIPVS error: %v", err)
 			}
 			continue
 		}
@@ -200,23 +237,21 @@ func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
 	}
 }
 
-func (hc *HeathcheckEntity) tcpCheckFail(ip, port string) bool {
-	timeout := time.Second * 2
-	// FIXME: refactor that
-	nip, _ := strconv.Atoi(port)
-	nip += 10000
-	np := strconv.Itoa(nip)
+func (hc *HeathcheckEntity) tcpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
+	hcSlice := strings.Split(healthcheckAddress, ":")
+	hcIP := hcSlice[0]
+	hcPort := hcSlice[1]
 
 	dialer := net.Dialer{
 		LocalAddr: hc.techInterface,
 		Timeout:   timeout}
 
-	conn, err := dialer.Dial("tcp", net.JoinHostPort(ip, np))
+	conn, err := dialer.Dial("tcp", net.JoinHostPort(hcIP, hcPort))
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
-		}).Debugf("Heathcheck error: Connecting error: %v", err)
+		}).Debugf("Heathcheck error: Connecting tcp connect error: %v", err)
 		return true
 	}
 	defer conn.Close()
@@ -225,7 +260,7 @@ func (hc *HeathcheckEntity) tcpCheckFail(ip, port string) bool {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
-		}).Debugf("Heathcheck info port opened: %v", net.JoinHostPort(ip, np))
+		}).Debugf("Heathcheck info port opened: %v", net.JoinHostPort(hcIP, hcPort))
 		return false
 	}
 
@@ -235,6 +270,30 @@ func (hc *HeathcheckEntity) tcpCheckFail(ip, port string) bool {
 		"event uuid": healthcheckUUID,
 	}).Error("Heathcheck has unknown error: connection is nil, but have no errors")
 	return true
+}
+
+func (hc *HeathcheckEntity) httpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
+	client := http.Client{
+		Timeout: timeout,
+	}
+	resp, err := client.Get(healthcheckAddress)
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Debugf("Heathcheck error: Connecting http error: %v", err)
+		return true
+	}
+
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Debugf("Heathcheck error: Read http response errror: %v", err)
+		return true
+	}
+	return false
 }
 
 func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(allServiceInfo *domain.ServiceInfo,

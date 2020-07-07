@@ -15,7 +15,7 @@ type NewBalanceInfo struct {
 	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
-	HealthcheckType    string              `json:"healthcheckType,omitempty"`
+	Healtcheck         ServiceHealtcheck   `json:"Healtcheck" validate:"required"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
@@ -75,7 +75,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	}).Infof("change job uuid from %v to %v", createServiceUUID, createService.ID)
 	createServiceUUID = createService.ID
 
-	applicationServersMap, validateError := createService.validateCreateService()
+	_, validateError := createService.validateCreateService()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -99,9 +99,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = restAPI.balancerFacade.CreateService(createService.ServiceIP,
-		createService.ServicePort,
-		applicationServersMap,
+	err = restAPI.balancerFacade.CreateService(createService,
 		createServiceUUID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
@@ -136,7 +134,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 		ApplicationServers:       createService.ApplicationServers,
 		ServiceIP:                createService.ServiceIP,
 		ServicePort:              createService.ServicePort,
-		HealthcheckType:          createService.HealthcheckType,
+		HealthcheckType:          "", // FIXME: must be set
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "new nwb created",
 	}
