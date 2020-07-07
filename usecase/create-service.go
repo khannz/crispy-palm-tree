@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
@@ -13,7 +14,7 @@ const createServiceName = "create-service"
 // CreateServiceEntity ...
 type CreateServiceEntity struct {
 	locker            *domain.Locker
-	configuratorVRRP  domain.ServiceWorker
+	ipvsadm           *portadapter.IPVSADMEntity
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
@@ -25,7 +26,7 @@ type CreateServiceEntity struct {
 
 // NewCreateServiceEntity ...
 func NewCreateServiceEntity(locker *domain.Locker,
-	configuratorVRRP domain.ServiceWorker,
+	ipvsadm *portadapter.IPVSADMEntity,
 	cacheStorage *portadapter.StorageEntity, // so dirty
 	persistentStorage *portadapter.StorageEntity, // so dirty
 	tunnelConfig domain.TunnelMaker,
@@ -35,7 +36,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 	logging *logrus.Logger) *CreateServiceEntity {
 	return &CreateServiceEntity{
 		locker:            locker,
-		configuratorVRRP:  configuratorVRRP,
+		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -85,7 +86,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 		return err
 	}
 
-	if err = createService.configuratorVRRP.CreateService(serviceInfo, createServiceUUID); err != nil {
+	if err = createService.ipvsadm.CreateService(serviceInfo, createServiceUUID); err != nil {
 		if errRollBackTunnels := createService.tunnelConfig.RemoveTunnels(enrichedApplicationServers, createServiceUUID); err != nil {
 			createService.logging.WithFields(logrus.Fields{
 				"entity":     createServiceName,
@@ -98,7 +99,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 				"event uuid": createServiceUUID,
 			}).Errorf("can't rollback tunnels, got error: %v", errRollBackCache)
 		}
-		if errRollBackIPVSADM := createService.configuratorVRRP.RemoveService(serviceInfo, createServiceUUID); err != nil {
+		if errRollBackIPVSADM := createService.ipvsadm.RemoveService(serviceInfo, createServiceUUID); err != nil {
 			createService.logging.WithFields(logrus.Fields{
 				"entity":     createServiceName,
 				"event uuid": createServiceUUID,
@@ -123,7 +124,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 			}).Errorf("can't rollback tunnels, got error: %v", errRollBackCache)
 		}
 
-		if errRollBackIPVSADM := createService.configuratorVRRP.RemoveService(serviceInfo, createServiceUUID); err != nil {
+		if errRollBackIPVSADM := createService.ipvsadm.RemoveService(serviceInfo, createServiceUUID); err != nil {
 			createService.logging.WithFields(logrus.Fields{
 				"entity":     createServiceName,
 				"event uuid": createServiceUUID,
@@ -132,6 +133,9 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 
 		return fmt.Errorf("Error when Configure VRRP: %v", err)
 	}
-	createService.hc.CheckApplicationServersInService(serviceInfo)
+	serviceWG := new(sync.WaitGroup)
+	serviceWG.Add(1)
+	go createService.hc.CheckApplicationServersInService(serviceInfo, serviceWG)
+	serviceWG.Wait()
 	return nil
 }

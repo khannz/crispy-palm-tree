@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
@@ -13,7 +14,7 @@ const addApplicationServersName = "add-application-servers"
 // AddApplicationServers ...
 type AddApplicationServers struct {
 	locker            *domain.Locker
-	configuratorVRRP  domain.ServiceWorker
+	ipvsadm           *portadapter.IPVSADMEntity // so dirty
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
@@ -25,7 +26,7 @@ type AddApplicationServers struct {
 
 // NewAddApplicationServers ...
 func NewAddApplicationServers(locker *domain.Locker,
-	configuratorVRRP domain.ServiceWorker,
+	ipvsadm *portadapter.IPVSADMEntity,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
@@ -35,7 +36,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 	logging *logrus.Logger) *AddApplicationServers {
 	return &AddApplicationServers{
 		locker:            locker,
-		configuratorVRRP:  configuratorVRRP,
+		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -98,7 +99,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return updatedServiceInfo, err
 	}
 
-	if err = addApplicationServers.configuratorVRRP.AddApplicationServersForService(newServiceInfo, addApplicationServersUUID); err != nil {
+	if err = addApplicationServers.ipvsadm.AddApplicationServersForService(newServiceInfo, addApplicationServersUUID); err != nil {
 		if errRollBackTunnels := addApplicationServers.tunnelConfig.RemoveTunnels(enrichedApplicationServers, addApplicationServersUUID); err != nil {
 			addApplicationServers.logging.WithFields(logrus.Fields{
 				"entity":     addApplicationServersName,
@@ -127,12 +128,15 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		}
 
 		// TODO: when relese remove application service logic
-		if errRollBackCache := addApplicationServers.configuratorVRRP.RemoveApplicationServersFromService(newServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
+		if errRollBackCache := addApplicationServers.ipvsadm.RemoveApplicationServersFromService(newServiceInfo, addApplicationServersUUID); errRollBackCache != nil {
 			// TODO: log: cant roll back
 		}
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
-	addApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo)
+	serviceWG := new(sync.WaitGroup)
+	serviceWG.Add(1)
+	go addApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo, serviceWG)
+	serviceWG.Wait()
 	return updatedServiceInfo, nil
 }
 

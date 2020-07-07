@@ -92,35 +92,37 @@ var rootCmd = &cobra.Command{
 		defer cacheDB.Db.Close()
 		defer persistentDB.Db.Close()
 
-		// vrrpConfigurator start
-		vrrpConfigurator, err := portadapter.NewIPVSADMEntity()
+		// ipvsadmConfigurator start
+		ipvsadmConfigurator, err := portadapter.NewIPVSADMEntity()
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
-		if err := vrrpConfigurator.Flush(); err != nil {
+		if err := ipvsadmConfigurator.Flush(); err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("IPVSADM can't flush data at start: %v", err)
 		}
-		// vrrpConfigurator end
+		// ipvsadmConfigurator end
 
 		//  healthchecks start
 		hc := usecase.NewHeathcheckEntity(cacheDB,
 			persistentDB,
-			vrrpConfigurator,
+			ipvsadmConfigurator,
 			viperConfig.GetString(techInterfaceName),
 			locker,
-			gracefullShutdown, signalChan,
+			gracefullShutdown,
+			signalChan,
+			viperConfig.GetBool(mockMode),
 			logging)
 		go hc.StartHealthchecks(viperConfig.GetDuration(HealthcheckTimeName))
 		// healthchecks end
 
 		// init config start
-		if err := initConfigFromStorage(vrrpConfigurator, cacheDB, rootEntity); err != nil {
+		if err := initConfigFromStorage(ipvsadmConfigurator, cacheDB, rootEntity); err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
@@ -144,7 +146,7 @@ var rootCmd = &cobra.Command{
 		locker.Unlock()
 
 		facade := application.NewBalancerFacade(locker,
-			vrrpConfigurator,
+			ipvsadmConfigurator,
 			cacheDB,
 			persistentDB,
 			tunnelMaker,
@@ -158,7 +160,7 @@ var rootCmd = &cobra.Command{
 		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
 
 		<-signalChan // shutdown signal
-		if err := vrrpConfigurator.Flush(); err != nil {
+		if err := ipvsadmConfigurator.Flush(); err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
@@ -274,7 +276,7 @@ func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadap
 	return cacheDB, persistentDB, nil
 }
 
-func initConfigFromStorage(vrrpConfigurator *portadapter.IPVSADMEntity,
+func initConfigFromStorage(ipvsadmConfigurator *portadapter.IPVSADMEntity,
 	storage *portadapter.StorageEntity,
 	eventUUID string) error {
 	configsFromStorage, err := storage.LoadAllStorageDataToDomainModel()
@@ -282,7 +284,7 @@ func initConfigFromStorage(vrrpConfigurator *portadapter.IPVSADMEntity,
 		return fmt.Errorf("fail to load  storage config at start")
 	}
 	for _, configFromStorage := range configsFromStorage {
-		if err := vrrpConfigurator.CreateService(configFromStorage, eventUUID); err != nil {
+		if err := ipvsadmConfigurator.CreateService(configFromStorage, eventUUID); err != nil {
 			return fmt.Errorf("can't create service for %v config from storage: %v", configFromStorage, err)
 		}
 	}

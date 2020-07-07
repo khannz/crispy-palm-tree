@@ -35,12 +35,3 @@ type ServiceInfo struct {
 	ExtraInfo          []string             `json:"extraInfo"`
 	State              bool                 `json:"state"`
 }
-
-// ServiceWorker ...
-type ServiceWorker interface {
-	CreateService(*ServiceInfo, string) error
-	RemoveService(*ServiceInfo, string) error
-	AddApplicationServersForService(*ServiceInfo, string) error
-	RemoveApplicationServersFromService(*ServiceInfo, string) error
-	ReadCurrentConfig() ([]*ServiceInfo, error)
-}

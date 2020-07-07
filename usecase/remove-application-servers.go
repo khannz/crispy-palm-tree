@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
@@ -13,7 +14,7 @@ const removeApplicationServers = "remove-application-servers"
 // RemoveApplicationServers ...
 type RemoveApplicationServers struct {
 	locker            *domain.Locker
-	configuratorVRRP  domain.ServiceWorker
+	ipvsadm           *portadapter.IPVSADMEntity
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
@@ -25,7 +26,7 @@ type RemoveApplicationServers struct {
 
 // NewRemoveApplicationServers ...
 func NewRemoveApplicationServers(locker *domain.Locker,
-	configuratorVRRP domain.ServiceWorker,
+	ipvsadm *portadapter.IPVSADMEntity,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
@@ -35,7 +36,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 	logging *logrus.Logger) *RemoveApplicationServers {
 	return &RemoveApplicationServers{
 		locker:            locker,
-		configuratorVRRP:  configuratorVRRP,
+		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -95,7 +96,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return currentServiceInfo, fmt.Errorf("can't remove tunnels: %v", err)
 	}
 
-	if err = removeApplicationServers.configuratorVRRP.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {
+	if err = removeApplicationServers.ipvsadm.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {
 		if errRollback := removeApplicationServers.updateServiceFromCacheStorage(currentServiceInfo, removeApplicationServersUUID); errRollback != nil {
 			// TODO: log it
 		}
@@ -107,12 +108,15 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 			// TODO: log: cant roll back
 		}
 
-		if errRollBackCache := removeApplicationServers.configuratorVRRP.AddApplicationServersForService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
+		if errRollBackCache := removeApplicationServers.ipvsadm.AddApplicationServersForService(removeServiceInfo, removeApplicationServersUUID); errRollBackCache != nil {
 			// TODO: log: cant roll back
 		}
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
-	removeApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo)
+	serviceWG := new(sync.WaitGroup)
+	serviceWG.Add(1)
+	go removeApplicationServers.hc.CheckApplicationServersInService(updatedServiceInfo, serviceWG)
+	serviceWG.Wait()
 	return updatedServiceInfo, nil
 }
 

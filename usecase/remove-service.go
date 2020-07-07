@@ -13,33 +13,36 @@ const removeNlbServiceEntity = "remove-nlb-service"
 // RemoveServiceEntity ...
 type RemoveServiceEntity struct {
 	locker            *domain.Locker
-	configuratorVRRP  domain.ServiceWorker
+	ipvsadm           *portadapter.IPVSADMEntity
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
 	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
+	hc                *HeathcheckEntity
 	logging           *logrus.Logger
 }
 
 // NewRemoveServiceEntity ...
 func NewRemoveServiceEntity(locker *domain.Locker,
-	configuratorVRRP domain.ServiceWorker,
+	ipvsadm *portadapter.IPVSADMEntity,
 	cacheStorage *portadapter.StorageEntity, // so dirty
 	persistentStorage *portadapter.StorageEntity, // so dirty
 	tunnelConfig domain.TunnelMaker,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
+	hc *HeathcheckEntity,
 	logging *logrus.Logger) *RemoveServiceEntity {
 	return &RemoveServiceEntity{
 		locker:            locker,
-		configuratorVRRP:  configuratorVRRP,
+		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
 		gracefullShutdown: gracefullShutdown,
-		logging:           logging,
 		uuidGenerator:     uuidGenerator,
+		hc:                hc,
+		logging:           logging,
 	}
 }
 
@@ -76,8 +79,8 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return fmt.Errorf("can't remove tunnels: %v", err)
 	}
 
-	if err = removeServiceEntity.configuratorVRRP.RemoveService(serviceInfo, removeServiceUUID); err != nil {
-		return fmt.Errorf("configuratorVRRP can't remove service: %v. got error: %v", serviceInfo, err)
+	if err = removeServiceEntity.ipvsadm.RemoveService(serviceInfo, removeServiceUUID); err != nil {
+		return fmt.Errorf("ipvsadm can't remove service: %v. got error: %v", serviceInfo, err)
 	}
 	if err = removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
@@ -85,8 +88,13 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	if err = removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
-	if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
-		return err
+
+	removeServiceEntity.hc.dw.Lock()
+	defer removeServiceEntity.hc.dw.Unlock()
+	if !removeServiceEntity.hc.isMockMode {
+		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
+			return err
+		}
 	}
 
 	return nil
