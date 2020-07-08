@@ -28,10 +28,10 @@ type ServerHealthcheck struct {
 
 // ServerApplication ...
 type ServerApplication struct {
-	ServerIP           string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
-	ServerPort         string            `json:"port" validate:"required" example:"1111"`
-	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck,omitempty"`
-	ServerBashCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
+	ServerIP                    string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
+	ServerPort                  string            `json:"port" validate:"required" example:"1111"`
+	ServerHealthcheck           ServerHealthcheck `json:"serverHealthcheck,omitempty"`
+	ServerСonfigurationCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
 }
 
 // UniversalResponse ...
@@ -48,11 +48,11 @@ type UniversalResponse struct {
 
 // ServerApplicationWithStates ...
 type ServerApplicationWithStates struct {
-	ServerIP           string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
-	ServerPort         string            `json:"port" validate:"required" example:"1111"`
-	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck,omitempty"`
-	IsUp               bool              `json:"serverIsUp"`
-	ServerBashCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
+	ServerIP                    string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
+	ServerPort                  string            `json:"port" validate:"required" example:"1111"`
+	ServerHealthcheck           ServerHealthcheck `json:"serverHealthcheck,omitempty"`
+	IsUp                        bool              `json:"serverIsUp"`
+	ServerСonfigurationCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"`
 }
 
 // UniversalResponseWithStates ...
@@ -230,10 +230,10 @@ func convertDomainApplicationServersToRest(dAS []*domain.ApplicationServer) []Se
 	for _, dSA := range dAS {
 		svHCAdr := ServerHealthcheck{HealthcheckAddress: dSA.ServerHealthcheck.HealthcheckAddress}
 		sa := ServerApplication{
-			ServerIP:           dSA.ServerIP,
-			ServerPort:         dSA.ServerPort,
-			ServerHealthcheck:  svHCAdr,
-			ServerBashCommands: dSA.ServerBashCommands,
+			ServerIP:                    dSA.ServerIP,
+			ServerPort:                  dSA.ServerPort,
+			ServerHealthcheck:           svHCAdr,
+			ServerСonfigurationCommands: dSA.ServerСonfigurationCommands,
 		}
 		sas = append(sas, sa)
 	}

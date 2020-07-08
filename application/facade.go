@@ -17,6 +17,7 @@ type BalancerFacade struct {
 	PersistentStorage   *portadapter.StorageEntity // so dirty
 	TunnelConfig        domain.TunnelMaker
 	HeathcheckEntity    *usecase.HeathcheckEntity
+	CommandGenerator    domain.CommandGenerator
 	GracefullShutdown   *domain.GracefullShutdown
 	UUIDgenerator       domain.UUIDgenerator
 	Logging             *logrus.Logger
@@ -29,6 +30,7 @@ func NewBalancerFacade(locker *domain.Locker,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
 	hc *usecase.HeathcheckEntity,
+	commandGenerator domain.CommandGenerator,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
@@ -40,6 +42,7 @@ func NewBalancerFacade(locker *domain.Locker,
 		PersistentStorage:   persistentStorage,
 		TunnelConfig:        tunnelConfig,
 		HeathcheckEntity:    hc,
+		CommandGenerator:    commandGenerator,
 		GracefullShutdown:   gracefullShutdown,
 		UUIDgenerator:       uuidGenerator,
 		Logging:             logging,
@@ -48,13 +51,14 @@ func NewBalancerFacade(locker *domain.Locker,
 
 // CreateService ...
 func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInfo,
-	createServiceUUID string) error {
+	createServiceUUID string) (*domain.ServiceInfo, error) {
 	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
 		balancerFacade.HeathcheckEntity,
+		balancerFacade.CommandGenerator,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
@@ -125,6 +129,7 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
 		balancerFacade.HeathcheckEntity,
+		balancerFacade.CommandGenerator,
 		balancerFacade.GracefullShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
