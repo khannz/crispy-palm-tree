@@ -18,6 +18,7 @@ type AddApplicationServers struct {
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
+	commandGenerator  domain.CommandGenerator
 	gracefullShutdown *domain.GracefullShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
@@ -30,6 +31,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
+	commandGenerator domain.CommandGenerator,
 	gracefullShutdown *domain.GracefullShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *AddApplicationServers {
@@ -40,6 +42,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
 		hc:                hc,
+		commandGenerator:  commandGenerator,
 		gracefullShutdown: gracefullShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
@@ -99,6 +102,11 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	if err := addApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
 	}
+
+	if err := addApplicationServers.commandGenerator.GenerateCommandsForApplicationServers(updatedServiceInfo, addApplicationServersUUID); err != nil {
+		return updatedServiceInfo, fmt.Errorf("can't generate commands :%v", err)
+	}
+
 	addApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
 	return updatedServiceInfo, nil
 }

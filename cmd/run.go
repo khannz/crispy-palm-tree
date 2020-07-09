@@ -108,6 +108,10 @@ var rootCmd = &cobra.Command{
 		}
 		// ipvsadmConfigurator end
 
+		// CommandGenerator start
+		commandGenerator := portadapter.NewCommandGenerator()
+		// CommandGenerator end
+
 		//  healthchecks start
 		hc := usecase.NewHeathcheckEntity(cacheDB,
 			persistentDB,
@@ -146,6 +150,7 @@ var rootCmd = &cobra.Command{
 			persistentDB,
 			tunnelMaker,
 			hc,
+			commandGenerator,
 			gracefullShutdown,
 			uuidGenerator,
 			logging)

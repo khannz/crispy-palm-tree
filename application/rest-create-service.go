@@ -58,7 +58,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 	logChangeUUID(createServiceUUID, createService.ID, restAPI.balancerFacade.Logging)
 	createServiceUUID = createService.ID
 
-	err = restAPI.balancerFacade.CreateService(createService,
+	nwbServiceInfo, err := restAPI.balancerFacade.CreateService(createService,
 		createServiceUUID)
 	if err != nil {
 		uscaseFail(addServiceRequestName,
@@ -71,17 +71,9 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 
 	logRequestIsDone(addServiceRequestName, createServiceUUID, restAPI.balancerFacade.Logging)
 
-	ur := UniversalResponse{
-		ID:                       createServiceUUID,
-		ApplicationServers:       createService.ApplicationServers,
-		ServiceIP:                createService.ServiceIP,
-		ServicePort:              createService.ServicePort,
-		Healthcheck:              createService.Healtcheck,
-		JobCompletedSuccessfully: true,
-		BalanceType:              createService.BalanceType,
-	}
+	serviceInfo := convertDomainServiceInfoToRestUniversalResponse(nwbServiceInfo, true)
 
-	writeUniversalResponse(ur,
+	writeUniversalResponse(serviceInfo,
 		addServiceRequestName,
 		createServiceUUID,
 		w,

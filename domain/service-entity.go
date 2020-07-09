@@ -21,11 +21,11 @@ type ServerHealthcheck struct {
 
 // ApplicationServer ...
 type ApplicationServer struct {
-	ServerIP           string            `json:"serverIP"`
-	ServerPort         string            `json:"serverPort"`
-	IsUp               bool              `json:"serverIsUp"`
-	ServerHealthcheck  ServerHealthcheck `json:"serverHealthcheck"`
-	ServerBashCommands string            `json:"-"`
+	ServerIP                    string            `json:"serverIP"`
+	ServerPort                  string            `json:"serverPort"`
+	IsUp                        bool              `json:"serverIsUp"`
+	ServerHealthcheck           ServerHealthcheck `json:"serverHealthcheck"`
+	ServerСonfigurationCommands string            `json:"-"`
 }
 
 // ServiceInfo ...
@@ -40,12 +40,7 @@ type ServiceInfo struct {
 	BalanceType        string               `json:"balanceType"`
 }
 
-// TunnelForApplicationServer ...
-type TunnelForApplicationServer struct {
-	ApplicationServerIP   string `json:"applicationServerIP"`
-	IfcfgTunnelFile       string `json:"ifcfgTunnelFile"` // full path to ifcfg file
-	RouteTunnelFile       string `json:"tunnelFile"`      // full path to route file
-	SysctlConfFile        string `json:"sysctlConf"`      // full path to sysctl conf file
-	TunnelName            string `json:"tunnelName"`
-	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
+// CommandGenerator ...
+type CommandGenerator interface {
+	GenerateCommandsForApplicationServers(*ServiceInfo, string) error
 }
