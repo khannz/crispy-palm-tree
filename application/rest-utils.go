@@ -84,6 +84,7 @@ func customServiceHealthcheckValidation(sl validator.StructLevel) {
 	switch sHc.Type {
 	case "tcp":
 	case "http":
+	case "icmp":
 	default:
 		sl.ReportError(sHc.Type, "type", "Type", "unsupported healthcheck type", "")
 	}

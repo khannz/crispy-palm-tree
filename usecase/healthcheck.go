@@ -13,10 +13,13 @@ import (
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
 )
 
 const healthcheckName = "healthcheck"
 const healthcheckUUID = "00000000-0000-0000-0000-000000000004"
+const protocolICMP = 1
 
 type failedApplicationServers struct {
 	sync.Mutex
@@ -299,6 +302,31 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
+	case "icmp":
+		if hc.icmpCheckFail(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+			serviceInfo.Healthcheck.Timeout) {
+			fs.Lock()
+			fs.count++
+			fs.Unlock()
+			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
+			if applicationServerInfo.IsUp {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Infof("is service %v application server %v is down, healthcheck to %v fail",
+					serviceInfo.ServiceIP+":"+serviceInfo.ServicePort,
+					applicationServerInfo.ServerIP+":"+applicationServerInfo.ServerPort,
+					applicationServerInfo.ServerHealthcheck.HealthcheckAddress)
+				applicationServerInfo.IsUp = false
+				// if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				// 	hc.logging.WithFields(logrus.Fields{
+				// 		"entity":     healthcheckName,
+				// 		"event uuid": healthcheckUUID,
+				// 	}).Debugf("Heathcheck error: excludeApplicationServerFromIPVS error: %v", err)
+				// }
+			}
+			return
+		}
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
@@ -401,6 +429,109 @@ func (hc *HeathcheckEntity) httpCheckFail(healthcheckAddress string, timeout tim
 		return true
 	}
 	return false
+}
+
+func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
+	// Start listening for icmp replies
+	icpmConnection, err := icmp.ListenPacket("ip4:icmp", hc.techInterface.String())
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm connection error: %v", err)
+		return true
+	}
+	defer icpmConnection.Close()
+
+	// Get the real IP of the target
+	dst, err := net.ResolveIPAddr("ip4", healthcheckAddress)
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm resolve ip addr error: %v", err)
+		return true
+	}
+
+	m := icmp.Message{
+		Type: ipv4.ICMPTypeEcho,
+		Code: 0,
+		Body: &icmp.Echo{
+			ID:   1,
+			Seq:  1,
+			Data: []byte("hello")},
+	}
+
+	b, err := m.Marshal(nil)
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm marshall message error: %v", err)
+		return true
+	}
+
+	// Send it
+	n, err := icpmConnection.WriteTo(b, dst)
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm write bytes to error: %v", err)
+		return true
+	} else if n != len(b) {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm write bytes to error (not all of bytes was send): %v", err)
+		return true
+	}
+
+	// Wait for a reply
+	reply := make([]byte, 1500)
+	err = icpmConnection.SetReadDeadline(time.Now().Add(timeout))
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm set read deadline error: %v", err)
+		return true
+	}
+	n, peer, err := icpmConnection.ReadFrom(reply)
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm read reply error: %v", err)
+		return true
+	}
+
+	// Let's look what we have in reply
+	rm, err := icmp.ParseMessage(protocolICMP, reply[:n])
+	if err != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm parse message error: %v", err)
+		return true
+	}
+	switch rm.Type {
+	case ipv4.ICMPTypeEchoReply:
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck icpm for %v succes", healthcheckAddress)
+		return false
+	default:
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Tracef("Heathcheck error: icpm for %v reply type error: got %+v from %v; want echo reply",
+			healthcheckAddress,
+			rm,
+			peer)
+		return true
+	}
 }
 
 func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(allServiceInfo *domain.ServiceInfo,
