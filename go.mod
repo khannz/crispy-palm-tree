@@ -18,4 +18,5 @@ require (
 	github.com/tehnerd/gnl2go v0.0.0-20161218223753-101b5c6e2d44
 	github.com/thevan4/go-billet v1.0.4
 	github.com/vishvananda/netlink v1.1.0
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 )
