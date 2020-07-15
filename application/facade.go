@@ -199,7 +199,8 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 func (balancerFacade *BalancerFacade) GetServiceState(getServiceStateRequest *GetServiceStateRequest) (*domain.ServiceInfo, error) {
 	getServiceStateEntity := usecase.NewGetServiceStateEntity(balancerFacade.Locker,
 		balancerFacade.CacheStorage,
-		balancerFacade.GracefullShutdown)
+		balancerFacade.GracefullShutdown,
+		balancerFacade.Logging)
 	incomeServiceInfo := &domain.ServiceInfo{
 		ServiceIP:   getServiceStateRequest.ServiceIP,
 		ServicePort: getServiceStateRequest.ServicePort,

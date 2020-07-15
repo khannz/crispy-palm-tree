@@ -68,49 +68,73 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	defer decreaseJobs(addApplicationServers.gracefullShutdown)
 	// gracefull shutdown part end
 
+	logStartUsecase(addApplicationServersName, "add new application servers to service", addApplicationServersUUID, newServiceInfo, addApplicationServers.logging)
+	// FIXME: check service exist, before create tunnels
 	tunnelsFilesInfo := formTunnelsFilesInfo(newServiceInfo.ApplicationServers, addApplicationServers.cacheStorage)
+	logTryCreateNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
 	newTunnelsFilesInfo, err := addApplicationServers.tunnelConfig.CreateTunnels(tunnelsFilesInfo, addApplicationServersUUID)
 	if err != nil {
 		return nil, fmt.Errorf("can't create tunnel files: %v", err)
 	}
+	logCreatedNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
 
 	// need for rollback. used only service ip and port
+	logTryToGetCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	currentServiceInfo, err := addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
+	logGotCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, currentServiceInfo, addApplicationServers.logging)
+
+	// TODO: why not in UpdateServiceInfo? double?
 	if err := addApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
 	}
 
+	logTryGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	updatedServiceInfo, err = forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo, addApplicationServersUUID)
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't form update service info: %v", err)
 	}
+	logGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersUUID, updatedServiceInfo, addApplicationServers.logging)
+
 	// add to cache storage
+	logTryUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	if err = addApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersUUID); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
+	logUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 
+	logTryIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
 	if err = addApplicationServers.ipvsadm.AddApplicationServersForService(newServiceInfo, addApplicationServersUUID); err != nil {
-		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
+		return currentServiceInfo, fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
 	}
+	logAddedIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
 
+	logTryUpdateServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	if err = addApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersUUID); err != nil {
-		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
+		return currentServiceInfo, fmt.Errorf("error when update persistent storage: %v", err)
 	}
+	logUpdatedServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+
+	// TODO: why not only UpdateServiceInfo?
 	if err := addApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
 	}
 
+	logTryGenerateCommandsForApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	if err := addApplicationServers.commandGenerator.GenerateCommandsForApplicationServers(updatedServiceInfo, addApplicationServersUUID); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't generate commands :%v", err)
 	}
+	logGeneratedCommandsForApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 
+	logUpdateServiceAtHealtchecks(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	addApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
+	logUpdatedServiceAtHealtchecks(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	return updatedServiceInfo, nil
 }
 
+// FIXME: remove code bellow
 func (addApplicationServers *AddApplicationServers) updateServiceFromPersistentStorage(serviceInfo *domain.ServiceInfo, addApplicationServersUUID string) error {
 	if err := addApplicationServers.persistentStorage.UpdateServiceInfo(serviceInfo, addApplicationServersUUID); err != nil {
 		return fmt.Errorf("error add new service data to persistent storage: %v", err)

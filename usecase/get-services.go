@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const getNlbServicesEntity = "get-nlb-services"
+const getAllServicesName = "get-all-services"
 
 // GetAllServices ...
 type GetAllServices struct {
@@ -33,6 +33,8 @@ func NewGetAllServices(cacheStorage *portadapter.StorageEntity,
 
 // GetAllServices ...
 func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID string) ([]*domain.ServiceInfo, error) {
+
+	// gracefull shutdown part start
 	getAllServices.locker.Lock()
 	defer getAllServices.locker.Unlock()
 	getAllServices.gracefullShutdown.Lock()
@@ -43,6 +45,7 @@ func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID s
 	getAllServices.gracefullShutdown.UsecasesJobs++
 	getAllServices.gracefullShutdown.Unlock()
 	defer decreaseJobs(getAllServices.gracefullShutdown)
-
+	// gracefull shutdown part end
+	logStartUsecase(getAllServicesName, "get all services", getAllServicesRequestUUID, nil, getAllServices.logging)
 	return getAllServices.cacheStorage.LoadAllStorageDataToDomainModel()
 }

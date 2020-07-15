@@ -5,6 +5,7 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/sirupsen/logrus"
 )
 
 // TODO: need better check unique, app srv to services too
@@ -179,3 +180,315 @@ func formTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheS
 	}
 	return tunnelsFilesInfo
 }
+
+// logging utils start
+func logStartUsecase(usecaseName,
+	usecaseMessage,
+	uuid string,
+	serviceInfo *domain.ServiceInfo,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("start process for %v: %v", usecaseMessage, serviceInfo)
+}
+
+func logTryCreateNewTunnels(usecaseName,
+	uuid string,
+	tunnelsFilesInfo []*domain.TunnelForApplicationServer,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("try create new tunnels: %v", tunnelsFilesInfo)
+}
+
+func logCreatedNewTunnels(usecaseName,
+	uuid string,
+	tunnelsFilesInfo []*domain.TunnelForApplicationServer,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("new tunnels created: %v", tunnelsFilesInfo)
+}
+
+func logTryToGetCurrentServiceInfo(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try to get current service info")
+}
+
+func logGotCurrentServiceInfo(usecaseName,
+	uuid string,
+	serviceInfo *domain.ServiceInfo,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("got current service info: %v", serviceInfo)
+}
+
+func logTryGenerateUpdatedServiceInfo(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try to generate updated service info")
+}
+
+func logGenerateUpdatedServiceInfo(usecaseName,
+	uuid string,
+	serviceInfo *domain.ServiceInfo,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("updated service info generated: %v", serviceInfo)
+}
+
+func logTryUpdateServiceInfoAtCache(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try update service info at cache")
+}
+
+func logUpdateServiceInfoAtCache(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("service info at cache has been updated")
+}
+
+func logTryIpvsadmApplicationServers(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	serviceIP,
+	servicePort string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("try ipvsadm add application servers %v to service %v:%v",
+		applicationServers,
+		serviceIP,
+		servicePort)
+}
+
+func logAddedIpvsadmApplicationServers(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	serviceIP,
+	servicePort string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("ipvsadm added application servers %v for service %v:%v",
+		applicationServers,
+		serviceIP,
+		servicePort)
+}
+
+func logTryUpdateServiceInfoAtPersistentStorage(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try update service info at persistent storage")
+}
+
+func logUpdatedServiceInfoAtPersistentStorage(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("service info at persistent storage has been updated")
+}
+
+func logTryGenerateCommandsForApplicationServers(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try generate commands for application servers")
+}
+
+func logGeneratedCommandsForApplicationServers(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("successfully generate commands for application servers")
+}
+
+func logUpdateServiceAtHealtchecks(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("update service at healtchecks")
+}
+
+func logUpdatedServiceAtHealtchecks(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("service updated at healtchecks")
+}
+
+func logTryCreateIPVSService(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	serviceIP,
+	servicePort string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("try ipvsadm create service %v:%v include application servers %v",
+		serviceIP,
+		servicePort,
+		applicationServers)
+}
+
+func logCreatedIPVSService(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	serviceIP,
+	servicePort string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("ipvsadm created service %v:%v include application servers %v",
+		serviceIP,
+		servicePort,
+		applicationServers)
+}
+
+func logTryValidateRemoveApplicationServers(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("try validate remove application servers %v", applicationServers)
+}
+
+func logValidateRemoveApplicationServers(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("successfully validate remove application servers %v", applicationServers)
+}
+
+func logTryRemoveIpvsadmApplicationServers(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	serviceIP,
+	servicePort string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try ipvsadm remove application servers %v for service %v:%v",
+		applicationServers,
+		serviceIP,
+		servicePort)
+}
+
+func logRemovedIpvsadmApplicationServers(usecaseName,
+	uuid string,
+	applicationServers []*domain.ApplicationServer,
+	serviceIP,
+	servicePort string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("ipvsadm removed application servers %v for service %v:%v",
+		applicationServers,
+		serviceIP,
+		servicePort)
+}
+
+func logTryRemoveIpvsadmService(usecaseName,
+	uuid string,
+	serviceInfo *domain.ServiceInfo,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try ipvsadm remove service %v", serviceInfo)
+}
+
+func logRemovedIpvsadmService(usecaseName,
+	uuid string,
+	serviceInfo *domain.ServiceInfo,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("ipvsadm removed service %v", serviceInfo)
+}
+
+func logTryRemoveServiceAtHealtchecks(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try remove service from healtchecks")
+}
+
+func logRemovedServiceAtHealtchecks(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("removed service from healtchecks")
+}
+
+func logTryRemoveIPFromDummy(usecaseName,
+	uuid,
+	serviceIP string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("try remove service ip %v from dummy", serviceIP)
+}
+
+func logRemovedIPFromDummy(usecaseName,
+	uuid,
+	serviceIP string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("removed service ip %v from dummy", serviceIP)
+}
+
+// logging utils end

@@ -66,41 +66,61 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	defer decreaseJobs(removeApplicationServers.gracefullShutdown)
 	// gracefull shutdown part end
 	tunnelsFilesInfo := formTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
+	logTryCreateNewTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
 	oldTunnelsFilesInfo, err := removeApplicationServers.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeApplicationServersUUID)
 	if err != nil {
 		return nil, fmt.Errorf("can't create tunnel files: %v", err)
 	}
+	logCreatedNewTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
 
 	// need for rollback. used only service ip and port
+	logTryToGetCurrentServiceInfo(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 	currentServiceInfo, err := removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersUUID)
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
+	logGotCurrentServiceInfo(removeApplicationServersName, removeApplicationServersUUID, currentServiceInfo, removeApplicationServers.logging)
 
+	logTryValidateRemoveApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeApplicationServers.logging)
 	if err = validateRemoveApplicationServers(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers); err != nil {
 		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
 	}
+	logValidateRemoveApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeApplicationServers.logging)
 
 	updatedServiceInfo = forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID) // ignore check unique error
 	// update for cache storage
+
+	logTryUpdateServiceInfoAtCache(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 	if err = removeApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersUUID); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
+	logUpdateServiceInfoAtCache(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 
+	// TODO: why double?
 	if err = removeApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't update tunnel info in storage: %v", err)
 	}
 
+	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
 	if err = removeApplicationServers.ipvsadm.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {
-		return currentServiceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
+		return currentServiceInfo, fmt.Errorf("Error when ipvsadm remove application servers from service: %v", err)
 	}
+	logRemovedIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
 
+	logTryUpdateServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 	if err = removeApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersUUID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
+	logUpdatedServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+
+	// TODO: why double?
 	if err = removeApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't update tunnel info in storage: %v", err)
 	}
-	go removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
+
+	logUpdateServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+	removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
+	logUpdatedServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+
 	return updatedServiceInfo, nil
 }

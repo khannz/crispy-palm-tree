@@ -5,23 +5,29 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/sirupsen/logrus"
 )
+
+const getServiceStateName = "get-service-state"
 
 // GetServiceStateEntity ...
 type GetServiceStateEntity struct {
 	locker            *domain.Locker
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	gracefullShutdown *domain.GracefullShutdown
+	logging           *logrus.Logger
 }
 
 // NewGetServiceStateEntity ...
 func NewGetServiceStateEntity(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
-	gracefullShutdown *domain.GracefullShutdown) *GetServiceStateEntity {
+	gracefullShutdown *domain.GracefullShutdown,
+	logging *logrus.Logger) *GetServiceStateEntity {
 	return &GetServiceStateEntity{
 		locker:            locker,
 		cacheStorage:      cacheStorage,
 		gracefullShutdown: gracefullShutdown,
+		logging:           logging,
 	}
 }
 
@@ -40,6 +46,6 @@ func (getServiceStateEntity *GetServiceStateEntity) GetServiceState(serviceInfo 
 	getServiceStateEntity.gracefullShutdown.Unlock()
 	defer decreaseJobs(getServiceStateEntity.gracefullShutdown)
 	// gracefull shutdown part end
-
+	logStartUsecase(getServiceStateName, "get service state", getServiceStateUUID, serviceInfo, getServiceStateEntity.logging)
 	return getServiceStateEntity.cacheStorage.GetServiceInfo(serviceInfo, getServiceStateUUID)
 }

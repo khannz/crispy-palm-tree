@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const removeNlbServiceEntity = "remove-nlb-service"
+const removeServiceName = "remove-service"
 
 // RemoveServiceEntity ...
 type RemoveServiceEntity struct {
@@ -64,23 +64,33 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	removeServiceEntity.gracefullShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefullShutdown)
 	// gracefull shutdown part end
+
+	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
 	if err != nil {
 		return fmt.Errorf("can't get current service info: %v", err)
 	}
+	logGotCurrentServiceInfo(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 
 	tunnelsFilesInfo := formTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
+	logTryCreateNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
 	oldTunnelsFilesInfo, err := removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceUUID)
 	if err != nil {
 		return fmt.Errorf("can't create tunnel files: %v", err)
 	}
+	logCreatedNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
+
+	// TODO: why double?
 	if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 		return fmt.Errorf("can't update tunnel info")
 	}
 
+	logTryRemoveIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 	if err = removeServiceEntity.ipvsadm.RemoveService(serviceInfo, removeServiceUUID); err != nil {
 		return fmt.Errorf("ipvsadm can't remove service: %v. got error: %v", serviceInfo, err)
 	}
+	logRemovedIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
+
 	if err = removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
@@ -88,17 +98,21 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return err
 	}
 
+	// TODO: why double?
 	if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 		return fmt.Errorf("can't update tunnel info")
 	}
 
-	go removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
+	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
+	removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
+	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 
+	logTryRemoveIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
 	if !removeServiceEntity.hc.isMockMode {
 		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
 			return err
 		}
 	}
-
+	logRemovedIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
 	return nil
 }
