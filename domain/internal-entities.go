@@ -7,8 +7,8 @@ type Locker struct {
 	sync.Mutex
 }
 
-// GracefullShutdown if need graceful shutdown
-type GracefullShutdown struct {
+// GracefulShutdown if need graceful shutdown
+type GracefulShutdown struct {
 	sync.Mutex
 	ShutdownNow  bool
 	UsecasesJobs int

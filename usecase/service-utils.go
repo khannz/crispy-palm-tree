@@ -67,10 +67,10 @@ loop:
 	return currentApplicattionServers
 }
 
-func decreaseJobs(gracefullShutdown *domain.GracefullShutdown) {
-	gracefullShutdown.Lock()
-	defer gracefullShutdown.Unlock()
-	gracefullShutdown.UsecasesJobs--
+func decreaseJobs(gracefulShutdown *domain.GracefulShutdown) {
+	gracefulShutdown.Lock()
+	defer gracefulShutdown.Unlock()
+	gracefulShutdown.UsecasesJobs--
 }
 
 // // need to be sure fullApplicationServersInfo contain incompleteApplicationServersInfo

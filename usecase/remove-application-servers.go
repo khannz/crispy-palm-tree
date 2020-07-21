@@ -18,7 +18,7 @@ type RemoveApplicationServers struct {
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
-	gracefullShutdown *domain.GracefullShutdown
+	gracefulShutdown  *domain.GracefulShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -30,7 +30,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
-	gracefullShutdown *domain.GracefullShutdown,
+	gracefulShutdown *domain.GracefulShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *RemoveApplicationServers {
 	return &RemoveApplicationServers{
@@ -40,7 +40,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
 		hc:                hc,
-		gracefullShutdown: gracefullShutdown,
+		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
@@ -56,14 +56,14 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	// gracefull shutdown part start
 	removeApplicationServers.locker.Lock()
 	defer removeApplicationServers.locker.Unlock()
-	removeApplicationServers.gracefullShutdown.Lock()
-	if removeApplicationServers.gracefullShutdown.ShutdownNow {
-		defer removeApplicationServers.gracefullShutdown.Unlock()
+	removeApplicationServers.gracefulShutdown.Lock()
+	if removeApplicationServers.gracefulShutdown.ShutdownNow {
+		defer removeApplicationServers.gracefulShutdown.Unlock()
 		return removeServiceInfo, fmt.Errorf("program got shutdown signal, job remove application servers %v cancel", removeServiceInfo)
 	}
-	removeApplicationServers.gracefullShutdown.UsecasesJobs++
-	removeApplicationServers.gracefullShutdown.Unlock()
-	defer decreaseJobs(removeApplicationServers.gracefullShutdown)
+	removeApplicationServers.gracefulShutdown.UsecasesJobs++
+	removeApplicationServers.gracefulShutdown.Unlock()
+	defer decreaseJobs(removeApplicationServers.gracefulShutdown)
 	// gracefull shutdown part end
 	tunnelsFilesInfo := formTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
 	logTryCreateNewTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)

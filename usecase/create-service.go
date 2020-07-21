@@ -19,7 +19,7 @@ type CreateServiceEntity struct {
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
-	gracefullShutdown *domain.GracefullShutdown
+	gracefulShutdown  *domain.GracefulShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -32,7 +32,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
-	gracefullShutdown *domain.GracefullShutdown,
+	gracefulShutdown *domain.GracefulShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *CreateServiceEntity {
 	return &CreateServiceEntity{
@@ -43,7 +43,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 		tunnelConfig:      tunnelConfig,
 		hc:                hc,
 		commandGenerator:  commandGenerator,
-		gracefullShutdown: gracefullShutdown,
+		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
@@ -55,14 +55,14 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	// gracefull shutdown part start
 	createService.locker.Lock()
 	defer createService.locker.Unlock()
-	createService.gracefullShutdown.Lock()
-	if createService.gracefullShutdown.ShutdownNow {
-		defer createService.gracefullShutdown.Unlock()
+	createService.gracefulShutdown.Lock()
+	if createService.gracefulShutdown.ShutdownNow {
+		defer createService.gracefulShutdown.Unlock()
 		return serviceInfo, fmt.Errorf("program got shutdown signal, job create service %v cancel", serviceInfo)
 	}
-	createService.gracefullShutdown.UsecasesJobs++
-	createService.gracefullShutdown.Unlock()
-	defer decreaseJobs(createService.gracefullShutdown)
+	createService.gracefulShutdown.UsecasesJobs++
+	createService.gracefulShutdown.Unlock()
+	defer decreaseJobs(createService.gracefulShutdown)
 	// gracefull shutdown part end
 	// FIXME: check service not exist, before create tunnels
 	logStartUsecase(createServiceName, "add new application servers to service", createServiceUUID, serviceInfo, createService.logging)

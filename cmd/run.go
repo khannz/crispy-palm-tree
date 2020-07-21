@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		locker := &domain.Locker{}
-		gracefullShutdown := &domain.GracefullShutdown{}
+		gracefulShutdown := &domain.GracefulShutdown{}
 
 		gracefulShutdownCommandForRestAPI := make(chan struct{}, 1)
 		restAPIisDone := make(chan struct{}, 1)
@@ -116,7 +116,7 @@ var rootCmd = &cobra.Command{
 			ipvsadmConfigurator,
 			viperConfig.GetString(techInterfaceName),
 			locker,
-			gracefullShutdown,
+			gracefulShutdown,
 			viperConfig.GetBool(mockMode),
 			logging)
 		if err = hc.StartHealthchecksForCurrentServices(); err != nil {
@@ -125,7 +125,7 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
 		}
-		go hc.StartGracefullShutdownControlForHealthchecks()
+		go hc.StartGracefulShutdownControlForHealthchecks()
 		logging.WithFields(logrus.Fields{
 			"entity":     rootEntity,
 			"event uuid": uuidForRootProcess,
@@ -153,7 +153,7 @@ var rootCmd = &cobra.Command{
 			tunnelMaker,
 			hc,
 			commandGenerator,
-			gracefullShutdown,
+			gracefulShutdown,
 			uuidGenerator,
 			logging)
 
@@ -185,7 +185,7 @@ var rootCmd = &cobra.Command{
 		}).Info("IPVSADM data has flushed")
 
 		gracefulShutdownCommandForRestAPI <- struct{}{}
-		gracefulShutdownUsecases(gracefullShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
+		gracefulShutdownUsecases(gracefulShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
 		logging.WithFields(logrus.Fields{
 			"entity":     rootEntity,
@@ -199,10 +199,10 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func gracefulShutdownUsecases(gracefullShutdown *domain.GracefullShutdown, maxWaitTimeForJobsIsDone time.Duration, logging *logrus.Logger) {
-	gracefullShutdown.Lock()
-	gracefullShutdown.ShutdownNow = true
-	gracefullShutdown.Unlock()
+func gracefulShutdownUsecases(gracefulShutdown *domain.GracefulShutdown, maxWaitTimeForJobsIsDone time.Duration, logging *logrus.Logger) {
+	gracefulShutdown.Lock()
+	gracefulShutdown.ShutdownNow = true
+	gracefulShutdown.Unlock()
 
 	ticker := time.NewTicker(time.Duration(100 * time.Millisecond)) // hardcode
 	defer ticker.Stop()
@@ -212,22 +212,22 @@ func gracefulShutdownUsecases(gracefullShutdown *domain.GracefullShutdown, maxWa
 	for {
 		select {
 		case <-ticker.C:
-			gracefullShutdown.Lock()
-			if gracefullShutdown.UsecasesJobs <= 0 {
+			gracefulShutdown.Lock()
+			if gracefulShutdown.UsecasesJobs <= 0 {
 				logging.WithFields(logrus.Fields{
 					"entity": rootEntity,
 				}).Info("All jobs is done")
-				defer gracefullShutdown.Unlock()
+				defer gracefulShutdown.Unlock()
 				return
 			}
-			gracefullShutdown.Unlock()
+			gracefulShutdown.Unlock()
 			continue
 		case <-ctx.Done():
-			gracefullShutdown.Lock()
+			gracefulShutdown.Lock()
 			logging.WithFields(logrus.Fields{
 				"entity": rootEntity,
-			}).Warnf("%v jobs is fail when program stop", gracefullShutdown.UsecasesJobs)
-			defer gracefullShutdown.Unlock()
+			}).Warnf("%v jobs is fail when program stop", gracefulShutdown.UsecasesJobs)
+			defer gracefulShutdown.Unlock()
 			return
 		}
 	}

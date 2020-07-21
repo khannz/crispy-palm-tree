@@ -19,7 +19,7 @@ type AddApplicationServers struct {
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
-	gracefullShutdown *domain.GracefullShutdown
+	gracefulShutdown  *domain.GracefulShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -32,7 +32,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
-	gracefullShutdown *domain.GracefullShutdown,
+	gracefulShutdown *domain.GracefulShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *AddApplicationServers {
 	return &AddApplicationServers{
@@ -43,7 +43,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 		tunnelConfig:      tunnelConfig,
 		hc:                hc,
 		commandGenerator:  commandGenerator,
-		gracefullShutdown: gracefullShutdown,
+		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
@@ -58,14 +58,14 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	// gracefull shutdown part start
 	addApplicationServers.locker.Lock()
 	defer addApplicationServers.locker.Unlock()
-	addApplicationServers.gracefullShutdown.Lock()
-	if addApplicationServers.gracefullShutdown.ShutdownNow {
-		defer addApplicationServers.gracefullShutdown.Unlock()
+	addApplicationServers.gracefulShutdown.Lock()
+	if addApplicationServers.gracefulShutdown.ShutdownNow {
+		defer addApplicationServers.gracefulShutdown.Unlock()
 		return newServiceInfo, fmt.Errorf("program got shutdown signal, job add application servers %v cancel", newServiceInfo)
 	}
-	addApplicationServers.gracefullShutdown.UsecasesJobs++
-	addApplicationServers.gracefullShutdown.Unlock()
-	defer decreaseJobs(addApplicationServers.gracefullShutdown)
+	addApplicationServers.gracefulShutdown.UsecasesJobs++
+	addApplicationServers.gracefulShutdown.Unlock()
+	defer decreaseJobs(addApplicationServers.gracefulShutdown)
 	// gracefull shutdown part end
 
 	logStartUsecase(addApplicationServersName, "add new application servers to service", addApplicationServersUUID, newServiceInfo, addApplicationServers.logging)

@@ -17,7 +17,7 @@ type RemoveServiceEntity struct {
 	cacheStorage      *portadapter.StorageEntity // so dirty
 	persistentStorage *portadapter.StorageEntity // so dirty
 	tunnelConfig      domain.TunnelMaker
-	gracefullShutdown *domain.GracefullShutdown
+	gracefulShutdown  *domain.GracefulShutdown
 	uuidGenerator     domain.UUIDgenerator
 	hc                *HeathcheckEntity
 	logging           *logrus.Logger
@@ -29,7 +29,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity, // so dirty
 	persistentStorage *portadapter.StorageEntity, // so dirty
 	tunnelConfig domain.TunnelMaker,
-	gracefullShutdown *domain.GracefullShutdown,
+	gracefulShutdown *domain.GracefulShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	hc *HeathcheckEntity,
 	logging *logrus.Logger) *RemoveServiceEntity {
@@ -39,7 +39,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
-		gracefullShutdown: gracefullShutdown,
+		gracefulShutdown:  gracefulShutdown,
 		uuidGenerator:     uuidGenerator,
 		hc:                hc,
 		logging:           logging,
@@ -55,14 +55,14 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	// gracefull shutdown part start
 	removeServiceEntity.locker.Lock()
 	defer removeServiceEntity.locker.Unlock()
-	removeServiceEntity.gracefullShutdown.Lock()
-	if removeServiceEntity.gracefullShutdown.ShutdownNow {
-		defer removeServiceEntity.gracefullShutdown.Unlock()
+	removeServiceEntity.gracefulShutdown.Lock()
+	if removeServiceEntity.gracefulShutdown.ShutdownNow {
+		defer removeServiceEntity.gracefulShutdown.Unlock()
 		return fmt.Errorf("program got shutdown signal, job remove service %v cancel", serviceInfo)
 	}
-	removeServiceEntity.gracefullShutdown.UsecasesJobs++
-	removeServiceEntity.gracefullShutdown.Unlock()
-	defer decreaseJobs(removeServiceEntity.gracefullShutdown)
+	removeServiceEntity.gracefulShutdown.UsecasesJobs++
+	removeServiceEntity.gracefulShutdown.Unlock()
+	defer decreaseJobs(removeServiceEntity.gracefulShutdown)
 	// gracefull shutdown part end
 
 	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
