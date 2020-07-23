@@ -64,7 +64,20 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		balancerFacade.Logging)
 	appSvrs := []*domain.ApplicationServer{}
 	for _, appSrvr := range createService.ApplicationServers {
-		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
+		arrayOfAdvancedHealthcheckParameters := []domain.AdvancedHealthcheckParameters{}
+		for _, aHP := range appSrvr.ServerHealthcheck.AdvancedHealthcheckParameters {
+			advancedHealthcheckParameter := domain.AdvancedHealthcheckParameters{
+				NearFieldsMode:  aHP.NearFieldsMode,
+				UserDefinedData: aHP.UserDefinedData,
+			}
+			arrayOfAdvancedHealthcheckParameters = append(arrayOfAdvancedHealthcheckParameters, advancedHealthcheckParameter)
+		}
+
+		hcA := domain.ServerHealthcheck{
+			TypeOfCheck:                   appSrvr.ServerHealthcheck.TypeOfCheck,
+			HealthcheckAddress:            appSrvr.ServerHealthcheck.HealthcheckAddress,
+			AdvancedHealthcheckParameters: arrayOfAdvancedHealthcheckParameters,
+		}
 		as := &domain.ApplicationServer{
 			ServerIP:          appSrvr.ServerIP,
 			ServerPort:        appSrvr.ServerPort,
@@ -136,7 +149,20 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 
 	appSvrs := []*domain.ApplicationServer{}
 	for _, appSrvr := range addApplicationServersRequest.ApplicationServers {
-		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
+		arrayOfAdvancedHealthcheckParameters := []domain.AdvancedHealthcheckParameters{}
+		for _, aHP := range appSrvr.ServerHealthcheck.AdvancedHealthcheckParameters {
+			advancedHealthcheckParameter := domain.AdvancedHealthcheckParameters{
+				NearFieldsMode:  aHP.NearFieldsMode,
+				UserDefinedData: aHP.UserDefinedData,
+			}
+			arrayOfAdvancedHealthcheckParameters = append(arrayOfAdvancedHealthcheckParameters, advancedHealthcheckParameter)
+		}
+
+		hcA := domain.ServerHealthcheck{
+			TypeOfCheck:                   appSrvr.ServerHealthcheck.TypeOfCheck,
+			HealthcheckAddress:            appSrvr.ServerHealthcheck.HealthcheckAddress,
+			AdvancedHealthcheckParameters: arrayOfAdvancedHealthcheckParameters,
+		}
 		as := &domain.ApplicationServer{
 			ServerIP:          appSrvr.ServerIP,
 			ServerPort:        appSrvr.ServerPort,
@@ -173,7 +199,20 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 		balancerFacade.Logging)
 	appSvrs := []*domain.ApplicationServer{}
 	for _, appSrvr := range removeApplicationServersRequest.ApplicationServers {
-		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
+		arrayOfAdvancedHealthcheckParameters := []domain.AdvancedHealthcheckParameters{}
+		for _, aHP := range appSrvr.ServerHealthcheck.AdvancedHealthcheckParameters {
+			advancedHealthcheckParameter := domain.AdvancedHealthcheckParameters{
+				NearFieldsMode:  aHP.NearFieldsMode,
+				UserDefinedData: aHP.UserDefinedData,
+			}
+			arrayOfAdvancedHealthcheckParameters = append(arrayOfAdvancedHealthcheckParameters, advancedHealthcheckParameter)
+		}
+
+		hcA := domain.ServerHealthcheck{
+			TypeOfCheck:                   appSrvr.ServerHealthcheck.TypeOfCheck,
+			HealthcheckAddress:            appSrvr.ServerHealthcheck.HealthcheckAddress,
+			AdvancedHealthcheckParameters: arrayOfAdvancedHealthcheckParameters,
+		}
 		as := &domain.ApplicationServer{
 			ServerIP:          appSrvr.ServerIP,
 			ServerPort:        appSrvr.ServerPort,

@@ -15,6 +15,7 @@ type AddApplicationServersRequest struct {
 	ID                 string              `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
+	Healtcheck         ServiceHealthcheck  `json:"Healtcheck" validate:"required"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
@@ -89,6 +90,7 @@ func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApp
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortAddApplicationServersRequestValidation, AddApplicationServersRequest{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
+	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealthcheck{})
 	if err := validate.Struct(addApplicationServersRequest); err != nil {
 		return err
 	}
