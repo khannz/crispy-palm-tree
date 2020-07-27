@@ -206,3 +206,45 @@ func (balancerFacade *BalancerFacade) GetServiceState(getServiceStateRequest *Ge
 	}
 	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceStateRequest.ID)
 }
+
+// ModifyService ... FIXME: check all it ok
+func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyServiceInfo,
+	modifyServiceUUID string) (*domain.ServiceInfo, error) {
+	newModifyServiceEntity := usecase.NewModifyServiceEntity(balancerFacade.Locker,
+		balancerFacade.IPVSADMConfigurator,
+		balancerFacade.CacheStorage,
+		balancerFacade.PersistentStorage,
+		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
+		balancerFacade.CommandGenerator,
+		balancerFacade.GracefullShutdown,
+		balancerFacade.UUIDgenerator,
+		balancerFacade.Logging)
+	appSvrs := []*domain.ApplicationServer{}
+	for _, appSrvr := range modifyService.ApplicationServers {
+		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
+		as := &domain.ApplicationServer{
+			ServerIP:          appSrvr.ServerIP,
+			ServerPort:        appSrvr.ServerPort,
+			ServerHealthcheck: hcA,
+			IsUp:              false,
+		}
+		appSvrs = append(appSvrs, as)
+	}
+	hcS := domain.ServiceHealthcheck{
+		Type:                 modifyService.Healtcheck.Type,
+		Timeout:              modifyService.Healtcheck.Timeout,
+		RepeatHealthcheck:    modifyService.Healtcheck.RepeatHealthcheck,
+		PercentOfAlivedForUp: modifyService.Healtcheck.PercentOfAlivedForUp,
+	}
+
+	serviceInfo := &domain.ServiceInfo{
+		ServiceIP:          modifyService.ServiceIP,
+		ServicePort:        modifyService.ServicePort,
+		ApplicationServers: appSvrs,
+		Healthcheck:        hcS,
+		BalanceType:        modifyService.BalanceType,
+		IsUp:               false,
+	}
+	return newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceUUID)
+}
