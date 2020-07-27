@@ -52,7 +52,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 // CreateService ...
 func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.ServiceInfo,
 	createServiceUUID string) (*domain.ServiceInfo, error) {
-	// gracefull shutdown part start
+	// graceful shutdown part start
 	createService.locker.Lock()
 	defer createService.locker.Unlock()
 	createService.gracefulShutdown.Lock()
@@ -63,7 +63,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	createService.gracefulShutdown.UsecasesJobs++
 	createService.gracefulShutdown.Unlock()
 	defer decreaseJobs(createService.gracefulShutdown)
-	// gracefull shutdown part end
+	// graceful shutdown part end
 	// FIXME: check service not exist, before create tunnels
 	logStartUsecase(createServiceName, "add new application servers to service", createServiceUUID, serviceInfo, createService.logging)
 

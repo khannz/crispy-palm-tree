@@ -55,7 +55,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	var err error
 	var updatedServiceInfo *domain.ServiceInfo
 
-	// gracefull shutdown part start
+	// graceful shutdown part start
 	addApplicationServers.locker.Lock()
 	defer addApplicationServers.locker.Unlock()
 	addApplicationServers.gracefulShutdown.Lock()
@@ -66,7 +66,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	addApplicationServers.gracefulShutdown.UsecasesJobs++
 	addApplicationServers.gracefulShutdown.Unlock()
 	defer decreaseJobs(addApplicationServers.gracefulShutdown)
-	// gracefull shutdown part end
+	// graceful shutdown part end
 
 	logStartUsecase(addApplicationServersName, "add new application servers to service", addApplicationServersUUID, newServiceInfo, addApplicationServers.logging)
 	// FIXME: check service exist, before create tunnels

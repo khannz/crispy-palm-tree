@@ -34,7 +34,7 @@ func NewGetServiceStateEntity(locker *domain.Locker,
 // GetServiceState ...
 func (getServiceStateEntity *GetServiceStateEntity) GetServiceState(serviceInfo *domain.ServiceInfo,
 	getServiceStateUUID string) (*domain.ServiceInfo, error) {
-	// gracefull shutdown part start
+	// graceful shutdown part start
 	getServiceStateEntity.locker.Lock()
 	defer getServiceStateEntity.locker.Unlock()
 	getServiceStateEntity.gracefulShutdown.Lock()
@@ -45,7 +45,7 @@ func (getServiceStateEntity *GetServiceStateEntity) GetServiceState(serviceInfo 
 	getServiceStateEntity.gracefulShutdown.UsecasesJobs++
 	getServiceStateEntity.gracefulShutdown.Unlock()
 	defer decreaseJobs(getServiceStateEntity.gracefulShutdown)
-	// gracefull shutdown part end
+	// graceful shutdown part end
 	logStartUsecase(getServiceStateName, "get service state", getServiceStateUUID, serviceInfo, getServiceStateEntity.logging)
 	return getServiceStateEntity.cacheStorage.GetServiceInfo(serviceInfo, getServiceStateUUID)
 }

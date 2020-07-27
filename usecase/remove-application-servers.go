@@ -53,7 +53,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	var err error
 	var updatedServiceInfo *domain.ServiceInfo
 
-	// gracefull shutdown part start
+	// graceful shutdown part start
 	removeApplicationServers.locker.Lock()
 	defer removeApplicationServers.locker.Unlock()
 	removeApplicationServers.gracefulShutdown.Lock()
@@ -64,7 +64,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	removeApplicationServers.gracefulShutdown.UsecasesJobs++
 	removeApplicationServers.gracefulShutdown.Unlock()
 	defer decreaseJobs(removeApplicationServers.gracefulShutdown)
-	// gracefull shutdown part end
+	// graceful shutdown part end
 	tunnelsFilesInfo := formTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
 	logTryCreateNewTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
 	oldTunnelsFilesInfo, err := removeApplicationServers.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeApplicationServersUUID)

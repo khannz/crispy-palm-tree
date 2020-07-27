@@ -257,7 +257,7 @@ func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyService
 		balancerFacade.TunnelConfig,
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.CommandGenerator,
-		balancerFacade.GracefullShutdown,
+		balancerFacade.GracefulShutdown,
 		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 	appSvrs := []*domain.ApplicationServer{}

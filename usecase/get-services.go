@@ -34,7 +34,7 @@ func NewGetAllServices(cacheStorage *portadapter.StorageEntity,
 // GetAllServices ...
 func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID string) ([]*domain.ServiceInfo, error) {
 
-	// gracefull shutdown part start
+	// graceful shutdown part start
 	getAllServices.locker.Lock()
 	defer getAllServices.locker.Unlock()
 	getAllServices.gracefulShutdown.Lock()
@@ -45,7 +45,7 @@ func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID s
 	getAllServices.gracefulShutdown.UsecasesJobs++
 	getAllServices.gracefulShutdown.Unlock()
 	defer decreaseJobs(getAllServices.gracefulShutdown)
-	// gracefull shutdown part end
+	// graceful shutdown part end
 	logStartUsecase(getAllServicesName, "get all services", getAllServicesRequestUUID, nil, getAllServices.logging)
 	return getAllServices.cacheStorage.LoadAllStorageDataToDomainModel()
 }

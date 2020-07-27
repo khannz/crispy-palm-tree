@@ -52,7 +52,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	removeServiceUUID string) error {
 	var err error
 
-	// gracefull shutdown part start
+	// graceful shutdown part start
 	removeServiceEntity.locker.Lock()
 	defer removeServiceEntity.locker.Unlock()
 	removeServiceEntity.gracefulShutdown.Lock()
@@ -63,7 +63,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	removeServiceEntity.gracefulShutdown.UsecasesJobs++
 	removeServiceEntity.gracefulShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefulShutdown)
-	// gracefull shutdown part end
+	// graceful shutdown part end
 
 	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
