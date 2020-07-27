@@ -81,7 +81,7 @@ func (restAPI *RestAPIstruct) createService(w http.ResponseWriter, r *http.Reque
 
 func (createService *NewServiceInfo) validateCreateService() error {
 	validate := validator.New()
-	validate.RegisterStructValidation(customPortValidationForcreateService, NewServiceInfo{})
+	validate.RegisterStructValidation(customPortValidationForCreateService, NewServiceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealthcheck{})
 	if err := validate.Struct(createService); err != nil {
@@ -93,7 +93,7 @@ func (createService *NewServiceInfo) validateCreateService() error {
 	return nil
 }
 
-func customPortValidationForcreateService(sl validator.StructLevel) {
+func customPortValidationForCreateService(sl validator.StructLevel) {
 	nbi := sl.Current().Interface().(NewServiceInfo)
 	port, err := strconv.Atoi(nbi.ServicePort)
 	if err != nil {

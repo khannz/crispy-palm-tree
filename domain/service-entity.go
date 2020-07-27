@@ -14,9 +14,17 @@ type ServiceHealthcheck struct {
 	RepeatHealthcheck    time.Duration `json:"repeatHealthcheck" example:"3000000000"`
 }
 
+// AdvancedHealthcheckParameters ...
+type AdvancedHealthcheckParameters struct {
+	NearFieldsMode  bool                   `json:"nearFieldsMode"`
+	UserDefinedData map[string]interface{} `json:"userDefinedData"`
+}
+
 // ServerHealthcheck ...
 type ServerHealthcheck struct {
-	HealthcheckAddress string `json:"address"` // ip+port, http address or some one else
+	TypeOfCheck                   string                          `json:"typeOfCheck,omitempty"`
+	HealthcheckAddress            string                          `json:"address"` // ip+port, http address or some one else
+	AdvancedHealthcheckParameters []AdvancedHealthcheckParameters `json:"advancedHealthcheckParameters,omitempty"`
 }
 
 // ApplicationServer ...

@@ -56,7 +56,7 @@ loop:
 	for i := 0; i < len(currentApplicattionServers); i++ {
 		url := currentApplicattionServers[i]
 		for _, rem := range applicattionServersForRemove {
-			if *url == *rem {
+			if url.ServerIP == rem.ServerIP && url.ServerPort == rem.ServerPort { // TODO: check that logic not broken from advanced healthcheck feature
 				currentApplicattionServers = append(currentApplicattionServers[:i], currentApplicattionServers[i+1:]...)
 				i-- // decrease index
 				continue loop
