@@ -296,3 +296,24 @@ func convertDomainServicesInfoToRestUniversalResponseWithState(servicesInfo []*d
 	}
 	return urs
 }
+
+func validateServiceBalanceType(balanceType string) error {
+	switch balanceType { // maybe range by array is better?
+	case "rr":
+	case "wrr":
+	case "lc":
+	case "wlc":
+	case "lblc":
+	case "sh":
+	case "mh":
+	case "dh":
+	case "fo":
+	case "ovf":
+	case "lblcr":
+	case "sed":
+	case "nq":
+	default:
+		return fmt.Errorf("unknown balance type for service: %v; supported types: rr|wrr|lc|wlc|lblc|sh|mh|dh|fo|ovf|lblcr|sed|nq0", balanceType)
+	}
+	return nil
+}
