@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -51,4 +52,14 @@ type ServiceInfo struct {
 // CommandGenerator ...
 type CommandGenerator interface {
 	GenerateCommandsForApplicationServers(*ServiceInfo, string) error
+}
+
+// Release stringer interface for print/log data in []*ApplicationServer
+func (applicationServer *ApplicationServer) String() string {
+	return fmt.Sprintf("applicationServer{ServerIP:%s, ServerPort:%s, IsUp:%v, ServerHealthcheck:%s, ServerСonfigurationCommands:%s}",
+		applicationServer.ServerIP,
+		applicationServer.ServerPort,
+		applicationServer.IsUp,
+		applicationServer.ServerHealthcheck,
+		applicationServer.ServerСonfigurationCommands)
 }

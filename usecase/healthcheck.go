@@ -41,7 +41,7 @@ type HeathcheckEntity struct {
 	ipvsadm            *portadapter.IPVSADMEntity // so dirty
 	techInterface      *net.TCPAddr
 	locker             *domain.Locker
-	gracefullShutdown  *domain.GracefullShutdown
+	gracefulShutdown   *domain.GracefulShutdown
 	dw                 *dummyWorker
 	isMockMode         bool
 	logging            *logrus.Logger
@@ -53,7 +53,7 @@ func NewHeathcheckEntity(cacheStorage *portadapter.StorageEntity,
 	ipvsadm *portadapter.IPVSADMEntity,
 	rawTechInterface string,
 	locker *domain.Locker,
-	gracefullShutdown *domain.GracefullShutdown,
+	gracefulShutdown *domain.GracefulShutdown,
 	isMockMode bool,
 	logging *logrus.Logger) *HeathcheckEntity {
 	ti, _, _ := net.ParseCIDR(rawTechInterface + "/32")
@@ -65,7 +65,7 @@ func NewHeathcheckEntity(cacheStorage *portadapter.StorageEntity,
 		ipvsadm:            ipvsadm,
 		techInterface:      &net.TCPAddr{IP: ti},
 		locker:             locker,
-		gracefullShutdown:  gracefullShutdown,
+		gracefulShutdown:   gracefulShutdown,
 		dw:                 new(dummyWorker),
 		isMockMode:         isMockMode,
 		logging:            logging,
@@ -78,14 +78,14 @@ type UnknownDataStruct struct {
 	UnknowArrayOfMaps []map[string]interface{}
 }
 
-// StartGracefullShutdownControlForHealthchecks ...
-func (hc *HeathcheckEntity) StartGracefullShutdownControlForHealthchecks() {
+// StartGracefulShutdownControlForHealthchecks ...
+func (hc *HeathcheckEntity) StartGracefulShutdownControlForHealthchecks() {
 	ticker := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case <-ticker.C:
 			hc.Lock()
-			if hc.gracefullShutdown.ShutdownNow {
+			if hc.gracefulShutdown.ShutdownNow {
 				for _, serviceInfo := range hc.runningHeathchecks {
 					serviceInfo.Lock()
 					serviceInfo.Healthcheck.StopChecks <- struct{}{}
@@ -102,7 +102,7 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	hc.Lock()
 	defer hc.Unlock()
 	// if shutdown command at start
-	if hc.gracefullShutdown.ShutdownNow {
+	if hc.gracefulShutdown.ShutdownNow {
 		return nil
 	}
 	servicesInfo, err := hc.cacheStorage.LoadAllStorageDataToDomainModel()
@@ -124,7 +124,7 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 func (hc *HeathcheckEntity) NewServiceToHealtchecks(serviceInfo *domain.ServiceInfo) {
 	hc.Lock()
 	defer hc.Unlock()
-	if hc.gracefullShutdown.ShutdownNow {
+	if hc.gracefulShutdown.ShutdownNow {
 		return
 	}
 	serviceInfo.Lock()
@@ -138,7 +138,7 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(serviceInfo *domain.ServiceI
 func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.ServiceInfo) {
 	hc.Lock()
 	defer hc.Unlock()
-	if hc.gracefullShutdown.ShutdownNow {
+	if hc.gracefulShutdown.ShutdownNow {
 		return
 	}
 	indexForRemove, isFinded := hc.findServiceInHealtcheckSlice(serviceInfo.ServiceIP, serviceInfo.ServicePort)
@@ -161,7 +161,7 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.ServiceInfo) {
 	hc.Lock()
 	defer hc.Unlock()
-	if hc.gracefullShutdown.ShutdownNow {
+	if hc.gracefulShutdown.ShutdownNow {
 		return
 	}
 	updateIndex, isFinded := hc.findServiceInHealtcheckSlice(serviceInfo.ServiceIP, serviceInfo.ServicePort)
@@ -200,10 +200,10 @@ func (hc *HeathcheckEntity) findServiceInHealtcheckSlice(serviceIP, servicePort 
 }
 
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(serviceInfo *domain.ServiceInfo) {
-	hc.gracefullShutdown.Lock()
-	hc.gracefullShutdown.UsecasesJobs++
-	hc.gracefullShutdown.Unlock()
-	defer decreaseJobs(hc.gracefullShutdown)
+	hc.gracefulShutdown.Lock()
+	hc.gracefulShutdown.UsecasesJobs++
+	hc.gracefulShutdown.Unlock()
+	defer decreaseJobs(hc.gracefulShutdown)
 
 	// first run hc at create entity
 	serviceInfo.Lock()

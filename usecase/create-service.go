@@ -19,7 +19,7 @@ type CreateServiceEntity struct {
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
-	gracefullShutdown *domain.GracefullShutdown
+	gracefulShutdown  *domain.GracefulShutdown
 	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
@@ -32,7 +32,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
-	gracefullShutdown *domain.GracefullShutdown,
+	gracefulShutdown *domain.GracefulShutdown,
 	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *CreateServiceEntity {
 	return &CreateServiceEntity{
@@ -43,7 +43,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 		tunnelConfig:      tunnelConfig,
 		hc:                hc,
 		commandGenerator:  commandGenerator,
-		gracefullShutdown: gracefullShutdown,
+		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
 		uuidGenerator:     uuidGenerator,
 	}
@@ -55,45 +55,62 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	// gracefull shutdown part start
 	createService.locker.Lock()
 	defer createService.locker.Unlock()
-	createService.gracefullShutdown.Lock()
-	if createService.gracefullShutdown.ShutdownNow {
-		defer createService.gracefullShutdown.Unlock()
+	createService.gracefulShutdown.Lock()
+	if createService.gracefulShutdown.ShutdownNow {
+		defer createService.gracefulShutdown.Unlock()
 		return serviceInfo, fmt.Errorf("program got shutdown signal, job create service %v cancel", serviceInfo)
 	}
-	createService.gracefullShutdown.UsecasesJobs++
-	createService.gracefullShutdown.Unlock()
-	defer decreaseJobs(createService.gracefullShutdown)
+	createService.gracefulShutdown.UsecasesJobs++
+	createService.gracefulShutdown.Unlock()
+	defer decreaseJobs(createService.gracefulShutdown)
 	// gracefull shutdown part end
+	// FIXME: check service not exist, before create tunnels
+	logStartUsecase(createServiceName, "add new application servers to service", createServiceUUID, serviceInfo, createService.logging)
 
 	tunnelsFilesInfo := formTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
-
+	logTryCreateNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	newTunnelsFilesInfo, err := createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)
 	if err != nil {
 		return serviceInfo, fmt.Errorf("can't create tunnel files: %v", err)
 	}
+	logCreatedNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	// add to cache storage
+	logTryUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
 	if err := createService.cacheStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
 	}
+	logUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
+
+	// TODO: why not in NewServiceDataToStorage? double?
 	if err := createService.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
 	}
 
+	logTryCreateIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
 	if err := createService.ipvsadm.CreateService(serviceInfo, createServiceUUID); err != nil {
-		return serviceInfo, fmt.Errorf("Error when Configure VRRP: %v", err)
+		return serviceInfo, fmt.Errorf("Error when ipvsadm create service: %v", err)
 	}
+	logCreatedIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
 
+	logTryUpdateServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)
 	if err = createService.persistentStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("Error when save to persistent storage: %v", err)
 	}
+	logUpdatedServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)
+
+	// TODO: double?
 	if err := createService.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
 	}
 
+	logTryGenerateCommandsForApplicationServers(createServiceName, createServiceUUID, createService.logging)
 	if err := createService.commandGenerator.GenerateCommandsForApplicationServers(serviceInfo, createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("can't generate commands :%v", err)
 	}
+	logGeneratedCommandsForApplicationServers(createServiceName, createServiceUUID, createService.logging)
 
+	logUpdateServiceAtHealtchecks(createServiceName, createServiceUUID, createService.logging)
 	createService.hc.NewServiceToHealtchecks(serviceInfo)
+	logUpdatedServiceAtHealtchecks(createServiceName, createServiceUUID, createService.logging)
 	return serviceInfo, nil
 }

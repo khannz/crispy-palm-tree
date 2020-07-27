@@ -1,5 +1,7 @@
 package domain
 
+import "fmt"
+
 // TunnelForApplicationServer ...
 type TunnelForApplicationServer struct {
 	ApplicationServerIP   string `json:"applicationServerIP"`
@@ -18,4 +20,15 @@ type TunnelMaker interface {
 	CreateTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
 	RemoveTunnel(*TunnelForApplicationServer, string) error
 	RemoveTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
+}
+
+// Release stringer interface for print/log data in []*TunnelForApplicationServer
+func (tunnelForApplicationServer *TunnelForApplicationServer) String() string {
+	return fmt.Sprintf("applicationServer{ApplicationServerIP:%s, IfcfgTunnelFile:%s, RouteTunnelFile:%v, SysctlConfFile:%s, TunnelName:%s,  ServicesToTunnelCount:%v}",
+		tunnelForApplicationServer.ApplicationServerIP,
+		tunnelForApplicationServer.IfcfgTunnelFile,
+		tunnelForApplicationServer.RouteTunnelFile,
+		tunnelForApplicationServer.SysctlConfFile,
+		tunnelForApplicationServer.TunnelName,
+		tunnelForApplicationServer.ServicesToTunnelCount)
 }

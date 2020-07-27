@@ -19,27 +19,25 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "nw-lb",
-	Short: "network loadbalancer 😉",
+	Use:   "lb",
+	Short: "load balancer tier 1 😉",
 	Run: func(cmd *cobra.Command, args []string) {
 		// viperConfig, logging, uuidGenerator, uuidForRootProcess := prepareToStart()
 		uuidGenerator := portadapter.NewUUIDGenerator()
 		uuidForRootProcess := uuidGenerator.NewUUID().UUID.String()
 
-		// TODO: goreleaser - rpm packages create
-		// TODO: rename map for remove names!
 		// validate fields
 		logging.WithFields(logrus.Fields{
 			"entity":           rootEntity,
 			"event uuid":       uuidForRootProcess,
-			"Config file path": viperConfig.GetString(configFilePathName),
-			"Log format":       viperConfig.GetString(logFormatName),
-			"Log level":        viperConfig.GetString(logLevelName),
-			"Log output":       viperConfig.GetString(logOutputName),
-			"Syslog tag":       viperConfig.GetString(syslogTagName),
+			"config file path": viperConfig.GetString(configFilePathName),
+			"log format":       viperConfig.GetString(logFormatName),
+			"log level":        viperConfig.GetString(logLevelName),
+			"log output":       viperConfig.GetString(logOutputName),
+			"syslog tag":       viperConfig.GetString(syslogTagName),
 
-			"Rest API ip":   viperConfig.GetString(restAPIIPName),
-			"Rest API port": viperConfig.GetString(restAPIPortName),
+			"rest API ip":   viperConfig.GetString(restAPIIPName),
+			"rest API port": viperConfig.GetString(restAPIPortName),
 
 			"tech interface":                viperConfig.GetString(techInterfaceName),
 			"fwmark number":                 viperConfig.GetString(fwmarkNumberName),
@@ -52,17 +50,17 @@ var rootCmd = &cobra.Command{
 		}).Info("")
 
 		if isColdStart() && !viperConfig.GetBool(mockMode) {
-			err := checkPrerequisites()
+			err := checkPrerequisites(uuidForRootProcess, logging)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"entity":     rootEntity,
 					"event uuid": uuidForRootProcess,
-				}).Fatalf("checkPrerequisites error: %v", err)
+				}).Fatalf("check prerequisites error: %v", err)
 			}
-		} // TODO: remove hardcode
+		}
 
 		locker := &domain.Locker{}
-		gracefullShutdown := &domain.GracefullShutdown{}
+		gracefulShutdown := &domain.GracefulShutdown{}
 
 		gracefulShutdownCommandForRestAPI := make(chan struct{}, 1)
 		restAPIisDone := make(chan struct{}, 1)
@@ -82,7 +80,7 @@ var rootCmd = &cobra.Command{
 		// tunnel maker end
 
 		// db and caches init
-		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), logging)
+		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), uuidForRootProcess, logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
@@ -118,7 +116,7 @@ var rootCmd = &cobra.Command{
 			ipvsadmConfigurator,
 			viperConfig.GetString(techInterfaceName),
 			locker,
-			gracefullShutdown,
+			gracefulShutdown,
 			viperConfig.GetBool(mockMode),
 			logging)
 		if err = hc.StartHealthchecksForCurrentServices(); err != nil {
@@ -127,7 +125,11 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
 		}
-		go hc.StartGracefullShutdownControlForHealthchecks()
+		go hc.StartGracefulShutdownControlForHealthchecks()
+		logging.WithFields(logrus.Fields{
+			"entity":     rootEntity,
+			"event uuid": uuidForRootProcess,
+		}).Debug("healthchecks for current services started")
 		// healthchecks end
 
 		// init config start
@@ -151,7 +153,7 @@ var rootCmd = &cobra.Command{
 			tunnelMaker,
 			hc,
 			commandGenerator,
-			gracefullShutdown,
+			gracefulShutdown,
 			uuidGenerator,
 			logging)
 
@@ -159,28 +161,48 @@ var rootCmd = &cobra.Command{
 		go restAPI.UpRestAPI()
 		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
 
+		logging.WithFields(logrus.Fields{
+			"entity":     rootEntity,
+			"event uuid": uuidForRootProcess,
+		}).Info("program running")
+
 		<-signalChan // shutdown signal
+
+		logging.WithFields(logrus.Fields{
+			"entity":     rootEntity,
+			"event uuid": uuidForRootProcess,
+		}).Info("got shutdown signal")
+
 		if err := ipvsadmConfigurator.Flush(); err != nil {
 			logging.WithFields(logrus.Fields{
 				"entity":     rootEntity,
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("IPVSADM can't flush data at stop: %v", err)
 		}
+		logging.WithFields(logrus.Fields{
+			"entity":     rootEntity,
+			"event uuid": uuidForRootProcess,
+		}).Info("IPVSADM data has flushed")
+
 		gracefulShutdownCommandForRestAPI <- struct{}{}
-		gracefulShutdownUsecases(gracefullShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
+		gracefulShutdownUsecases(gracefulShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
+		logging.WithFields(logrus.Fields{
+			"entity":     rootEntity,
+			"event uuid": uuidForRootProcess,
+		}).Info("rest API is Done")
 
 		logging.WithFields(logrus.Fields{
 			"entity":     rootEntity,
 			"event uuid": uuidForRootProcess,
-		}).Info("Program stoped")
+		}).Info("program stopped")
 	},
 }
 
-func gracefulShutdownUsecases(gracefullShutdown *domain.GracefullShutdown, maxWaitTimeForJobsIsDone time.Duration, logging *logrus.Logger) {
-	gracefullShutdown.Lock()
-	gracefullShutdown.ShutdownNow = true
-	gracefullShutdown.Unlock()
+func gracefulShutdownUsecases(gracefulShutdown *domain.GracefulShutdown, maxWaitTimeForJobsIsDone time.Duration, logging *logrus.Logger) {
+	gracefulShutdown.Lock()
+	gracefulShutdown.ShutdownNow = true
+	gracefulShutdown.Unlock()
 
 	ticker := time.NewTicker(time.Duration(100 * time.Millisecond)) // hardcode
 	defer ticker.Stop()
@@ -190,22 +212,22 @@ func gracefulShutdownUsecases(gracefullShutdown *domain.GracefullShutdown, maxWa
 	for {
 		select {
 		case <-ticker.C:
-			gracefullShutdown.Lock()
-			if gracefullShutdown.UsecasesJobs <= 0 {
+			gracefulShutdown.Lock()
+			if gracefulShutdown.UsecasesJobs <= 0 {
 				logging.WithFields(logrus.Fields{
 					"entity": rootEntity,
 				}).Info("All jobs is done")
-				defer gracefullShutdown.Unlock()
+				defer gracefulShutdown.Unlock()
 				return
 			}
-			gracefullShutdown.Unlock()
+			gracefulShutdown.Unlock()
 			continue
 		case <-ctx.Done():
-			gracefullShutdown.Lock()
+			gracefulShutdown.Lock()
 			logging.WithFields(logrus.Fields{
 				"entity": rootEntity,
-			}).Warnf("%v jobs is fail when program stop", gracefullShutdown.UsecasesJobs)
-			defer gracefullShutdown.Unlock()
+			}).Warnf("%v jobs is fail when program stop", gracefulShutdown.UsecasesJobs)
+			defer gracefulShutdown.Unlock()
 			return
 		}
 	}
@@ -219,29 +241,50 @@ func Execute() {
 	}
 }
 
-func isColdStart() bool { // TODO: write logic
+func isColdStart() bool { // TODO: write logic?
 	return true
 }
 
-func checkPrerequisites() error {
+func checkPrerequisites(uuid string, logging *logrus.Logger) error {
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Info("start check prerequisites")
 	var err error
-	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf" // TODO: remove hardcode
-	expectDummyModprobContains := "numdummies=1"       // TODO: remove hardcode
+	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf" // TODO: remove hardcode?
+	expectDummyModprobContains := "numdummies=1"       // TODO: remove hardcode?
 	if err = checkFileContains(dummyModprobeDPath, expectDummyModprobContains); err != nil {
 		return fmt.Errorf("error when check dummy file: %v", err)
 	}
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Debugf("check prerequisites in %v successful", dummyModprobeDPath)
 
-	dummyModuleFilePath := "/etc/modules-load.d/dummy.conf" // TODO: remove hardcode
-	expectDummyModuleFileContains := "dummy"                // TODO: remove hardcode
+	dummyModuleFilePath := "/etc/modules-load.d/dummy.conf" // TODO: remove hardcode?
+	expectDummyModuleFileContains := "dummy"                // TODO: remove hardcode?
 	if err := checkFileContains(dummyModuleFilePath, expectDummyModuleFileContains); err != nil {
 		return fmt.Errorf("error when check dummy module file: %v", err)
 	}
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Debugf("check prerequisites in %v successful", dummyModuleFilePath)
 
-	tunnelModuleFilePath := "/etc/modules-load.d/tunnel.conf" // TODO: remove hardcode
-	expectTunnelModuleFileContains := "tunnel4"               // TODO: remove hardcode
+	tunnelModuleFilePath := "/etc/modules-load.d/tunnel.conf" // TODO: remove hardcode?
+	expectTunnelModuleFileContains := "tunnel4"               // TODO: remove hardcode?
 	if err := checkFileContains(tunnelModuleFilePath, expectTunnelModuleFileContains); err != nil {
 		return fmt.Errorf("error when check tunnel module file: %v", err)
 	}
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Debugf("check prerequisites in %v successful", tunnelModuleFilePath)
+
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Info("check all prerequisites successful")
 
 	return nil
 }
@@ -257,21 +300,33 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
-func storageAndCacheInit(databasePath string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
+func storageAndCacheInit(databasePath, uuid string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
 	cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init NewStorageEntity for cache error: %v", err)
 	}
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Debug("init cacheDB successful")
 
 	persistentDB, err := portadapter.NewStorageEntity(false, databasePath, logging)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init NewStorageEntity for persistent storage error: %v", err)
 	}
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Debug("init cacheDB successful")
 
 	err = cacheDB.LoadCacheFromStorage(persistentDB)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cant load cache from storage: %v", err)
 	}
+	logging.WithFields(logrus.Fields{
+		"entity":     rootEntity,
+		"event uuid": uuid,
+	}).Debug("load cache from persistent storage successful")
 
 	return cacheDB, persistentDB, nil
 }
@@ -291,4 +346,4 @@ func initConfigFromStorage(ipvsadmConfigurator *portadapter.IPVSADMEntity,
 	return nil
 }
 
-// TODO: long: bird peering autoset when cold cold start
+// TODO: long: bird peering autoset when cold cold start?
