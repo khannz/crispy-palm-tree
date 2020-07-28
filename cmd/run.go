@@ -125,7 +125,7 @@ var rootCmd = &cobra.Command{
 				"event uuid": uuidForRootProcess,
 			}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
 		}
-		go hc.StartGracefulShutdownControlForHealthchecks()
+		go hc.StartGracefulShutdownControlForHealthchecks() // TODO: graceful shutdown for healthchecks is overhead. Remove that?
 		logging.WithFields(logrus.Fields{
 			"entity":     rootEntity,
 			"event uuid": uuidForRootProcess,
