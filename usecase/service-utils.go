@@ -181,7 +181,7 @@ func formTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheS
 	return tunnelsFilesInfo
 }
 
-// logging utils start
+// logging utils start TODO: move to other file log logic
 func logStartUsecase(usecaseName,
 	usecaseMessage,
 	uuid string,
@@ -489,6 +489,79 @@ func logRemovedIPFromDummy(usecaseName,
 		"entity":     usecaseName,
 		"event uuid": uuid,
 	}).Infof("removed service ip %v from dummy", serviceIP)
+}
+
+func logTryValidateForModifyService(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("try validation that the service data is suitable for modification")
+}
+
+func logValidModifyService(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("validation that the service data is suitable for modification is successful")
+}
+
+func logServicesIPAndPortNotEqual(serviceOneIP,
+	serviceOnePort,
+	serviceTwoIP,
+	serviceTwoPort,
+	usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("somehow services ip and port not equal: %v:%v vs %v:%v",
+		serviceOneIP,
+		serviceOnePort,
+		serviceTwoIP,
+		serviceTwoPort)
+}
+
+func logServicesHaveDifferentNumberOfApplicationServers(serviceOneIP,
+	serviceOnePort,
+	serviceTwoIP,
+	serviceTwoPort string,
+	lenOfApplicationServersOne,
+	lenOfApplicationServersTwo int,
+	usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("the number of application servers in the current service does not match the modification request. Services %v:%v: %v servers; %v:%v: %v servers",
+		serviceOneIP,
+		serviceOnePort,
+		lenOfApplicationServersOne,
+		serviceTwoIP,
+		serviceTwoPort,
+		lenOfApplicationServersTwo)
+}
+
+func logApplicationServerNotFound(serviceOneIP,
+	serviceOnePort,
+	applicaionServerIP,
+	applicaionServerPort,
+	usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("in service %v:%v not found data for modify application server %v:%v",
+		serviceOneIP,
+		serviceOnePort,
+		applicaionServerIP,
+		applicaionServerPort)
 }
 
 // logging utils end
