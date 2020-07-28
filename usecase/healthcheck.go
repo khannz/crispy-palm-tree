@@ -157,7 +157,7 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 	}
 }
 
-// UpdateServiceAtHealtchecks ...
+// UpdateServiceAtHealtchecks ... FIXME: must return error!
 func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.ServiceInfo) {
 	hc.Lock()
 	defer hc.Unlock()
