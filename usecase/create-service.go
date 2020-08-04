@@ -64,9 +64,18 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	createService.gracefulShutdown.Unlock()
 	defer decreaseJobs(createService.gracefulShutdown)
 	// graceful shutdown part end
-	// FIXME: check service not exist, before create tunnels
 	logStartUsecase(createServiceName, "add new application servers to service", createServiceUUID, serviceInfo, createService.logging)
 
+	// FIXME: check service not exist, before create tunnels
+	// FIXME: need global rework check unique services and application servers (not at storage module!)
+	allCurrentServices, err := createService.cacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
+	}
+	if err = checkRoutingTypeForApplicationServersValid(serviceInfo, allCurrentServices); err != nil {
+		return serviceInfo, err
+	}
+	//
 	tunnelsFilesInfo := formTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
 	logTryCreateNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	newTunnelsFilesInfo, err := createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)

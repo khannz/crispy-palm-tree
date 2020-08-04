@@ -84,9 +84,20 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
+	newServiceInfo.RoutingType = currentServiceInfo.RoutingType // for ipvs
 	logGotCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, currentServiceInfo, addApplicationServers.logging)
 
-	// TODO: why not in UpdateServiceInfo? double?
+	// logTryValidateForAddApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	// FIXME: need global rework check unique services and application servers (not at storage module!)
+	allCurrentServices, err := addApplicationServers.cacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return newServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
+	}
+	if err = checkRoutingTypeForApplicationServersValid(newServiceInfo, allCurrentServices); err != nil {
+		return newServiceInfo, err
+	}
+	// logValidAddApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+
 	if err := addApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
 	}
@@ -98,18 +109,18 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	}
 	logGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersUUID, updatedServiceInfo, addApplicationServers.logging)
 
+	logTryIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
+	if err = addApplicationServers.ipvsadm.AddApplicationServersForService(newServiceInfo, addApplicationServersUUID); err != nil {
+		return currentServiceInfo, fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
+	}
+	logAddedIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
+
 	// add to cache storage
 	logTryUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	if err = addApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersUUID); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
 	logUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-
-	logTryIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
-	if err = addApplicationServers.ipvsadm.AddApplicationServersForService(newServiceInfo, addApplicationServersUUID); err != nil {
-		return currentServiceInfo, fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
-	}
-	logAddedIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
 
 	logTryUpdateServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	if err = addApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersUUID); err != nil {

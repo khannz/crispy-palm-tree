@@ -47,7 +47,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 }
 
 // RemoveApplicationServers ...
-// FIXME: rollbacks need refactor
+// TODO: rollbacks need refactor
 func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo *domain.ServiceInfo,
 	removeApplicationServersUUID string) (*domain.ServiceInfo, error) {
 	var err error

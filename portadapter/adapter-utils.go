@@ -256,6 +256,7 @@ func compareDomainServicesData(actualServicesInfo, storageServicesInfo []*domain
 
 	// var sortedActualServicesInfo []*domain.ServiceInfo
 	// if len(actualServicesInfo) == 0 {
+	// FIXME: nil poiners can be here here, ouch
 	sortedActualServicesInfo := SortServicesInfoAndApplicationServers(actualServicesInfo)
 	// }
 
@@ -298,6 +299,8 @@ func SortServicesInfoAndApplicationServers(unsortedServicesInfo []*domain.Servic
 					ServicePort:        sortedOnlyServiceInfo.ServicePort,
 					ApplicationServers: sortedApplicationServers,
 					Healthcheck:        unsortedServiceInfo.Healthcheck,
+					BalanceType:        unsortedServiceInfo.BalanceType,
+					RoutingType:        unsortedServiceInfo.RoutingType,
 					ExtraInfo:          unsortedServiceInfo.ExtraInfo,
 				}
 				sortedServicesInfo = append(sortedServicesInfo, sortedServiceInfo)

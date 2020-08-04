@@ -47,7 +47,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 }
 
 // RemoveService ...
-// FIXME: rollbacks need refactor
+// TODO: rollbacks need refactor
 func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domain.ServiceInfo,
 	removeServiceUUID string) error {
 	var err error

@@ -99,21 +99,23 @@ func decreaseJobs(gracefulShutdown *domain.GracefulShutdown) {
 // }
 
 func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
-	var resultServiceInfo *domain.ServiceInfo
+	var updatedServiceInfo *domain.ServiceInfo
 	if err := checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo, eventUUID); err != nil {
-		return resultServiceInfo, fmt.Errorf("new application server not unique: %v", err)
+		return updatedServiceInfo, fmt.Errorf("new application server not unique: %v", err)
 	}
 	// concatenate two slices
 	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
 
-	resultServiceInfo = &domain.ServiceInfo{
+	updatedServiceInfo = &domain.ServiceInfo{
 		ServiceIP:          newServiceInfo.ServiceIP,
 		ServicePort:        newServiceInfo.ServicePort,
 		ApplicationServers: resultApplicationServers,
 		Healthcheck:        currentServiceInfo.Healthcheck,
+		BalanceType:        currentServiceInfo.BalanceType,
+		RoutingType:        currentServiceInfo.RoutingType,
 		IsUp:               currentServiceInfo.IsUp,
 	}
-	return resultServiceInfo, nil
+	return updatedServiceInfo, nil
 }
 
 func forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, removeServiceInfo *domain.ServiceInfo, eventUUID string) *domain.ServiceInfo {
@@ -129,6 +131,8 @@ func forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, remove
 		ServicePort:        currentServiceInfo.ServicePort,
 		ApplicationServers: copyOfCurrentApplicationServers,
 		Healthcheck:        currentServiceInfo.Healthcheck,
+		BalanceType:        currentServiceInfo.BalanceType,
+		RoutingType:        currentServiceInfo.RoutingType,
 		IsUp:               currentServiceInfo.IsUp,
 	}
 }
@@ -179,6 +183,29 @@ func formTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheS
 		tunnelsFilesInfo = append(tunnelsFilesInfo, tunnelFilesInfo)
 	}
 	return tunnelsFilesInfo
+}
+
+func checkRoutingTypeForApplicationServersValid(newServiceInfo *domain.ServiceInfo, allCurrentServices []*domain.ServiceInfo) error {
+	for _, currentService := range allCurrentServices {
+		for _, newApplicationServer := range newServiceInfo.ApplicationServers {
+			for _, currentApplicationServer := range currentService.ApplicationServers {
+				if newApplicationServer.ServerIP == currentApplicationServer.ServerIP &&
+					newApplicationServer.ServerPort == currentApplicationServer.ServerPort {
+					if newServiceInfo.RoutingType != currentService.RoutingType {
+						return fmt.Errorf("routing type %v for service %v for application server %v the type of routing is different from the previous routing type %v at service %v for application server %v",
+							newServiceInfo.RoutingType,
+							newServiceInfo.ServiceIP+":"+newServiceInfo.ServicePort,
+							newApplicationServer.ServerIP+":"+newApplicationServer.ServerPort,
+							currentService.RoutingType,
+							currentService.ServiceIP+":"+currentService.ServicePort,
+							currentApplicationServer.ServerIP+":"+currentApplicationServer.ServerPort)
+					}
+					continue
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // logging utils start TODO: move to other file log logic

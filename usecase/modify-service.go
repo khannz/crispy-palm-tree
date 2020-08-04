@@ -72,8 +72,19 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	logGotCurrentServiceInfo(modifyServiceName, modifyServiceUUID, currentServiceInfo, modifyService.logging)
 
 	logTryValidateForModifyService(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	// FIXME: need global rework check unique services and application servers (not at storage module!)
 	if !modifyService.isServicesIPsAndPortsEqual(serviceInfo, currentServiceInfo, modifyServiceUUID) {
 		return serviceInfo, fmt.Errorf("service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
+	}
+	if serviceInfo.RoutingType != currentServiceInfo.RoutingType {
+		return serviceInfo, fmt.Errorf("routing type at service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
+	}
+	allCurrentServices, err := modifyService.cacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
+	}
+	if err = checkRoutingTypeForApplicationServersValid(serviceInfo, allCurrentServices); err != nil {
+		return serviceInfo, err
 	}
 	logValidModifyService(modifyServiceName, modifyServiceUUID, modifyService.logging)
 

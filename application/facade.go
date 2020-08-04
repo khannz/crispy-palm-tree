@@ -99,6 +99,7 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		ApplicationServers: appSvrs,
 		Healthcheck:        hcS,
 		BalanceType:        createService.BalanceType,
+		RoutingType:        createService.RoutingType,
 		IsUp:               false,
 	}
 	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
@@ -176,7 +177,6 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 		ServiceIP:          addApplicationServersRequest.ServiceIP,
 		ServicePort:        addApplicationServersRequest.ServicePort,
 		ApplicationServers: appSvrs,
-		Healthcheck:        domain.ServiceHealthcheck{},
 	}
 	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestUUID)
 	if err != nil {
@@ -247,7 +247,7 @@ func (balancerFacade *BalancerFacade) GetServiceState(getServiceStateRequest *Ge
 	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceStateRequest.ID)
 }
 
-// ModifyService ... FIXME: check all it ok
+// ModifyService ...
 func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyServiceInfo,
 	modifyServiceUUID string) (*domain.ServiceInfo, error) {
 	newModifyServiceEntity := usecase.NewModifyServiceEntity(balancerFacade.Locker,
@@ -284,6 +284,7 @@ func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyService
 		ApplicationServers: appSvrs,
 		Healthcheck:        hcS,
 		BalanceType:        modifyService.BalanceType,
+		RoutingType:        modifyService.RoutingType,
 		IsUp:               false,
 	}
 	return newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceUUID)

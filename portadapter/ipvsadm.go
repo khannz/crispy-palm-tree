@@ -51,7 +51,7 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInf
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
 
-	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, applicationServers); err != nil {
+	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, serviceInfo.RoutingType, applicationServers); err != nil {
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 
@@ -109,7 +109,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInf
 	return nil
 }
 
-// ValidateHistoricalConfig ...
+// ValidateHistoricalConfig ...FIXME: remove that?
 func (ipvsadmEntity *IPVSADMEntity) ValidateHistoricalConfig(storage *StorageEntity) error {
 	pools, err := ipvsadmEntity.readActualConfig()
 	if err != nil {
@@ -165,7 +165,7 @@ func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []*domain.ServiceIn
 }
 
 func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.IpvsClient,
-	serviceIP string, servicePort uint16,
+	serviceIP string, servicePort uint16, serviceRoutingType string,
 	applicationServers map[string]uint16) error {
 	for ip, port := range applicationServers {
 		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
@@ -211,7 +211,7 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(serviceInfo 
 		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
 	}
 
-	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, applicationServers); err != nil {
+	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, serviceInfo.RoutingType, applicationServers); err != nil {
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 

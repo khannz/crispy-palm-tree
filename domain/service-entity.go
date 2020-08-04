@@ -47,6 +47,7 @@ type ServiceInfo struct {
 	ExtraInfo          []string             `json:"extraInfo"`
 	IsUp               bool                 `json:"serviceIsUp"`
 	BalanceType        string               `json:"balanceType"`
+	RoutingType        string               `json:"routingType"`
 }
 
 // CommandGenerator ...

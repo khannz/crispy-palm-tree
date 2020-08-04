@@ -52,6 +52,7 @@ type UniversalResponse struct {
 	JobCompletedSuccessfully bool                `json:"jobCompletedSuccessfully"`
 	ExtraInfo                string              `json:"extraInfo,omitempty"`
 	BalanceType              string              `json:"balanceType,omitempty"`
+	RoutingType              string              `json:"routingType,omitempty"`
 }
 
 // ServerApplicationWithStates ...
@@ -73,6 +74,7 @@ type UniversalResponseWithStates struct {
 	JobCompletedSuccessfully bool                          `json:"jobCompletedSuccessfully"`
 	ExtraInfo                string                        `json:"extraInfo,omitempty"`
 	BalanceType              string                        `json:"balanceType,omitempty"`
+	RoutingType              string                        `json:"routingType,omitempty"`
 	IsUp                     bool                          `json:"serviceIsUp"`
 }
 
@@ -302,6 +304,7 @@ func convertDomainServiceInfoToRestUniversalResponse(serviceInfo *domain.Service
 		JobCompletedSuccessfully: isOk,
 		ExtraInfo:                transformSliceToString(serviceInfo.ExtraInfo),
 		BalanceType:              serviceInfo.BalanceType,
+		RoutingType:              serviceInfo.RoutingType,
 	}
 }
 
@@ -322,6 +325,7 @@ func convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfo *doma
 		JobCompletedSuccessfully: isOk,
 		ExtraInfo:                transformSliceToString(serviceInfo.ExtraInfo),
 		BalanceType:              serviceInfo.BalanceType,
+		RoutingType:              serviceInfo.RoutingType,
 		IsUp:                     serviceInfo.IsUp,
 	}
 }
@@ -379,6 +383,16 @@ func validateServiceBalanceType(balanceType string) error {
 	case "nq":
 	default:
 		return fmt.Errorf("unknown balance type for service: %v; supported types: rr|wrr|lc|wlc|lblc|sh|mh|dh|fo|ovf|lblcr|sed|nq0", balanceType)
+	}
+	return nil
+}
+
+func validateServiceRoutingType(routingType string) error {
+	switch routingType { // maybe range by array is better?
+	case "masquerading":
+	case "tunneling":
+	default:
+		return fmt.Errorf("unknown routing type for service: %v; supported types: masquerading|tunneling", routingType)
 	}
 	return nil
 }

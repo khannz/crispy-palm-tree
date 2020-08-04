@@ -18,6 +18,7 @@ type ModifyServiceInfo struct {
 	Healtcheck         ServiceHealthcheck  `json:"Healtcheck" validate:"required"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 	BalanceType        string              `json:"balanceType" validate:"required" example:"rr"`
+	RoutingType        string              `json:"routingType" validate:"required" example:"masquarading,tunneling"`
 }
 
 // modifyService godoc
@@ -88,6 +89,9 @@ func (modifyService *ModifyServiceInfo) validatemodifyService() error {
 		return err
 	}
 	if err := validateServiceBalanceType(modifyService.BalanceType); err != nil {
+		return err
+	}
+	if err := validateServiceRoutingType(modifyService.RoutingType); err != nil {
 		return err
 	}
 	return nil
