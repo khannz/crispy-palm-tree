@@ -88,11 +88,6 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	}
 	logValidModifyService(modifyServiceName, modifyServiceUUID, modifyService.logging)
 
-	// TODO: validate changes. ipvs, or only healtchecks
-	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceUUID, modifyService.logging)
-	modifyService.hc.UpdateServiceAtHealtchecks(serviceInfo)
-	logUpdatedServiceAtHealtchecks(modifyServiceName, modifyServiceUUID, modifyService.logging)
-
 	logTryUpdateServiceInfoAtCache(modifyServiceName, modifyServiceUUID, modifyService.logging)
 	if err = modifyService.cacheStorage.UpdateServiceInfo(serviceInfo, modifyServiceUUID); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
@@ -104,6 +99,13 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 		return currentServiceInfo, fmt.Errorf("error when update persistent storage: %v", err)
 	}
 	logUpdatedServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceUUID, modifyService.logging)
+
+	// TODO: validate changes. ipvs, or only healtchecks
+	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	if err = modifyService.hc.UpdateServiceAtHealtchecks(serviceInfo); err != nil {
+		return serviceInfo, fmt.Errorf("service modify for healtchecks not activated, an error occurred when changing healtchecks: %v", err)
+	}
+	logUpdatedServiceAtHealtchecks(modifyServiceName, modifyServiceUUID, modifyService.logging)
 
 	return serviceInfo, nil
 }

@@ -119,7 +119,9 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	}
 
 	logUpdateServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
-	removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
+	if err = removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo); err != nil {
+		return updatedServiceInfo, fmt.Errorf("application server removed, butan error occurred when removing it from the healtchecks: %v", err)
+	}
 	logUpdatedServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 
 	return updatedServiceInfo, nil

@@ -157,12 +157,12 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 	}
 }
 
-// UpdateServiceAtHealtchecks ... FIXME: must return error!
-func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.ServiceInfo) {
+// UpdateServiceAtHealtchecks ...
+func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.ServiceInfo) error {
 	hc.Lock()
 	defer hc.Unlock()
 	if hc.gracefulShutdown.ShutdownNow {
-		return
+		return nil
 	}
 	updateIndex, isFinded := hc.findServiceInHealtcheckSlice(serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	if isFinded {
@@ -175,14 +175,11 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.Servi
 		tmpHC := append(hc.runningHeathchecks[:updateIndex], serviceInfo)
 		hc.runningHeathchecks = append(tmpHC, hc.runningHeathchecks[updateIndex+1:]...)
 		go hc.startHealthchecksForCurrentService(serviceInfo)
-	} else {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Error("Heathcheck error: UpdateServiceAtHealtchecks error: service %v:%v not found",
-			serviceInfo.ServiceIP,
-			serviceInfo.ServicePort)
+		return nil
 	}
+	return fmt.Errorf("Heathcheck error: UpdateServiceAtHealtchecks error: service %v:%v not found",
+		serviceInfo.ServiceIP,
+		serviceInfo.ServicePort)
 }
 
 func (hc *HeathcheckEntity) findServiceInHealtcheckSlice(serviceIP, servicePort string) (int, bool) {
