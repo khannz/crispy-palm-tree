@@ -144,11 +144,3 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	logUpdatedServiceAtHealtchecks(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	return updatedServiceInfo, nil
 }
-
-// FIXME: remove code bellow
-func (addApplicationServers *AddApplicationServers) updateServiceFromPersistentStorage(serviceInfo *domain.ServiceInfo, addApplicationServersUUID string) error {
-	if err := addApplicationServers.persistentStorage.UpdateServiceInfo(serviceInfo, addApplicationServersUUID); err != nil {
-		return fmt.Errorf("error add new service data to persistent storage: %v", err)
-	}
-	return nil
-}

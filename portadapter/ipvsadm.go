@@ -109,24 +109,6 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInf
 	return nil
 }
 
-// ValidateHistoricalConfig ...FIXME: remove that?
-func (ipvsadmEntity *IPVSADMEntity) ValidateHistoricalConfig(storage *StorageEntity) error {
-	pools, err := ipvsadmEntity.readActualConfig()
-	if err != nil {
-		return fmt.Errorf("can't read actual config: %v", err)
-	}
-	ipvsadmServicesInfo := transformRawIPVSPoolsToDomainModel(pools)
-	storageServicesInfo, err := storage.LoadAllStorageDataToDomainModel()
-	if err != nil {
-		return fmt.Errorf("can't load all storage data to domain model: %v", err)
-	}
-
-	if err = compareDomainServicesData(ipvsadmServicesInfo, storageServicesInfo); err != nil {
-		return fmt.Errorf("actual data does not match storage data: %v", err)
-	}
-	return nil
-}
-
 func (ipvsadmEntity *IPVSADMEntity) readActualConfig() ([]gnl2go.Pool, error) {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()

@@ -30,11 +30,9 @@ const (
 	defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
 	defaultSysctlConfigsPath      = "/etc/sysctl.d/"
 	defaultDatabasePath           = "./database"
-	// defaultPathToIfcfgTunnelFiles = "/home/thevan/dev/goDev/prom/crispy-palm-tree/tests/network-scripts/"
-	// defaultSysctlConfigsPath      = "/home/thevan/dev/goDev/prom/crispy-palm-tree/tests/sysctl.d/"
-	defaultMockMode            = true
-	defaultHealtcheckTime      = 1 * time.Minute
-	defaultMaxShutdownTimeName = 20 * time.Second
+	defaultMockMode               = true
+	defaultHealtcheckTime         = 1 * time.Minute
+	defaultMaxShutdownTimeName    = 20 * time.Second
 )
 
 // Config names

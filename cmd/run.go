@@ -345,5 +345,3 @@ func initConfigFromStorage(ipvsadmConfigurator *portadapter.IPVSADMEntity,
 	}
 	return nil
 }
-
-// TODO: long: bird peering autoset when cold cold start?

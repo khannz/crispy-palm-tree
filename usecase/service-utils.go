@@ -73,31 +73,6 @@ func decreaseJobs(gracefulShutdown *domain.GracefulShutdown) {
 	gracefulShutdown.UsecasesJobs--
 }
 
-// // need to be sure fullApplicationServersInfo contain incompleteApplicationServersInfo
-// func enrichApplicationServersInfo(fullApplicationServersInfo []*domain.ApplicationServer,
-// 	incompleteApplicationServersInfo []*domain.ApplicationServer) []*domain.ApplicationServer {
-// 	enrichApplicationServersInfo := []*domain.ApplicationServer{}
-// 	for _, incompleteApplicationServerInfo := range incompleteApplicationServersInfo {
-// 		for _, fullApplicationServerInfo := range fullApplicationServersInfo {
-// 			if incompleteApplicationServerInfo.ServerIP == fullApplicationServerInfo.ServerIP &&
-// 				incompleteApplicationServerInfo.ServerPort == fullApplicationServerInfo.ServerPort {
-// 				enrichApplicationServerInfo := &domain.ApplicationServer{
-// 					ServerIP:          incompleteApplicationServerInfo.ServerIP,
-// 					ServerPort:        incompleteApplicationServerInfo.ServerPort,
-// 					IsUp:             fullApplicationServerInfo.IsUp,
-// 					IfcfgTunnelFile:   fullApplicationServerInfo.IfcfgTunnelFile,
-// 					RouteTunnelFile:   fullApplicationServerInfo.RouteTunnelFile,
-// 					SysctlConfFile:    fullApplicationServerInfo.SysctlConfFile,
-// 					TunnelName:        fullApplicationServerInfo.TunnelName,
-// 					ServerHealthcheck: fullApplicationServerInfo.ServerHealthcheck,
-// 				}
-// 				enrichApplicationServersInfo = append(enrichApplicationServersInfo, enrichApplicationServerInfo)
-// 			}
-// 		}
-// 	}
-// 	return enrichApplicationServersInfo
-// }
-
 func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
 	var updatedServiceInfo *domain.ServiceInfo
 	if err := checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo, eventUUID); err != nil {
@@ -155,20 +130,6 @@ func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.Applica
 	}
 	return false
 }
-
-// func findApplicationServeInCurrentApplicationServers(serverIP, serverPort string, currentServiceInfo *domain.ServiceInfo) (int, bool) {
-// 	var findedIndex int
-// 	var isFinded bool
-// 	for index, currentApplicationServer := range currentServiceInfo.ApplicationServers {
-// 		if serverIP == currentApplicationServer.ServerIP &&
-// 			serverPort == currentApplicationServer.ServerPort {
-// 			findedIndex = index
-// 			isFinded = true
-// 			break
-// 		}
-// 	}
-// 	return findedIndex, isFinded
-// }
 
 func formTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheStorage *portadapter.StorageEntity) []*domain.TunnelForApplicationServer {
 	tunnelsFilesInfo := []*domain.TunnelForApplicationServer{}

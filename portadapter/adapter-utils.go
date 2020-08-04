@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/r3labs/diff"
 )
 
 func stringToUINT16(sval string) (uint16, error) {
@@ -246,43 +245,6 @@ func trimSuffix(filePath, suffix string) (string, error) {
 		return "", fmt.Errorf("can't read file: %v", err)
 	}
 	return strings.TrimSuffix(string(dataBytes), suffix), nil
-}
-
-// TODO: logic bellow must be not in portadapter, it's domain
-func compareDomainServicesData(actualServicesInfo, storageServicesInfo []*domain.ServiceInfo) error {
-	if len(actualServicesInfo) == 0 && len(storageServicesInfo) == 0 {
-		return nil
-	}
-
-	// var sortedActualServicesInfo []*domain.ServiceInfo
-	// if len(actualServicesInfo) == 0 {
-	// FIXME: nil poiners can be here here, ouch
-	sortedActualServicesInfo := SortServicesInfoAndApplicationServers(actualServicesInfo)
-	// }
-
-	// var sortedStorageServicesInfo []*domain.ServiceInfo
-	// if len(actualServicesInfo) == 0 {
-	sortedStorageServicesInfo := SortServicesInfoAndApplicationServers(storageServicesInfo)
-	// }
-	changelog, err := diff.Diff(sortedActualServicesInfo, sortedStorageServicesInfo)
-	if err != nil {
-		return fmt.Errorf("can't get diff between current and storage config: %v", err)
-	}
-
-	if len(changelog) != 0 {
-		errSlice := []error{fmt.Errorf("find %v difference(s) between configs: ", len(changelog))}
-
-		for _, change := range changelog {
-			errMsg := fmt.Errorf("\npath: %s\ntype: %s\ncurrent config: %s\nstorage config: %s",
-				change.Path,
-				change.Type,
-				change.From,
-				change.To)
-			errSlice = append(errSlice, errMsg)
-		}
-		return combineErrors(errSlice)
-	}
-	return nil
 }
 
 // SortServicesInfoAndApplicationServers - sort all services include child object application servers
