@@ -64,6 +64,16 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	modifyService.gracefulShutdown.Unlock()
 	defer decreaseJobs(modifyService.gracefulShutdown)
 	// graceful shutdown part end
+	logTryPreValidateRequest(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	allCurrentServices, err := modifyService.cacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
+	}
+
+	if !isServiceExist(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices) {
+		return serviceInfo, fmt.Errorf("service %v:%v does not exist, can't modify", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	}
+
 	logTryToGetCurrentServiceInfo(modifyServiceName, modifyServiceUUID, modifyService.logging)
 	currentServiceInfo, err := modifyService.cacheStorage.GetServiceInfo(serviceInfo, modifyServiceUUID)
 	if err != nil {
@@ -71,22 +81,22 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	}
 	logGotCurrentServiceInfo(modifyServiceName, modifyServiceUUID, currentServiceInfo, modifyService.logging)
 
-	logTryValidateForModifyService(modifyServiceName, modifyServiceUUID, modifyService.logging)
-	// FIXME: need global rework check unique services and application servers (not at storage module!)
-	if !modifyService.isServicesIPsAndPortsEqual(serviceInfo, currentServiceInfo, modifyServiceUUID) {
-		return serviceInfo, fmt.Errorf("service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
+	if err = checkApplicationServersExistInService(serviceInfo.ApplicationServers, currentServiceInfo); err != nil {
+		return serviceInfo, err
 	}
-	if serviceInfo.RoutingType != currentServiceInfo.RoutingType {
-		return serviceInfo, fmt.Errorf("routing type at service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
-	}
-	allCurrentServices, err := modifyService.cacheStorage.LoadAllStorageDataToDomainModel()
-	if err != nil {
-		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
-	}
+
 	if err = checkRoutingTypeForApplicationServersValid(serviceInfo, allCurrentServices); err != nil {
 		return serviceInfo, err
 	}
-	logValidModifyService(modifyServiceName, modifyServiceUUID, modifyService.logging)
+
+	if !modifyService.isServicesIPsAndPortsEqual(serviceInfo, currentServiceInfo, modifyServiceUUID) {
+		return serviceInfo, fmt.Errorf("service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
+	}
+
+	if serviceInfo.RoutingType != currentServiceInfo.RoutingType {
+		return serviceInfo, fmt.Errorf("routing type at service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
+	}
+	logPreValidateRequestIsOk(modifyServiceName, modifyServiceUUID, modifyService.logging)
 
 	logTryUpdateServiceInfoAtCache(modifyServiceName, modifyServiceUUID, modifyService.logging)
 	if err = modifyService.cacheStorage.UpdateServiceInfo(serviceInfo, modifyServiceUUID); err != nil {
@@ -100,7 +110,6 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	}
 	logUpdatedServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceUUID, modifyService.logging)
 
-	// TODO: validate changes. ipvs, or only healtchecks
 	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceUUID, modifyService.logging)
 	if err = modifyService.hc.UpdateServiceAtHealtchecks(serviceInfo); err != nil {
 		return serviceInfo, fmt.Errorf("service modify for healtchecks not activated, an error occurred when changing healtchecks: %v", err)

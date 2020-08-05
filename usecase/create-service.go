@@ -66,16 +66,30 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	// graceful shutdown part end
 	logStartUsecase(createServiceName, "add new application servers to service", createServiceUUID, serviceInfo, createService.logging)
 
-	// FIXME: check service not exist, before create tunnels
-	// FIXME: need global rework check unique services and application servers (not at storage module!)
+	logTryPreValidateRequest(createServiceName, createServiceUUID, createService.logging)
 	allCurrentServices, err := createService.cacheStorage.LoadAllStorageDataToDomainModel()
 	if err != nil {
 		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}
+
+	if isServiceExist(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices) {
+		return serviceInfo, fmt.Errorf("service %v:%v already exist, can't create new one", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	}
+
+	if err = checkServiceIPAndPortUnique(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices); err != nil {
+		return serviceInfo, err
+	}
+
+	if err = checkApplicationServersIPAndPortUnique(serviceInfo.ApplicationServers, allCurrentServices); err != nil {
+		return serviceInfo, err
+	}
+
 	if err = checkRoutingTypeForApplicationServersValid(serviceInfo, allCurrentServices); err != nil {
 		return serviceInfo, err
 	}
-	//
+
+	logPreValidateRequestIsOk(createServiceName, createServiceUUID, createService.logging)
+
 	tunnelsFilesInfo := formTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
 	logTryCreateNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	newTunnelsFilesInfo, err := createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)

@@ -64,6 +64,15 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	removeServiceEntity.gracefulShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefulShutdown)
 	// graceful shutdown part end
+	logStartUsecase(removeServiceName, "add new application servers to service", removeServiceUUID, serviceInfo, removeServiceEntity.logging)
+	allCurrentServices, err := removeServiceEntity.cacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return fmt.Errorf("fail when loading info about current services: %v", err)
+	}
+
+	if isServiceExist(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices) {
+		return fmt.Errorf("service %v:%v already exist, can't create new one", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	}
 
 	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
@@ -71,6 +80,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return fmt.Errorf("can't get current service info: %v", err)
 	}
 	logGotCurrentServiceInfo(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
+	logTryPreValidateRequest(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 
 	tunnelsFilesInfo := formTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
 	logTryCreateNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
@@ -80,7 +90,6 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	}
 	logCreatedNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
 
-	// TODO: why double?
 	if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 		return fmt.Errorf("can't update tunnel info")
 	}
@@ -98,7 +107,6 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return err
 	}
 
-	// TODO: why double?
 	if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 		return fmt.Errorf("can't update tunnel info")
 	}

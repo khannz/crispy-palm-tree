@@ -8,23 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TODO: need better check unique, app srv to services too
-func checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) error {
-	// TODO: bad loops
-	for _, newApplicationServer := range newServiceInfo.ApplicationServers {
-		for _, currentApplicationServer := range currentServiceInfo.ApplicationServers {
-			if newApplicationServer == currentApplicationServer {
-				return fmt.Errorf("application server %v:%v alredy exist in service %v:%v",
-					newApplicationServer.ServerIP,
-					newApplicationServer.ServerPort,
-					newServiceInfo.ServiceIP,
-					newServiceInfo.ServicePort)
-			}
-		}
-	}
-	return nil
-}
-
 func validateRemoveApplicationServers(currentApplicattionServers,
 	applicattionServersForRemove []*domain.ApplicationServer) error {
 	if len(currentApplicattionServers) <= len(applicattionServersForRemove) {
@@ -75,9 +58,7 @@ func decreaseJobs(gracefulShutdown *domain.GracefulShutdown) {
 
 func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
 	var updatedServiceInfo *domain.ServiceInfo
-	if err := checkNewApplicationServersIsUnique(currentServiceInfo, newServiceInfo, eventUUID); err != nil {
-		return updatedServiceInfo, fmt.Errorf("new application server not unique: %v", err)
-	}
+
 	// concatenate two slices
 	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
 
@@ -150,7 +131,7 @@ func checkRoutingTypeForApplicationServersValid(newServiceInfo *domain.ServiceIn
 	for _, currentService := range allCurrentServices {
 		for _, newApplicationServer := range newServiceInfo.ApplicationServers {
 			for _, currentApplicationServer := range currentService.ApplicationServers {
-				if newApplicationServer.ServerIP == currentApplicationServer.ServerIP &&
+				if newApplicationServer.ServerIP == currentApplicationServer.ServerIP && // FIXME: do not compare port!
 					newApplicationServer.ServerPort == currentApplicationServer.ServerPort {
 					if newServiceInfo.RoutingType != currentService.RoutingType {
 						return fmt.Errorf("routing type %v for service %v for application server %v the type of routing is different from the previous routing type %v at service %v for application server %v",
@@ -167,6 +148,82 @@ func checkRoutingTypeForApplicationServersValid(newServiceInfo *domain.ServiceIn
 		}
 	}
 	return nil
+}
+
+func checkServiceIPAndPortUnique(incomeServiceIP, incomeServicePort string,
+	allCurrentServices []*domain.ServiceInfo) error {
+	for _, currentService := range allCurrentServices {
+		if incomeServiceIP == currentService.ServiceIP && incomeServicePort == currentService.ServicePort {
+			return fmt.Errorf("service %v:%v not unique: it is already in services", incomeServiceIP, incomeServicePort)
+		}
+		for _, currentApplicationServer := range currentService.ApplicationServers {
+			if incomeServiceIP == currentApplicationServer.ServerIP && incomeServicePort == currentApplicationServer.ServerPort {
+				return fmt.Errorf("service %v:%v not unique: it is already in service %v:%v as application server",
+					incomeServiceIP,
+					incomeServicePort,
+					currentService.ServiceIP,
+					currentService.ServicePort)
+			}
+		}
+	}
+	return nil
+}
+
+func checkApplicationServersIPAndPortUnique(incomeApplicationServers []*domain.ApplicationServer,
+	allCurrentServices []*domain.ServiceInfo) error {
+	for _, incomeApplicationServer := range incomeApplicationServers {
+		for _, currentService := range allCurrentServices {
+			if incomeApplicationServer.ServerIP == currentService.ServiceIP && incomeApplicationServer.ServerPort == currentService.ServicePort {
+				return fmt.Errorf("application server %v:%v not unique: the same combination of ip and port is already in services",
+					incomeApplicationServer.ServerIP,
+					incomeApplicationServer.ServerPort)
+			}
+			for _, currentApplicationServer := range currentService.ApplicationServers {
+				if incomeApplicationServer.ServerIP == currentApplicationServer.ServerIP && incomeApplicationServer.ServerPort == currentApplicationServer.ServerPort {
+					return fmt.Errorf("application server %v:%v not unique: the same combination of ip and port at application server in service %v:%v",
+						incomeApplicationServer.ServerIP,
+						incomeApplicationServer.ServerPort,
+						currentService.ServiceIP,
+						currentService.ServicePort)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func isServiceExist(incomeServiceIP, incomeServicePort string,
+	allCurrentServices []*domain.ServiceInfo) bool {
+	for _, currentService := range allCurrentServices {
+		if incomeServiceIP == currentService.ServiceIP && incomeServicePort == currentService.ServicePort {
+			return true
+		}
+	}
+	return false
+}
+
+func checkApplicationServersExistInService(incomeApplicationServers []*domain.ApplicationServer,
+	currentService *domain.ServiceInfo) error {
+	for _, incomeApplicationServer := range incomeApplicationServers {
+		if err := checkApplicationServerExistInService(incomeApplicationServer, currentService); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkApplicationServerExistInService(incomeApplicationServer *domain.ApplicationServer,
+	currentService *domain.ServiceInfo) error {
+	for _, currentApplicationServer := range currentService.ApplicationServers {
+		if incomeApplicationServer.ServerIP == currentApplicationServer.ServerIP && incomeApplicationServer.ServerPort == currentApplicationServer.ServerPort {
+			return nil
+		}
+	}
+	return fmt.Errorf("application server %v:%v not finded in service %v:%v",
+		incomeApplicationServer.ServerIP,
+		incomeApplicationServer.ServerPort,
+		currentService.ServiceIP,
+		currentService.ServicePort)
 }
 
 // logging utils start TODO: move to other file log logic
@@ -479,24 +536,6 @@ func logRemovedIPFromDummy(usecaseName,
 	}).Infof("removed service ip %v from dummy", serviceIP)
 }
 
-func logTryValidateForModifyService(usecaseName,
-	uuid string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":     usecaseName,
-		"event uuid": uuid,
-	}).Info("try validation that the service data is suitable for modification")
-}
-
-func logValidModifyService(usecaseName,
-	uuid string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":     usecaseName,
-		"event uuid": uuid,
-	}).Info("validation that the service data is suitable for modification is successful")
-}
-
 func logServicesIPAndPortNotEqual(serviceOneIP,
 	serviceOnePort,
 	serviceTwoIP,
@@ -550,6 +589,24 @@ func logApplicationServerNotFound(serviceOneIP,
 		serviceOnePort,
 		applicaionServerIP,
 		applicaionServerPort)
+}
+
+func logTryPreValidateRequest(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("start pre validation for request")
+}
+
+func logPreValidateRequestIsOk(usecaseName,
+	uuid string,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Info("successfully pre validate request")
 }
 
 // logging utils end

@@ -69,7 +69,32 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	// graceful shutdown part end
 
 	logStartUsecase(addApplicationServersName, "add new application servers to service", addApplicationServersUUID, newServiceInfo, addApplicationServers.logging)
-	// FIXME: check service exist, before create tunnels
+	logTryPreValidateRequest(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	allCurrentServices, err := addApplicationServers.cacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return newServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
+	}
+	if !isServiceExist(newServiceInfo.ServiceIP, newServiceInfo.ServicePort, allCurrentServices) {
+		return newServiceInfo, fmt.Errorf("service %v:%v does not exist, can't add application servers", newServiceInfo.ServiceIP, newServiceInfo.ServicePort)
+	}
+
+	if err = checkApplicationServersIPAndPortUnique(newServiceInfo.ApplicationServers, allCurrentServices); err != nil {
+		return newServiceInfo, err
+	}
+
+	logTryToGetCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	currentServiceInfo, err := addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
+	if err != nil {
+		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
+	}
+	newServiceInfo.RoutingType = currentServiceInfo.RoutingType // for ipvs and for check routing type is valid
+	logGotCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, currentServiceInfo, addApplicationServers.logging)
+
+	if err = checkRoutingTypeForApplicationServersValid(newServiceInfo, allCurrentServices); err != nil {
+		return newServiceInfo, err
+	}
+	logPreValidateRequestIsOk(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+
 	tunnelsFilesInfo := formTunnelsFilesInfo(newServiceInfo.ApplicationServers, addApplicationServers.cacheStorage)
 	logTryCreateNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
 	newTunnelsFilesInfo, err := addApplicationServers.tunnelConfig.CreateTunnels(tunnelsFilesInfo, addApplicationServersUUID)
@@ -77,26 +102,6 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return nil, fmt.Errorf("can't create tunnel files: %v", err)
 	}
 	logCreatedNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
-
-	// need for rollback. used only service ip and port
-	logTryToGetCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	currentServiceInfo, err := addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
-	if err != nil {
-		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
-	}
-	newServiceInfo.RoutingType = currentServiceInfo.RoutingType // for ipvs
-	logGotCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, currentServiceInfo, addApplicationServers.logging)
-
-	// logTryValidateForAddApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	// FIXME: need global rework check unique services and application servers (not at storage module!)
-	allCurrentServices, err := addApplicationServers.cacheStorage.LoadAllStorageDataToDomainModel()
-	if err != nil {
-		return newServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
-	}
-	if err = checkRoutingTypeForApplicationServersValid(newServiceInfo, allCurrentServices); err != nil {
-		return newServiceInfo, err
-	}
-	// logValidAddApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 
 	if err := addApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
@@ -128,7 +133,6 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	}
 	logUpdatedServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 
-	// TODO: why not only UpdateServiceInfo?
 	if err := addApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
 	}

@@ -77,7 +77,7 @@ type TunnelForService struct {
 	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
 }
 
-// NewServiceDataToStorage add new service to storage. Also check unique data
+// NewServiceDataToStorage add new service to storage
 func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData *domain.ServiceInfo,
 	eventUUID string) error {
 	serviceDataKey, serviceDataValue, err := transformServiceDataForStorageData(serviceData)
@@ -87,10 +87,6 @@ func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData *domain.
 
 	storageEntity.Lock()
 	defer storageEntity.Unlock()
-	err = storageEntity.checkUnique(serviceDataKey, serviceData)
-	if err != nil {
-		return fmt.Errorf("some key not unique: %v", err)
-	}
 
 	err = storageEntity.updateDatabaseServiceInfo(serviceDataKey, serviceDataValue)
 	if err != nil {
@@ -136,74 +132,6 @@ func updateDb(db *badger.DB, key, value []byte) error {
 	})
 }
 
-func (storageEntity *StorageEntity) checkServiceUniqueInDatabase(key []byte) error {
-	return storageEntity.Db.View(func(txn *badger.Txn) error {
-		_, err := txn.Get(key)
-		if err != nil {
-			return nil
-		}
-		return fmt.Errorf("key %s already exist in storage", key)
-	})
-}
-
-func (storageEntity *StorageEntity) checkUnique(serviceDataKey []byte,
-	serviceInfo *domain.ServiceInfo) error {
-	var err error
-	err = storageEntity.checkServiceUniqueInDatabase(serviceDataKey)
-	if err != nil {
-		return fmt.Errorf("service is not unique: %v", err)
-	}
-	err = storageEntity.checkUniqueInApplicationServersFromDatabase(serviceInfo.ServiceIP, serviceInfo.ServicePort)
-	if err != nil {
-		return fmt.Errorf("service is not unique, find it in applicatation servers: %v", err)
-	}
-
-	for _, applicationServer := range serviceInfo.ApplicationServers {
-		err = storageEntity.checkUniqueInApplicationServersFromDatabase(applicationServer.ServerIP, applicationServer.ServerPort)
-		if err != nil {
-			return fmt.Errorf("application server for service %s is not unique: %v", serviceDataKey, err)
-		}
-	}
-	return nil
-}
-
-// TODO: need better check unique, app srv to services too
-func (storageEntity *StorageEntity) checkUniqueInApplicationServersFromDatabase(checkIP,
-	checkPort string) error {
-	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		opts.PrefetchSize = 10
-		it := txn.NewIterator(opts)
-		defer it.Close()
-		for it.Rewind(); it.Valid(); it.Next() {
-			item := it.Item()
-			serviceData := item.Key()
-			err := item.Value(func(v []byte) error {
-				oldExtendedServiceData := ExtendedServiceData{}
-				if err := json.Unmarshal(v, &oldExtendedServiceData); err != nil {
-					return fmt.Errorf("can't unmarshall application servers data: %v", err)
-				}
-
-				for _, oldApplicationServer := range oldExtendedServiceData.ApplicationServers {
-					if checkIP == oldApplicationServer.ServerIP &&
-						checkPort == oldApplicationServer.ServerPort {
-						return fmt.Errorf("in service %s application server %v already exist", serviceData, oldApplicationServer)
-					}
-				}
-
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 	serviceDataValue []byte) error {
 	var err error
@@ -219,9 +147,6 @@ func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *do
 	keyData := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
 	storageEntity.Lock()
 	defer storageEntity.Unlock()
-	if err := storageEntity.checkServiceUniqueInDatabase(keyData); err == nil { // if err not nil key exist
-		return fmt.Errorf("key %s not exist in database", keyData)
-	}
 
 	if err := storageEntity.Db.Update(func(txn *badger.Txn) error {
 		if err := txn.Delete(keyData); err != nil {
