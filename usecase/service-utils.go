@@ -131,8 +131,7 @@ func checkRoutingTypeForApplicationServersValid(newServiceInfo *domain.ServiceIn
 	for _, currentService := range allCurrentServices {
 		for _, newApplicationServer := range newServiceInfo.ApplicationServers {
 			for _, currentApplicationServer := range currentService.ApplicationServers {
-				if newApplicationServer.ServerIP == currentApplicationServer.ServerIP && // FIXME: do not compare port!
-					newApplicationServer.ServerPort == currentApplicationServer.ServerPort {
+				if newApplicationServer.ServerIP == currentApplicationServer.ServerIP {
 					if newServiceInfo.RoutingType != currentService.RoutingType {
 						return fmt.Errorf("routing type %v for service %v for application server %v the type of routing is different from the previous routing type %v at service %v for application server %v",
 							newServiceInfo.RoutingType,
