@@ -2,9 +2,9 @@ package application
 
 import (
 	"encoding/json"
-	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -29,13 +29,13 @@ type RemoveApplicationServersRequest struct {
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /remove-application-servers [post]
-func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r *http.Request) {
+func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) {
 	removeApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 
 	logNewRequest(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	bytesFromBuf := readIncomeBytes(r)
+	bytesFromBuf := readIncomeBytes(ginContext.Request)
 
 	removeApplicationServersRequest := &RemoveApplicationServersRequest{}
 
@@ -43,14 +43,14 @@ func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r 
 	if err != nil {
 		unmarshallIncomeError(err.Error(),
 			removeApplicationServersRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
 	if validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest(); validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, removeApplicationServersRequestUUID, w, restAPI.balancerFacade.Logging)
+		validateIncomeError(stringValidateError, removeApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r 
 		uscaseFail(removeApplicationServersRequestName,
 			err.Error(),
 			removeApplicationServersRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -74,7 +74,7 @@ func (restAPI *RestAPIstruct) removeApplicationServers(w http.ResponseWriter, r 
 	writeUniversalResponse(convertedServiceInfo,
 		removeApplicationServersRequestName,
 		removeApplicationServersRequestUUID,
-		w,
+		ginContext,
 		restAPI.balancerFacade.Logging)
 }
 

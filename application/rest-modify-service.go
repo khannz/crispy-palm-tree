@@ -2,9 +2,9 @@ package application
 
 import (
 	"encoding/json"
-	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -32,26 +32,26 @@ type ModifyServiceInfo struct {
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /create-service [post]
-func (restAPI *RestAPIstruct) modifyService(w http.ResponseWriter, r *http.Request) {
+func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 	modifyServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(modifyServiceRequestName, modifyServiceUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	bytesFromBuf := readIncomeBytes(r)
+	bytesFromBuf := readIncomeBytes(ginContext.Request)
 	modifyService := &ModifyServiceInfo{}
 
 	err = json.Unmarshal(bytesFromBuf, modifyService)
 	if err != nil {
 		unmarshallIncomeError(err.Error(),
 			modifyServiceUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
 	if validateError := modifyService.validatemodifyService(); validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, modifyServiceUUID, w, restAPI.balancerFacade.Logging)
+		validateIncomeError(stringValidateError, modifyServiceUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (restAPI *RestAPIstruct) modifyService(w http.ResponseWriter, r *http.Reque
 		uscaseFail(modifyServiceRequestName,
 			err.Error(),
 			modifyServiceUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -76,7 +76,7 @@ func (restAPI *RestAPIstruct) modifyService(w http.ResponseWriter, r *http.Reque
 	writeUniversalResponse(serviceInfo,
 		modifyServiceRequestName,
 		modifyServiceUUID,
-		w,
+		ginContext,
 		restAPI.balancerFacade.Logging)
 }
 

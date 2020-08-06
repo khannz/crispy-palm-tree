@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
 	// Need for httpSwagger
 	_ "github.com/khannz/crispy-palm-tree/docs"
-	httpSwagger "github.com/swaggo/http-swagger"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 const restAPIlogName = "restAPI"
@@ -31,13 +32,13 @@ const restAPIlogName = "restAPI"
 // RestAPIstruct restapi entity
 type RestAPIstruct struct {
 	server         *http.Server
-	router         *mux.Router
+	router         *gin.Engine
 	balancerFacade *BalancerFacade
 }
 
 // NewRestAPIentity ...
 func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIstruct { // TODO: authentication (Oauth2?)
-	router := mux.NewRouter()
+	router := gin.Default()
 	fullAddres := ip + ":" + port
 	server := &http.Server{
 		Addr: fullAddres, // ip + ":" + port - not working here
@@ -59,13 +60,18 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIs
 
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
-	restAPI.router.HandleFunc("/create-service", restAPI.createService).Methods("POST")
-	restAPI.router.HandleFunc("/remove-service", restAPI.removeService).Methods("POST")
-	restAPI.router.HandleFunc("/get-services", restAPI.getServices).Methods("POST")
-	restAPI.router.HandleFunc("/add-application-servers", restAPI.addApplicationServers).Methods("POST")
-	restAPI.router.HandleFunc("/remove-application-servers", restAPI.removeApplicationServers).Methods("POST")
-	restAPI.router.HandleFunc("/get-service-state", restAPI.getServiceState).Methods("POST")
-	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
+	restAPI.router.POST("/create-service", restAPI.createService)
+	restAPI.router.POST("/remove-service", restAPI.removeService)
+	restAPI.router.POST("/get-services", restAPI.getServices)
+	restAPI.router.POST("/add-application-servers", restAPI.addApplicationServers)
+	restAPI.router.POST("/remove-application-servers", restAPI.removeApplicationServers)
+	restAPI.router.POST("/get-service", restAPI.getService)
+	restAPI.router.POST("/modify-service", restAPI.modifyService)
+
+	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
+	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
+
+	// restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
 
 	err := restAPI.server.ListenAndServe()
 	if err != nil {

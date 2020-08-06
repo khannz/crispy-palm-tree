@@ -2,12 +2,12 @@ package application
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/sirupsen/logrus"
@@ -168,26 +168,19 @@ func readIncomeBytes(req *http.Request) []byte {
 	return buf.Bytes()
 }
 
-func unmarshallIncomeError(errS, uuid string, w http.ResponseWriter, logging *logrus.Logger) {
+func unmarshallIncomeError(errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": uuid,
 	}).Errorf("can't unmarshal income request: %v", errS)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	rError := &UniversalResponse{
+	rError := UniversalResponse{
 		ID:                       uuid,
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "can't unmarshal income request: " + errS,
 	}
-	err := json.NewEncoder(w).Encode(rError)
-	if err != nil {
-		logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": uuid,
-		}).Errorf("can't response by request: %v", err)
-	}
+
+	ginContext.JSON(http.StatusBadRequest, gin.H{"data": rError})
 }
 
 func logChangeUUID(oldUUID, newUUID string, logging *logrus.Logger) {
@@ -197,47 +190,32 @@ func logChangeUUID(oldUUID, newUUID string, logging *logrus.Logger) {
 	}).Infof("change job uuid from %v to %v", oldUUID, newUUID)
 }
 
-func validateIncomeError(errS, uuid string, w http.ResponseWriter, logging *logrus.Logger) {
+func validateIncomeError(errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": uuid,
 	}).Errorf("validate fail for income nwb request: %v", errS)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
+
 	rError := &UniversalResponse{
 		ID:                       uuid,
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "fail when validate income request: " + errS,
 	}
-	err := json.NewEncoder(w).Encode(rError)
-	if err != nil {
-		logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": uuid,
-		}).Errorf("can't response by request: %v", err)
-	}
+	ginContext.JSON(http.StatusBadRequest, gin.H{"data": rError})
 }
 
-func uscaseFail(typeOfrequest, errS, uuid string, w http.ResponseWriter, logging *logrus.Logger) {
+func uscaseFail(typeOfrequest, errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
 		"entity":     restAPIlogName,
 		"event uuid": uuid,
 	}).Errorf("can't %v, got error: %v", typeOfrequest, errS)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusInternalServerError)
 	rError := &UniversalResponse{
 		ID:                       uuid,
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "can't %v, got internal error: " + errS,
 	}
-	err := json.NewEncoder(w).Encode(rError)
-	if err != nil {
-		logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": uuid,
-		}).Errorf("can't response by %v request: %v", typeOfrequest, err)
-	}
+	ginContext.JSON(http.StatusInternalServerError, gin.H{"data": rError})
 }
 
 func logRequestIsDone(typeOfrequest, uuid string, logging *logrus.Logger) {
@@ -247,15 +225,8 @@ func logRequestIsDone(typeOfrequest, uuid string, logging *logrus.Logger) {
 	}).Infof("request %v done", typeOfrequest)
 }
 
-func writeUniversalResponse(ur UniversalResponse, typeOfrequest, uuid string, w http.ResponseWriter, logging *logrus.Logger) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(ur); err != nil {
-		logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": uuid,
-		}).Errorf("can't response by request: %v", err)
-	}
+func writeUniversalResponse(ur UniversalResponse, typeOfrequest, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
+	ginContext.JSON(http.StatusOK, gin.H{"data": ur})
 }
 
 func convertDomainHealthcheckToRest(dHC domain.ServiceHealthcheck) ServiceHealthcheck {

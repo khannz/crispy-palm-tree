@@ -22,7 +22,7 @@ const (
 	defaultLogFormat      = "default"
 	defaultSystemLogTag   = ""
 
-	defaultRestAPIIP   = "0.0.0.0"
+	defaultRestAPIIP   = "127.0.0.1"
 	defaultRestAPIPort = "7000"
 
 	defaultTechInterface          = "" // must be set

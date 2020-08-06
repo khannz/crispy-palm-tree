@@ -2,9 +2,9 @@ package application
 
 import (
 	"encoding/json"
-	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -29,12 +29,12 @@ type AddApplicationServersRequest struct {
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /add-application-servers [post]
-func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *http.Request) {
+func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	addApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	bytesFromBuf := readIncomeBytes(r)
+	bytesFromBuf := readIncomeBytes(ginContext.Request)
 
 	addApplicationServersRequest := &AddApplicationServersRequest{}
 
@@ -42,14 +42,14 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 	if err != nil {
 		unmarshallIncomeError(err.Error(),
 			addApplicationServersRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
 	if validateError := addApplicationServersRequest.validateAddApplicationServersRequest(); validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, addApplicationServersRequestUUID, w, restAPI.balancerFacade.Logging)
+		validateIncomeError(stringValidateError, addApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 		uscaseFail(addApplicationServersRequestName,
 			err.Error(),
 			addApplicationServersRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -73,7 +73,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(w http.ResponseWriter, r *ht
 	writeUniversalResponse(convertedServiceInfo,
 		addApplicationServersRequestName,
 		addApplicationServersRequestUUID,
-		w,
+		ginContext,
 		restAPI.balancerFacade.Logging)
 }
 

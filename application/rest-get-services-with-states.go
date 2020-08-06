@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 )
 
 const getServicesRequestName = "get services"
@@ -34,12 +34,12 @@ type GetAllServicesResponse struct {
 // @Failure 400 {object} application.GetAllServicesResponse "Bad request"
 // @Failure 500 {object} application.GetAllServicesResponse "Internal error"
 // @Router /get-services [post]
-func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request) {
+func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(getServicesRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	bytesFromBuf := readIncomeBytes(r)
+	bytesFromBuf := readIncomeBytes(ginContext.Request)
 
 	newGetServicesRequest := &GetAllServicesRequest{}
 
@@ -47,7 +47,7 @@ func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		unmarshallIncomeError(err.Error(),
 			getServicesRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -55,7 +55,7 @@ func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request
 	validateError := newGetServicesRequest.validateGetServicesRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, getServicesRequestUUID, w, restAPI.balancerFacade.Logging)
+		validateIncomeError(stringValidateError, getServicesRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -67,7 +67,7 @@ func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request
 		uscaseFail(getServicesRequestName,
 			err.Error(),
 			getServicesRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -86,15 +86,7 @@ func (restAPI *RestAPIstruct) getServices(w http.ResponseWriter, r *http.Request
 		ExtraInfo:                extraInfo,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(getServicesResponse)
-	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": getServicesRequestUUID,
-		}).Errorf("can't response by request: %v", err)
-	}
+	ginContext.JSON(http.StatusOK, gin.H{"data": getServicesResponse})
 }
 
 func (getAllServicesRequest *GetAllServicesRequest) validateGetServicesRequest() error {

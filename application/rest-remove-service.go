@@ -2,9 +2,9 @@ package application
 
 import (
 	"encoding/json"
-	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -28,13 +28,12 @@ type RemoveServiceInfo struct {
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /remove-service [post]
-func (restAPI *RestAPIstruct) removeService(w http.ResponseWriter, r *http.Request) {
+func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-
 	logNewRequest(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	bytesFromBuf := readIncomeBytes(r)
+	bytesFromBuf := readIncomeBytes(ginContext.Request)
 
 	removeService := &RemoveServiceInfo{}
 
@@ -42,7 +41,7 @@ func (restAPI *RestAPIstruct) removeService(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		unmarshallIncomeError(err.Error(),
 			removeServiceUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -50,7 +49,7 @@ func (restAPI *RestAPIstruct) removeService(w http.ResponseWriter, r *http.Reque
 	validateError := removeService.validateRemoveNWBRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, removeServiceUUID, w, restAPI.balancerFacade.Logging)
+		validateIncomeError(stringValidateError, removeServiceUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -63,7 +62,7 @@ func (restAPI *RestAPIstruct) removeService(w http.ResponseWriter, r *http.Reque
 		uscaseFail(removeServiceRequestName,
 			err.Error(),
 			removeServiceUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -80,7 +79,7 @@ func (restAPI *RestAPIstruct) removeService(w http.ResponseWriter, r *http.Reque
 	writeUniversalResponse(serviceRemoved,
 		removeServiceRequestName,
 		removeServiceUUID,
-		w,
+		ginContext,
 		restAPI.balancerFacade.Logging)
 }
 

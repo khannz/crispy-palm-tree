@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 )
 
 const getServiceStateRequestName = "get service state"
@@ -29,12 +29,12 @@ type GetServiceStateRequest struct {
 // @Failure 400 {object} application.UniversalResponseWithStates "Bad request"
 // @Failure 500 {object} application.UniversalResponseWithStates "Internal error"
 // @Router /get-service-state [post]
-func (restAPI *RestAPIstruct) getServiceState(w http.ResponseWriter, r *http.Request) {
+func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(getServiceStateRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
 
 	var err error
-	bytesFromBuf := readIncomeBytes(r)
+	bytesFromBuf := readIncomeBytes(ginContext.Request)
 
 	newGetServiceStateRequest := &GetServiceStateRequest{}
 
@@ -42,7 +42,7 @@ func (restAPI *RestAPIstruct) getServiceState(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		unmarshallIncomeError(err.Error(),
 			getServicesRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -50,7 +50,7 @@ func (restAPI *RestAPIstruct) getServiceState(w http.ResponseWriter, r *http.Req
 	validateError := newGetServiceStateRequest.validateGetServiceStateRequest()
 	if validateError != nil {
 		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, getServicesRequestUUID, w, restAPI.balancerFacade.Logging)
+		validateIncomeError(stringValidateError, getServicesRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (restAPI *RestAPIstruct) getServiceState(w http.ResponseWriter, r *http.Req
 		uscaseFail(getServiceStateRequestName,
 			err.Error(),
 			getServicesRequestUUID,
-			w,
+			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
@@ -70,15 +70,7 @@ func (restAPI *RestAPIstruct) getServiceState(w http.ResponseWriter, r *http.Req
 	logRequestIsDone(getServiceStateRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
 	convertedServiceInfoWithState := convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfoWithState, true)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(convertedServiceInfoWithState)
-	if err != nil {
-		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"entity":     restAPIlogName,
-			"event uuid": getServicesRequestUUID,
-		}).Errorf("can't response by request: %v", err)
-	}
+	ginContext.JSON(http.StatusOK, gin.H{"data": convertedServiceInfoWithState})
 }
 
 func (getAllServiceStateRequest *GetServiceStateRequest) validateGetServiceStateRequest() error {
