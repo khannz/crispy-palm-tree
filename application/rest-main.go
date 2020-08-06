@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
@@ -37,8 +38,9 @@ type RestAPIstruct struct {
 }
 
 // NewRestAPIentity ...
-func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIstruct { // TODO: authentication (Oauth2?)
+func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade, logger *logrus.Logger) *RestAPIstruct { // TODO: authentication (Oauth2?)
 	router := gin.Default()
+	router.Use(ginrus.Ginrus(logger, time.RFC3339, false))
 	fullAddres := ip + ":" + port
 	server := &http.Server{
 		Addr: fullAddres, // ip + ":" + port - not working here

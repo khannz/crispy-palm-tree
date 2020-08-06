@@ -157,7 +157,7 @@ var rootCmd = &cobra.Command{
 			uuidGenerator,
 			logging)
 
-		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade)
+		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), facade, logging)
 		go restAPI.UpRestAPI()
 		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
 
