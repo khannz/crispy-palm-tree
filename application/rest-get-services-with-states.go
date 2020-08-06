@@ -10,19 +10,6 @@ import (
 
 const getServicesRequestName = "get services"
 
-// GetAllServicesRequest ...
-type GetAllServicesRequest struct {
-	ID string `json:"id" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
-}
-
-// GetAllServicesResponse ...
-type GetAllServicesResponse struct {
-	ID                       string                        `json:"id"`
-	JobCompletedSuccessfully bool                          `json:"jobCompletedSuccessfully"`
-	AllServices              []UniversalResponseWithStates `json:"allServices,omitempty"`
-	ExtraInfo                string                        `json:"extraInfo,omitempty"`
-}
-
 // getServices godoc
 // @tags Network balance services
 // @Summary Get all services
