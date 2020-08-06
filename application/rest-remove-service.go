@@ -20,7 +20,7 @@ const removeServiceRequestName = "remove service"
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /remove-service [post]
+// @Router /service/remove-service [post]
 func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)

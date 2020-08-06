@@ -20,7 +20,7 @@ const addApplicationServersRequestName = "add application servers"
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /add-application-servers [post]
+// @Router /service/add-application-servers [post]
 func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	addApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)

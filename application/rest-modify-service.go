@@ -20,7 +20,7 @@ const modifyServiceRequestName = "modify service"
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /create-service [post]
+// @Router /service/create-service [post]
 func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 	modifyServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(modifyServiceRequestName, modifyServiceUUID, restAPI.balancerFacade.Logging)

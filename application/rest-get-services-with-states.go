@@ -20,7 +20,7 @@ const getServicesRequestName = "get services"
 // @Success 200 {object} application.GetAllServicesResponse "If all okay"
 // @Failure 400 {object} application.GetAllServicesResponse "Bad request"
 // @Failure 500 {object} application.GetAllServicesResponse "Internal error"
-// @Router /get-services [post]
+// @Router /service/get-services [post]
 func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(getServicesRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)

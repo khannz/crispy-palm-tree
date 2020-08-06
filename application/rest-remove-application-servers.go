@@ -20,7 +20,7 @@ const removeApplicationServersRequestName = "remove application servers"
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /remove-application-servers [post]
+// @Router /service/remove-application-servers [post]
 func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) {
 	removeApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 

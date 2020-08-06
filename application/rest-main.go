@@ -62,18 +62,19 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade, logger *l
 
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
-	restAPI.router.POST("/create-service", restAPI.createService)
-	restAPI.router.POST("/remove-service", restAPI.removeService)
-	restAPI.router.POST("/get-services", restAPI.getServices)
-	restAPI.router.POST("/add-application-servers", restAPI.addApplicationServers)
-	restAPI.router.POST("/remove-application-servers", restAPI.removeApplicationServers)
-	restAPI.router.POST("/get-service", restAPI.getService)
-	restAPI.router.POST("/modify-service", restAPI.modifyService)
+	service := restAPI.router.Group("/service")
+	service.POST("/create-service", restAPI.createService)
+	service.POST("/remove-service", restAPI.removeService)
+	service.POST("/get-services", restAPI.getServices)
+	service.POST("/add-application-servers", restAPI.addApplicationServers)
+	service.POST("/remove-application-servers", restAPI.removeApplicationServers)
+	service.POST("/get-service", restAPI.getService)
+	service.POST("/modify-service", restAPI.modifyService)
 
 	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
 	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
-	// restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
+	// authorization := restAPI.router.Group("/authorization")
 
 	err := restAPI.server.ListenAndServe()
 	if err != nil {
