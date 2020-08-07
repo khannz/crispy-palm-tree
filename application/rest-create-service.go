@@ -1,6 +1,7 @@
 package application
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -58,11 +59,7 @@ func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 
 	serviceInfo := convertDomainServiceInfoToRestUniversalResponse(nwbServiceInfo, true)
 
-	writeUniversalResponse(serviceInfo,
-		addServiceRequestName,
-		createServiceUUID,
-		ginContext,
-		restAPI.balancerFacade.Logging)
+	ginContext.JSON(http.StatusOK, gin.H{"data": serviceInfo})
 }
 
 func (createService *NewServiceInfo) validateCreateService() error {

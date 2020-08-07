@@ -1,6 +1,7 @@
 package application
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -58,11 +59,7 @@ func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) 
 	logRequestIsDone(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
 	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
-	writeUniversalResponse(convertedServiceInfo,
-		removeApplicationServersRequestName,
-		removeApplicationServersRequestUUID,
-		ginContext,
-		restAPI.balancerFacade.Logging)
+	ginContext.JSON(http.StatusOK, gin.H{"data": convertedServiceInfo})
 }
 
 func (removeApplicationServersRequest *RemoveApplicationServersRequest) validateRemoveApplicationServersRequest() error {

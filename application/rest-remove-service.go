@@ -1,6 +1,7 @@
 package application
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -64,11 +65,7 @@ func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "service removed",
 	}
-	writeUniversalResponse(serviceRemoved,
-		removeServiceRequestName,
-		removeServiceUUID,
-		ginContext,
-		restAPI.balancerFacade.Logging)
+	ginContext.JSON(http.StatusOK, gin.H{"data": serviceRemoved})
 }
 
 func (removeService *RemoveServiceInfo) validateRemoveNWBRequest() error {

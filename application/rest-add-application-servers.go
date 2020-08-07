@@ -1,6 +1,7 @@
 package application
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -57,11 +58,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	logRequestIsDone(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
 	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
-	writeUniversalResponse(convertedServiceInfo,
-		addApplicationServersRequestName,
-		addApplicationServersRequestUUID,
-		ginContext,
-		restAPI.balancerFacade.Logging)
+	ginContext.JSON(http.StatusOK, gin.H{"data": convertedServiceInfo})
 }
 
 func (addApplicationServersRequest *AddApplicationServersRequest) convertDataAddApplicationServersRequest() map[string]string {

@@ -159,9 +159,9 @@ func logRequestIsDone(typeOfrequest, uuid string, logging *logrus.Logger) {
 	}).Infof("request %v done", typeOfrequest)
 }
 
-func writeUniversalResponse(ur UniversalResponse, typeOfrequest, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
-	ginContext.JSON(http.StatusOK, gin.H{"data": ur})
-}
+// func writeUniversalResponse(ur UniversalResponse, typeOfrequest, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
+// 	ginContext.JSON(http.StatusOK, gin.H{"data": ur})
+// }
 
 func convertDomainHealthcheckToRest(dHC domain.ServiceHealthcheck) ServiceHealthcheck {
 	return ServiceHealthcheck{
