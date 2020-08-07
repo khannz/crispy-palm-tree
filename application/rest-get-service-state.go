@@ -21,6 +21,7 @@ const getServiceStateRequestName = "get service state"
 // @Failure 400 {object} application.UniversalResponseWithStates "Bad request"
 // @Failure 500 {object} application.UniversalResponseWithStates "Internal error"
 // @Router /service/get-service-state [post]
+// @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(getServiceStateRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
@@ -58,7 +59,7 @@ func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 	logRequestIsDone(getServiceStateRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
 	convertedServiceInfoWithState := convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfoWithState, true)
 
-	ginContext.JSON(http.StatusOK, gin.H{"data": convertedServiceInfoWithState})
+	ginContext.JSON(http.StatusOK, convertedServiceInfoWithState)
 }
 
 func (getAllServiceStateRequest *GetServiceStateRequest) validateGetServiceStateRequest() error {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/contrib/ginrus"
+	"github.com/gin-gonic/contrib/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
@@ -17,28 +18,46 @@ import (
 
 const restAPIlogName = "restAPI"
 
-// @title NLB service swagger
-// @version 1.0.1
-// @description create/delete nlb service.
-// @Tags New nlb service
-// @tag.name Link for docs
-// @tag.docs.url http://kb.sdn.sbrf.ru/display/SDN/*
-// @tag.docs.description Docs at confluence
-// @contact.name Ivan Tikhonov
-// @contact.email sdn@sberbank.ru
+// User ...
+type User struct {
+	login    string
+	password string
+}
 
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// NewUser ...
+func NewUser(login, password string) User {
+	return User{
+		login:    login,
+		password: password,
+	}
+}
+
+// Authorization ...
+type Authorization struct {
+	mainSecret        string
+	mainRefreshSecret string
+	users             []User
+}
+
+// NewAuthorization ...
+func NewAuthorization(mainSecret, mainRefreshSecret string, users []User) *Authorization {
+	return &Authorization{
+		mainSecret:        mainSecret,
+		mainRefreshSecret: mainRefreshSecret,
+		users:             users,
+	}
+}
 
 // RestAPIstruct restapi entity
 type RestAPIstruct struct {
 	server         *http.Server
 	router         *gin.Engine
 	balancerFacade *BalancerFacade
+	authorization  *Authorization
 }
 
 // NewRestAPIentity ...
-func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade, logger *logrus.Logger) *RestAPIstruct { // TODO: authentication (Oauth2?)
+func NewRestAPIentity(ip, port string, authorization *Authorization, balancerFacade *BalancerFacade, logger *logrus.Logger) *RestAPIstruct {
 	router := gin.Default()
 	router.Use(ginrus.Ginrus(logger, time.RFC3339, false))
 	fullAddres := ip + ":" + port
@@ -55,6 +74,7 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade, logger *l
 		server:         server,
 		router:         router,
 		balancerFacade: balancerFacade,
+		authorization:  authorization,
 	}
 
 	return restAPI
@@ -63,6 +83,7 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade, logger *l
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
 	service := restAPI.router.Group("/service")
+	service.Use(jwt.Auth(restAPI.authorization.mainSecret))
 	service.POST("/create-service", restAPI.createService)
 	service.POST("/remove-service", restAPI.removeService)
 	service.POST("/get-services", restAPI.getServices)
@@ -74,7 +95,12 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
 	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
-	// authorization := restAPI.router.Group("/authorization")
+	newJWT := restAPI.router.Group("/jwt")
+	newJWT.POST("/request-token", restAPI.tokenRequest)
+
+	refreshJWT := restAPI.router.Group("/jwt")
+	refreshJWT.POST("/refresh-token", restAPI.tokenRefresh)
+	newJWT.Use(jwt.Auth(restAPI.authorization.mainRefreshSecret))
 
 	err := restAPI.server.ListenAndServe()
 	if err != nil {

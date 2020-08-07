@@ -21,6 +21,7 @@ const addServiceRequestName = "add service"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/create-service [post]
+// @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 	createServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(addServiceRequestName, createServiceUUID, restAPI.balancerFacade.Logging)
@@ -59,7 +60,7 @@ func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 
 	serviceInfo := convertDomainServiceInfoToRestUniversalResponse(nwbServiceInfo, true)
 
-	ginContext.JSON(http.StatusOK, gin.H{"data": serviceInfo})
+	ginContext.JSON(http.StatusOK, serviceInfo)
 }
 
 func (createService *NewServiceInfo) validateCreateService() error {

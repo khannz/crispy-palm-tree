@@ -20,6 +20,7 @@ const getServicesRequestName = "get services"
 // @Failure 400 {object} application.GetAllServicesResponse "Bad request"
 // @Failure 500 {object} application.GetAllServicesResponse "Internal error"
 // @Router /service/get-services [post]
+// @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(getServicesRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
@@ -68,7 +69,7 @@ func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 		ExtraInfo:                extraInfo,
 	}
 
-	ginContext.JSON(http.StatusOK, gin.H{"data": getServicesResponse})
+	ginContext.JSON(http.StatusOK, getServicesResponse)
 }
 
 func (getAllServicesRequest *GetAllServicesRequest) validateGetServicesRequest() error {

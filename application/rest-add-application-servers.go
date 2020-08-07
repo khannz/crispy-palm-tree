@@ -21,6 +21,7 @@ const addApplicationServersRequestName = "add application servers"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/add-application-servers [post]
+// @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	addApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
@@ -58,7 +59,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	logRequestIsDone(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
 	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
-	ginContext.JSON(http.StatusOK, gin.H{"data": convertedServiceInfo})
+	ginContext.JSON(http.StatusOK, convertedServiceInfo)
 }
 
 func (addApplicationServersRequest *AddApplicationServersRequest) convertDataAddApplicationServersRequest() map[string]string {

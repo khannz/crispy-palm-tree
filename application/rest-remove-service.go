@@ -21,6 +21,7 @@ const removeServiceRequestName = "remove service"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/remove-service [post]
+// @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
@@ -65,7 +66,7 @@ func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "service removed",
 	}
-	ginContext.JSON(http.StatusOK, gin.H{"data": serviceRemoved})
+	ginContext.JSON(http.StatusOK, serviceRemoved)
 }
 
 func (removeService *RemoveServiceInfo) validateRemoveNWBRequest() error {

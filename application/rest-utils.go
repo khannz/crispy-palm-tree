@@ -114,7 +114,7 @@ func unmarshallIncomeError(errS, uuid string, ginContext *gin.Context, logging *
 		ExtraInfo:                "can't unmarshal income request: " + errS,
 	}
 
-	ginContext.JSON(http.StatusBadRequest, gin.H{"data": rError})
+	ginContext.JSON(http.StatusBadRequest, rError)
 }
 
 func logChangeUUID(oldUUID, newUUID string, logging *logrus.Logger) {
@@ -135,7 +135,7 @@ func validateIncomeError(errS, uuid string, ginContext *gin.Context, logging *lo
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "fail when validate income request: " + errS,
 	}
-	ginContext.JSON(http.StatusBadRequest, gin.H{"data": rError})
+	ginContext.JSON(http.StatusBadRequest, rError)
 }
 
 func uscaseFail(typeOfrequest, errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
@@ -149,7 +149,7 @@ func uscaseFail(typeOfrequest, errS, uuid string, ginContext *gin.Context, loggi
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "can't %v, got internal error: " + errS,
 	}
-	ginContext.JSON(http.StatusInternalServerError, gin.H{"data": rError})
+	ginContext.JSON(http.StatusInternalServerError, rError)
 }
 
 func logRequestIsDone(typeOfrequest, uuid string, logging *logrus.Logger) {

@@ -21,6 +21,7 @@ const removeApplicationServersRequestName = "remove application servers"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/remove-application-servers [post]
+// @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) {
 	removeApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 
@@ -59,7 +60,7 @@ func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) 
 	logRequestIsDone(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
 	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
-	ginContext.JSON(http.StatusOK, gin.H{"data": convertedServiceInfo})
+	ginContext.JSON(http.StatusOK, convertedServiceInfo)
 }
 
 func (removeApplicationServersRequest *RemoveApplicationServersRequest) validateRemoveApplicationServersRequest() error {

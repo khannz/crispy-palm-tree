@@ -21,6 +21,7 @@ const modifyServiceRequestName = "modify service"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/create-service [post]
+// @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 	modifyServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(modifyServiceRequestName, modifyServiceUUID, restAPI.balancerFacade.Logging)
@@ -59,7 +60,7 @@ func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 
 	serviceInfo := convertDomainServiceInfoToRestUniversalResponse(nwbServiceInfo, true)
 
-	ginContext.JSON(http.StatusOK, gin.H{"data": serviceInfo})
+	ginContext.JSON(http.StatusOK, serviceInfo)
 }
 
 func (modifyService *ModifyServiceInfo) validatemodifyService() error {
