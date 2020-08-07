@@ -1,7 +1,6 @@
 package application
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -25,13 +24,9 @@ func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
 
-	var err error
-	bytesFromBuf := readIncomeBytes(ginContext.Request)
-
 	removeService := &RemoveServiceInfo{}
 
-	err = json.Unmarshal(bytesFromBuf, removeService)
-	if err != nil {
+	if err := ginContext.ShouldBindJSON(removeService); err != nil {
 		unmarshallIncomeError(err.Error(),
 			removeServiceUUID,
 			ginContext,
@@ -49,7 +44,7 @@ func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	logChangeUUID(removeServiceUUID, removeService.ID, restAPI.balancerFacade.Logging)
 	removeServiceUUID = removeService.ID
 
-	err = restAPI.balancerFacade.RemoveService(removeService,
+	err := restAPI.balancerFacade.RemoveService(removeService,
 		removeServiceUUID)
 	if err != nil {
 		uscaseFail(removeServiceRequestName,

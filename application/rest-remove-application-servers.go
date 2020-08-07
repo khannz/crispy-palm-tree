@@ -1,7 +1,6 @@
 package application
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -26,13 +25,9 @@ func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) 
 
 	logNewRequest(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
 
-	var err error
-	bytesFromBuf := readIncomeBytes(ginContext.Request)
-
 	removeApplicationServersRequest := &RemoveApplicationServersRequest{}
 
-	err = json.Unmarshal(bytesFromBuf, removeApplicationServersRequest)
-	if err != nil {
+	if err := ginContext.ShouldBindJSON(removeApplicationServersRequest); err != nil {
 		unmarshallIncomeError(err.Error(),
 			removeApplicationServersRequestUUID,
 			ginContext,

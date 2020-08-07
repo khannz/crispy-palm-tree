@@ -1,7 +1,6 @@
 package application
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -26,13 +25,9 @@ func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(getServiceStateRequestName, getServicesRequestUUID, restAPI.balancerFacade.Logging)
 
-	var err error
-	bytesFromBuf := readIncomeBytes(ginContext.Request)
-
 	newGetServiceStateRequest := &GetServiceStateRequest{}
 
-	err = json.Unmarshal(bytesFromBuf, newGetServiceStateRequest)
-	if err != nil {
+	if err := ginContext.ShouldBindJSON(newGetServiceStateRequest); err != nil {
 		unmarshallIncomeError(err.Error(),
 			getServicesRequestUUID,
 			ginContext,
