@@ -18,33 +18,19 @@ import (
 
 const restAPIlogName = "restAPI"
 
-// User ...
-type User struct {
-	login    string
-	password string
-}
-
-// NewUser ...
-func NewUser(login, password string) User {
-	return User{
-		login:    login,
-		password: password,
-	}
-}
-
 // Authorization ...
 type Authorization struct {
-	mainSecret        string
-	mainRefreshSecret string
-	users             []User
+	mainSecret           string
+	mainSecretForRefresh string
+	credentials          map[string]string
 }
 
 // NewAuthorization ...
-func NewAuthorization(mainSecret, mainRefreshSecret string, users []User) *Authorization {
+func NewAuthorization(mainSecret, mainSecretForRefresh string, credentials map[string]string) *Authorization {
 	return &Authorization{
-		mainSecret:        mainSecret,
-		mainRefreshSecret: mainRefreshSecret,
-		users:             users,
+		mainSecret:           mainSecret,
+		mainSecretForRefresh: mainSecretForRefresh,
+		credentials:          credentials,
 	}
 }
 
@@ -100,7 +86,7 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 
 	refreshJWT := restAPI.router.Group("/jwt")
 	refreshJWT.POST("/refresh-token", restAPI.tokenRefresh)
-	newJWT.Use(jwt.Auth(restAPI.authorization.mainRefreshSecret))
+	newJWT.Use(jwt.Auth(restAPI.authorization.mainSecretForRefresh))
 
 	err := restAPI.server.ListenAndServe()
 	if err != nil {

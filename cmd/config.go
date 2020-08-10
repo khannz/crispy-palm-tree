@@ -25,15 +25,20 @@ const (
 	defaultRestAPIIP   = "127.0.0.1"
 	defaultRestAPIPort = "7000"
 
-	defaultTechInterface          = "" // must be set
-	defaultFwmarkNumber           = "" // must be set
+	defaultTechInterface          = "" // required
+	defaultFwmarkNumber           = "" // required
 	defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
 	defaultSysctlConfigsPath      = "/etc/sysctl.d/"
 	defaultDatabasePath           = "./database"
-	defaultMockMode               = true
+	defaultMockMode               = false
 	defaultHealtcheckTime         = 1 * time.Minute
 	defaultMaxShutdownTimeName    = 20 * time.Second
+
+	defaultMainSecret           = "" // required
+	defaultMainSecretForRefresh = "" // required
 )
+
+var defaultCredentials = map[string]string{}
 
 // Config names
 const (
@@ -54,6 +59,10 @@ const (
 	mockMode                   = "mock-mode"
 	HealthcheckTimeName        = "validate-storage-config"
 	maxShutdownTimeName        = "max-shutdown-time"
+
+	mainSecretName           = "main-secret"
+	mainSecretForRefreshName = "main-secret-for-refresh"
+	credentials              = "credentials"
 )
 
 // // For builds with ldflags
@@ -96,6 +105,10 @@ func init() {
 
 	pflag.Bool(mockMode, defaultMockMode, "Mock mode. No commands will be executed")
 
+	pflag.String(mainSecretName, defaultMainSecret, "Main secret for JWT")
+	pflag.String(mainSecretForRefreshName, defaultMainSecretForRefresh, "Refresh secret for JWT")
+	pflag.StringToString(credentials, defaultCredentials, "User credentials")
+
 	pflag.Parse()
 	viperConfig.BindPFlags(pflag.CommandLine)
 
@@ -113,6 +126,7 @@ func init() {
 		os.Exit(1)
 	}
 
+	// required values are set
 	if viperConfig.GetString(techInterfaceName) == "" {
 		logging.WithFields(logrus.Fields{
 			"entity": rootEntity,
@@ -122,5 +136,20 @@ func init() {
 		logging.WithFields(logrus.Fields{
 			"entity": rootEntity,
 		}).Fatalf("fwmark number must be set")
+	}
+	if viperConfig.GetString(mainSecretName) == "" {
+		logging.WithFields(logrus.Fields{
+			"entity": rootEntity,
+		}).Fatalf("secret for JWT number must be set")
+	}
+	if viperConfig.GetString(mainSecretForRefreshName) == "" {
+		logging.WithFields(logrus.Fields{
+			"entity": rootEntity,
+		}).Fatalf("refresh secret for JWT must be set")
+	}
+	if len(viperConfig.GetStringMapString(credentials)) == 0 {
+		logging.WithFields(logrus.Fields{
+			"entity": rootEntity,
+		}).Fatalf("credentials for JWT must be set")
 	}
 }

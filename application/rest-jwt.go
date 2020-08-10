@@ -108,7 +108,7 @@ func (restAPI *RestAPIstruct) newTokens() (*TokenResponseOkay, error) {
 		return nil, fmt.Errorf("Could not generate token")
 	}
 
-	refreshToken, err := forRefreshToken.SignedString([]byte(restAPI.authorization.mainRefreshSecret))
+	refreshToken, err := forRefreshToken.SignedString([]byte(restAPI.authorization.mainSecretForRefresh))
 	if err != nil {
 		return nil, fmt.Errorf("Could not generate token")
 	}
@@ -120,8 +120,9 @@ func (restAPI *RestAPIstruct) newTokens() (*TokenResponseOkay, error) {
 }
 
 func (restAPI *RestAPIstruct) isValidUser(tokenRequest *TokenRequest) bool {
-	for _, user := range restAPI.authorization.users {
-		if user.login == strings.ToLower(tokenRequest.User) && user.password == tokenRequest.Password {
+	user := strings.ToLower(tokenRequest.User)
+	if password, ok := restAPI.authorization.credentials[user]; ok {
+		if password == tokenRequest.Password {
 			return true
 		}
 	}
