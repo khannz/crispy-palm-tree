@@ -20,17 +20,21 @@ const restAPIlogName = "restAPI"
 
 // Authorization ...
 type Authorization struct {
-	mainSecret           string
-	mainSecretForRefresh string
-	credentials          map[string]string
+	mainSecret            string
+	mainSecretForRefresh  string
+	credentials           map[string]string
+	expireToken           time.Duration
+	expireTokenForRefresh time.Duration
 }
 
 // NewAuthorization ...
-func NewAuthorization(mainSecret, mainSecretForRefresh string, credentials map[string]string) *Authorization {
+func NewAuthorization(mainSecret, mainSecretForRefresh string, credentials map[string]string, expireToken, expireTokenForRefresh time.Duration) *Authorization {
 	return &Authorization{
-		mainSecret:           mainSecret,
-		mainSecretForRefresh: mainSecretForRefresh,
-		credentials:          credentials,
+		mainSecret:            mainSecret,
+		mainSecretForRefresh:  mainSecretForRefresh,
+		credentials:           credentials,
+		expireToken:           expireToken,
+		expireTokenForRefresh: expireTokenForRefresh,
 	}
 }
 

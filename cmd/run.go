@@ -48,7 +48,9 @@ var rootCmd = &cobra.Command{
 			"time interval for healthcheck": viperConfig.GetDuration(HealthcheckTimeName),
 			"max shutdown time":             viperConfig.GetDuration(maxShutdownTimeName),
 
-			"number of users": len(viperConfig.GetStringMapString(credentials)),
+			"expire token time":         viperConfig.GetDuration(expireTokenTimeName),
+			"expire refresh token time": viperConfig.GetDuration(expireTokenForRefreshTimeName),
+			"number of users":           len(viperConfig.GetStringMapString(credentials)),
 		}).Info("")
 
 		if isColdStart() && !viperConfig.GetBool(mockMode) {
@@ -159,7 +161,11 @@ var rootCmd = &cobra.Command{
 			uuidGenerator,
 			logging)
 
-		authorization := application.NewAuthorization(viperConfig.GetString(mainSecretName), viperConfig.GetString(mainSecretForRefreshName), viperConfig.GetStringMapString(credentials))
+		authorization := application.NewAuthorization(viperConfig.GetString(mainSecretName),
+			viperConfig.GetString(mainSecretForRefreshName),
+			viperConfig.GetStringMapString(credentials),
+			viperConfig.GetDuration(expireTokenTimeName),
+			viperConfig.GetDuration(expireTokenForRefreshTimeName))
 
 		restAPI := application.NewRestAPIentity(viperConfig.GetString(restAPIIPName), viperConfig.GetString(restAPIPortName), authorization, facade, logging)
 		go restAPI.UpRestAPI()

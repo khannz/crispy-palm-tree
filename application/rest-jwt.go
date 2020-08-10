@@ -95,12 +95,12 @@ func customPortValidationForTokenRequest(sl validator.StructLevel) {
 func (restAPI *RestAPIstruct) newTokens() (*TokenResponseOkay, error) {
 	forNewToken := jwt_lib.New(jwt_lib.GetSigningMethod("HS256"))
 	forNewToken.Claims = jwt_lib.MapClaims{
-		"exp": time.Now().Add(time.Hour * 10).Unix(),
+		"exp": time.Now().Add(restAPI.authorization.expireToken).Unix(),
 	}
 
 	forRefreshToken := jwt_lib.New(jwt_lib.GetSigningMethod("HS256"))
 	forRefreshToken.Claims = jwt_lib.MapClaims{
-		"exp": time.Now().Add(time.Hour * 96).Unix(),
+		"exp": time.Now().Add(restAPI.authorization.expireTokenForRefresh).Unix(),
 	}
 
 	newToken, err := forNewToken.SignedString([]byte(restAPI.authorization.mainSecret))

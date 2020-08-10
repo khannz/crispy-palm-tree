@@ -34,8 +34,10 @@ const (
 	defaultHealtcheckTime         = 1 * time.Minute
 	defaultMaxShutdownTimeName    = 20 * time.Second
 
-	defaultMainSecret           = "" // required
-	defaultMainSecretForRefresh = "" // required
+	defaultMainSecret                = "" // required
+	defaultMainSecretForRefresh      = "" // required
+	defaultExpireTokenTime           = 12 * time.Hour
+	defaultExpireTokenForRefreshTime = 96 * time.Hour
 )
 
 var defaultCredentials = map[string]string{}
@@ -60,9 +62,11 @@ const (
 	HealthcheckTimeName        = "validate-storage-config"
 	maxShutdownTimeName        = "max-shutdown-time"
 
-	mainSecretName           = "main-secret"
-	mainSecretForRefreshName = "main-secret-for-refresh"
-	credentials              = "credentials"
+	mainSecretName                = "main-secret"
+	mainSecretForRefreshName      = "main-secret-for-refresh"
+	credentials                   = "credentials"
+	expireTokenTimeName           = "expire token time"
+	expireTokenForRefreshTimeName = "expire token for refresh time"
 )
 
 // // For builds with ldflags
@@ -108,6 +112,8 @@ func init() {
 	pflag.String(mainSecretName, defaultMainSecret, "Main secret for JWT")
 	pflag.String(mainSecretForRefreshName, defaultMainSecretForRefresh, "Refresh secret for JWT")
 	pflag.StringToString(credentials, defaultCredentials, "User credentials")
+	pflag.Duration(expireTokenTimeName, defaultExpireTokenTime, "Expire time for jwt token")
+	pflag.Duration(expireTokenForRefreshTimeName, defaultExpireTokenForRefreshTime, "Expire time for refresh jwt token")
 
 	pflag.Parse()
 	viperConfig.BindPFlags(pflag.CommandLine)
