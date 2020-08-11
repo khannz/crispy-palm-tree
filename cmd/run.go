@@ -28,7 +28,6 @@ var rootCmd = &cobra.Command{
 
 		// validate fields
 		logging.WithFields(logrus.Fields{
-			"entity":           rootEntity,
 			"event uuid":       uuidForRootProcess,
 			"config file path": viperConfig.GetString(configFilePathName),
 			"log format":       viperConfig.GetString(logFormatName),
@@ -57,7 +56,6 @@ var rootCmd = &cobra.Command{
 			err := checkPrerequisites(uuidForRootProcess, logging)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
-					"entity":     rootEntity,
 					"event uuid": uuidForRootProcess,
 				}).Fatalf("check prerequisites error: %v", err)
 			}
@@ -86,10 +84,7 @@ var rootCmd = &cobra.Command{
 		// db and caches init
 		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), uuidForRootProcess, logging)
 		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("storage and cache init error: %v", err)
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("storage and cache init error: %v", err)
 		}
 		defer cacheDB.Db.Close()
 		defer persistentDB.Db.Close()
@@ -97,16 +92,10 @@ var rootCmd = &cobra.Command{
 		// ipvsadmConfigurator start
 		ipvsadmConfigurator, err := portadapter.NewIPVSADMEntity()
 		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("can't create IPVSADM entity: %v", err)
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
 		if err := ipvsadmConfigurator.Flush(); err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("IPVSADM can't flush data at start: %v", err)
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("IPVSADM can't flush data at start: %v", err)
 		}
 		// ipvsadmConfigurator end
 
@@ -124,29 +113,17 @@ var rootCmd = &cobra.Command{
 			viperConfig.GetBool(mockMode),
 			logging)
 		if err = hc.StartHealthchecksForCurrentServices(); err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
 		}
 		go hc.StartGracefulShutdownControlForHealthchecks() // TODO: graceful shutdown for healthchecks is overhead. Remove that?
-		logging.WithFields(logrus.Fields{
-			"entity":     rootEntity,
-			"event uuid": uuidForRootProcess,
-		}).Debug("healthchecks for current services started")
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("healthchecks for current services started")
 		// healthchecks end
 
 		// init config start
-		if err := initConfigFromStorage(ipvsadmConfigurator, cacheDB, rootEntity); err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("init config from storage fail: %v", err)
+		if err := initConfigFromStorage(ipvsadmConfigurator, cacheDB, uuidForRootProcess); err != nil {
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("init config from storage fail: %v", err)
 		}
-		logging.WithFields(logrus.Fields{
-			"entity":     rootEntity,
-			"event uuid": uuidForRootProcess,
-		}).Debug("init storage config successful")
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("init storage config successful")
 
 		// init config end
 
@@ -171,41 +148,23 @@ var rootCmd = &cobra.Command{
 		go restAPI.UpRestAPI()
 		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
 
-		logging.WithFields(logrus.Fields{
-			"entity":     rootEntity,
-			"event uuid": uuidForRootProcess,
-		}).Info("program running")
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("program running")
 
 		<-signalChan // shutdown signal
 
-		logging.WithFields(logrus.Fields{
-			"entity":     rootEntity,
-			"event uuid": uuidForRootProcess,
-		}).Info("got shutdown signal")
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("got shutdown signal")
 
 		if err := ipvsadmConfigurator.Flush(); err != nil {
-			logging.WithFields(logrus.Fields{
-				"entity":     rootEntity,
-				"event uuid": uuidForRootProcess,
-			}).Fatalf("IPVSADM can't flush data at stop: %v", err)
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("IPVSADM can't flush data at stop: %v", err)
 		}
-		logging.WithFields(logrus.Fields{
-			"entity":     rootEntity,
-			"event uuid": uuidForRootProcess,
-		}).Info("IPVSADM data has flushed")
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("IPVSADM data has flushed")
 
 		gracefulShutdownCommandForRestAPI <- struct{}{}
 		gracefulShutdownUsecases(gracefulShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
-		logging.WithFields(logrus.Fields{
-			"entity":     rootEntity,
-			"event uuid": uuidForRootProcess,
-		}).Info("rest API is Done")
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("rest API is Done")
 
-		logging.WithFields(logrus.Fields{
-			"entity":     rootEntity,
-			"event uuid": uuidForRootProcess,
-		}).Info("program stopped")
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("program stopped")
 	},
 }
 
@@ -224,9 +183,7 @@ func gracefulShutdownUsecases(gracefulShutdown *domain.GracefulShutdown, maxWait
 		case <-ticker.C:
 			gracefulShutdown.Lock()
 			if gracefulShutdown.UsecasesJobs <= 0 {
-				logging.WithFields(logrus.Fields{
-					"entity": rootEntity,
-				}).Info("All jobs is done")
+				logging.Info("All jobs is done")
 				defer gracefulShutdown.Unlock()
 				return
 			}
@@ -234,9 +191,7 @@ func gracefulShutdownUsecases(gracefulShutdown *domain.GracefulShutdown, maxWait
 			continue
 		case <-ctx.Done():
 			gracefulShutdown.Lock()
-			logging.WithFields(logrus.Fields{
-				"entity": rootEntity,
-			}).Warnf("%v jobs is fail when program stop", gracefulShutdown.UsecasesJobs)
+			logging.Warnf("%v jobs is fail when program stop", gracefulShutdown.UsecasesJobs)
 			defer gracefulShutdown.Unlock()
 			return
 		}
@@ -256,45 +211,30 @@ func isColdStart() bool { // TODO: write logic?
 }
 
 func checkPrerequisites(uuid string, logging *logrus.Logger) error {
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Info("start check prerequisites")
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Info("start check prerequisites")
 	var err error
 	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf" // TODO: remove hardcode?
 	expectDummyModprobContains := "numdummies=1"       // TODO: remove hardcode?
 	if err = checkFileContains(dummyModprobeDPath, expectDummyModprobContains); err != nil {
 		return fmt.Errorf("error when check dummy file: %v", err)
 	}
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Debugf("check prerequisites in %v successful", dummyModprobeDPath)
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", dummyModprobeDPath)
 
 	dummyModuleFilePath := "/etc/modules-load.d/dummy.conf" // TODO: remove hardcode?
 	expectDummyModuleFileContains := "dummy"                // TODO: remove hardcode?
 	if err := checkFileContains(dummyModuleFilePath, expectDummyModuleFileContains); err != nil {
 		return fmt.Errorf("error when check dummy module file: %v", err)
 	}
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Debugf("check prerequisites in %v successful", dummyModuleFilePath)
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", dummyModuleFilePath)
 
 	tunnelModuleFilePath := "/etc/modules-load.d/tunnel.conf" // TODO: remove hardcode?
 	expectTunnelModuleFileContains := "tunnel4"               // TODO: remove hardcode?
 	if err := checkFileContains(tunnelModuleFilePath, expectTunnelModuleFileContains); err != nil {
 		return fmt.Errorf("error when check tunnel module file: %v", err)
 	}
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Debugf("check prerequisites in %v successful", tunnelModuleFilePath)
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", tunnelModuleFilePath)
 
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Info("check all prerequisites successful")
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Info("check all prerequisites successful")
 
 	return nil
 }
@@ -315,28 +255,19 @@ func storageAndCacheInit(databasePath, uuid string, logging *logrus.Logger) (*po
 	if err != nil {
 		return nil, nil, fmt.Errorf("init NewStorageEntity for cache error: %v", err)
 	}
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Debug("init cacheDB successful")
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("init cacheDB successful")
 
 	persistentDB, err := portadapter.NewStorageEntity(false, databasePath, logging)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init NewStorageEntity for persistent storage error: %v", err)
 	}
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Debug("init cacheDB successful")
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("init cacheDB successful")
 
 	err = cacheDB.LoadCacheFromStorage(persistentDB)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cant load cache from storage: %v", err)
 	}
-	logging.WithFields(logrus.Fields{
-		"entity":     rootEntity,
-		"event uuid": uuid,
-	}).Debug("load cache from persistent storage successful")
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("load cache from persistent storage successful")
 
 	return cacheDB, persistentDB, nil
 }

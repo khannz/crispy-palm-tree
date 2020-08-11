@@ -9,18 +9,19 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/thevan4/go-billet/logger"
+	logger "github.com/thevan4/logrus-wrapper"
 )
 
 const rootEntity = "root-entity"
 
 // Default values
 const (
-	defaultConfigFilePath = "./nw-lb.yaml"
-	defaultLogOutput      = "syslog"
-	defaultLogLevel       = "trace"
-	defaultLogFormat      = "default"
-	defaultSystemLogTag   = ""
+	defaultConfigFilePath   = "./nw-lb.yaml"
+	defaultLogOutput        = "syslog"
+	defaultLogLevel         = "trace"
+	defaultLogFormat        = "text"
+	defaultSystemLogTag     = ""
+	defaultLogEventLocation = true
 
 	defaultRestAPIIP   = "127.0.0.1"
 	defaultRestAPIPort = "7000"
@@ -44,11 +45,12 @@ var defaultCredentials = map[string]string{}
 
 // Config names
 const (
-	configFilePathName = "config-file-path"
-	logOutputName      = "log-output"
-	logLevelName       = "log-level"
-	logFormatName      = "log-format"
-	syslogTagName      = "syslog-tag"
+	configFilePathName   = "config-file-path"
+	logOutputName        = "log-output"
+	logLevelName         = "log-level"
+	logFormatName        = "log-format"
+	syslogTagName        = "syslog-tag"
+	logEventLocationName = "log-event-location"
 
 	restAPIIPName   = "api-ip"
 	restAPIPortName = "api-port"
@@ -94,6 +96,7 @@ func init() {
 	pflag.String(logLevelName, defaultLogLevel, "Log level. Example values: 'info', 'debug', 'trace'")
 	pflag.String(logFormatName, defaultLogFormat, "Log format. Example values: 'default', 'json'")
 	pflag.String(syslogTagName, defaultSystemLogTag, "Syslog tag. Example: 'trac-dgen'")
+	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
 
 	pflag.String(restAPIIPName, defaultRestAPIIP, "Rest API ip")
 	pflag.String(restAPIPortName, defaultRestAPIPort, "Rest API port")
@@ -123,10 +126,13 @@ func init() {
 	viperConfig.ReadInConfig()
 
 	// init logs
-	logging, err = logger.NewLogger(viperConfig.GetString(logOutputName),
-		viperConfig.GetString(logLevelName),
-		viperConfig.GetString(logFormatName),
-		viperConfig.GetString(syslogTagName))
+	newLogger := &logger.Logger{
+		Output:           []string{viperConfig.GetString(logOutputName)},
+		Level:            viperConfig.GetString(logLevelName),
+		Formatter:        viperConfig.GetString(logFormatName),
+		LogEventLocation: viperConfig.GetBool(logEventLocationName),
+	}
+	logging, err = logger.NewLogrusLogger(newLogger)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -134,28 +140,18 @@ func init() {
 
 	// required values are set
 	if viperConfig.GetString(techInterfaceName) == "" {
-		logging.WithFields(logrus.Fields{
-			"entity": rootEntity,
-		}).Fatalf("tech interface must be set")
+		logging.Fatalf("tech interface must be set")
 	}
 	if viperConfig.GetString(fwmarkNumberName) == "" {
-		logging.WithFields(logrus.Fields{
-			"entity": rootEntity,
-		}).Fatalf("fwmark number must be set")
+		logging.Fatalf("fwmark number must be set")
 	}
 	if viperConfig.GetString(mainSecretName) == "" {
-		logging.WithFields(logrus.Fields{
-			"entity": rootEntity,
-		}).Fatalf("secret for JWT number must be set")
+		logging.Fatalf("secret for JWT number must be set")
 	}
 	if viperConfig.GetString(mainSecretForRefreshName) == "" {
-		logging.WithFields(logrus.Fields{
-			"entity": rootEntity,
-		}).Fatalf("refresh secret for JWT must be set")
+		logging.Fatalf("refresh secret for JWT must be set")
 	}
 	if len(viperConfig.GetStringMapString(credentials)) == 0 {
-		logging.WithFields(logrus.Fields{
-			"entity": rootEntity,
-		}).Fatalf("credentials for JWT must be set")
+		logging.Fatalf("credentials for JWT must be set")
 	}
 }

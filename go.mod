@@ -10,7 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.2.0
 	github.com/gofrs/uuid v3.2.0+incompatible
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.2
@@ -19,6 +19,7 @@ require (
 	github.com/swaggo/swag v1.6.3
 	github.com/tehnerd/gnl2go v0.0.0-20161218223753-101b5c6e2d44
 	github.com/thevan4/go-billet v1.0.4
+	github.com/thevan4/logrus-wrapper v1.0.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 )
