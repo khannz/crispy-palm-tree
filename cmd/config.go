@@ -26,14 +26,13 @@ const (
 	defaultRestAPIIP   = "127.0.0.1"
 	defaultRestAPIPort = "7000"
 
-	defaultTechInterface          = "" // required
-	defaultFwmarkNumber           = "" // required
-	defaultPathToIfcfgTunnelFiles = "/etc/sysconfig/network-scripts/"
-	defaultSysctlConfigsPath      = "/etc/sysctl.d/"
-	defaultDatabasePath           = "./database"
-	defaultMockMode               = false
-	defaultHealtcheckTime         = 1 * time.Minute
-	defaultMaxShutdownTimeName    = 20 * time.Second
+	defaultTechInterface       = "" // required
+	defaultFwmarkNumber        = "" // required
+	defaultSysctlConfigsPath   = "/etc/sysctl.d/"
+	defaultDatabasePath        = "./database"
+	defaultMockMode            = false
+	defaultHealtcheckTime      = 1 * time.Minute
+	defaultMaxShutdownTimeName = 20 * time.Second
 
 	defaultMainSecret                = "" // required
 	defaultMainSecretForRefresh      = "" // required
@@ -55,14 +54,13 @@ const (
 	restAPIIPName   = "api-ip"
 	restAPIPortName = "api-port"
 
-	techInterfaceName          = "tech-interface"
-	fwmarkNumberName           = "fwmark-number"
-	pathToIfcfgTunnelFilesName = "path-to-ifcfg-tunnel-files"
-	sysctlConfigsPathName      = "sysctl-configs-path"
-	databasePathName           = "database-path"
-	mockMode                   = "mock-mode"
-	HealthcheckTimeName        = "validate-storage-config"
-	maxShutdownTimeName        = "max-shutdown-time"
+	techInterfaceName     = "tech-interface"
+	fwmarkNumberName      = "fwmark-number"
+	sysctlConfigsPathName = "sysctl-configs-path"
+	databasePathName      = "database-path"
+	mockMode              = "mock-mode"
+	HealthcheckTimeName   = "validate-storage-config"
+	maxShutdownTimeName   = "max-shutdown-time"
 
 	mainSecretName                = "main-secret"
 	mainSecretForRefreshName      = "main-secret-for-refresh"
@@ -103,7 +101,6 @@ func init() {
 
 	pflag.String(techInterfaceName, defaultTechInterface, "tech interface")
 	pflag.String(fwmarkNumberName, defaultFwmarkNumber, "fwmark number")
-	pflag.String(pathToIfcfgTunnelFilesName, defaultPathToIfcfgTunnelFiles, "path to ifcfg tunnel files")
 	pflag.String(sysctlConfigsPathName, defaultSysctlConfigsPath, "sysctl config path")
 
 	pflag.String(databasePathName, defaultDatabasePath, "Path to persistent database")

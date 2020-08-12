@@ -70,9 +70,7 @@ type ExtendedServiceData struct {
 
 // TunnelForService ...
 type TunnelForService struct {
-	IfcfgTunnelFile       string `json:"ifcfgTunnelFile"` // full path to ifcfg file
-	RouteTunnelFile       string `json:"tunnelFile"`      // full path to route file
-	SysctlConfFile        string `json:"sysctlConf"`      // full path to sysctl conf file
+	SysctlConfFile        string `json:"sysctlConf"` // full path to sysctl conf file
 	TunnelName            string `json:"tunnelName"`
 	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
 }
@@ -361,8 +359,6 @@ func (storageEntity *StorageEntity) ReadTunnelInfoForApplicationServer(ip string
 		}
 
 		dTunnelInfo.ApplicationServerIP = ip
-		dTunnelInfo.IfcfgTunnelFile = sTunnelInfo.IfcfgTunnelFile
-		dTunnelInfo.RouteTunnelFile = sTunnelInfo.RouteTunnelFile
 		dTunnelInfo.ServicesToTunnelCount = sTunnelInfo.ServicesToTunnelCount
 		dTunnelInfo.SysctlConfFile = sTunnelInfo.SysctlConfFile
 		dTunnelInfo.TunnelName = sTunnelInfo.TunnelName
@@ -381,8 +377,6 @@ func (storageEntity *StorageEntity) UpdateTunnelFilesInfoAtStorage(tunnelsFilesI
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		key := []byte(tunnelFilesInfo.ApplicationServerIP)
 		transformedTunnelForService := TunnelForService{
-			IfcfgTunnelFile:       tunnelFilesInfo.IfcfgTunnelFile,
-			RouteTunnelFile:       tunnelFilesInfo.RouteTunnelFile,
 			SysctlConfFile:        tunnelFilesInfo.SysctlConfFile,
 			TunnelName:            tunnelFilesInfo.TunnelName,
 			ServicesToTunnelCount: tunnelFilesInfo.ServicesToTunnelCount,
