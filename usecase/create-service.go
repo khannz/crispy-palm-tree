@@ -90,7 +90,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 
 	logPreValidateRequestIsOk(createServiceName, createServiceUUID, createService.logging)
 
-	tunnelsFilesInfo := formTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
+	tunnelsFilesInfo := FormTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
 	logTryCreateNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	newTunnelsFilesInfo, err := createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)
 	if err != nil {

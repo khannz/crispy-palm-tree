@@ -90,7 +90,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 
 	logPreValidateRequestIsOk(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 
-	tunnelsFilesInfo := formTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
+	tunnelsFilesInfo := FormTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
 	logTryCreateNewTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
 	oldTunnelsFilesInfo, err := removeApplicationServers.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeApplicationServersUUID)
 	if err != nil {

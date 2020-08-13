@@ -40,7 +40,6 @@ var rootCmd = &cobra.Command{
 
 			"tech interface":                viperConfig.GetString(techInterfaceName),
 			"fwmark number":                 viperConfig.GetString(fwmarkNumberName),
-			"path to ifcfg tunnel files":    viperConfig.GetString(pathToIfcfgTunnelFilesName),
 			"sysctl config path":            viperConfig.GetString(sysctlConfigsPathName),
 			"database path":                 viperConfig.GetString(databasePathName),
 			"mock mode":                     viperConfig.GetBool(mockMode),
@@ -75,8 +74,7 @@ var rootCmd = &cobra.Command{
 			syscall.SIGQUIT)
 
 		// tunnel maker start
-		tunnelMaker := portadapter.NewTunnelFileMaker(viperConfig.GetString(pathToIfcfgTunnelFilesName),
-			viperConfig.GetString(sysctlConfigsPathName),
+		tunnelMaker := portadapter.NewTunnelFileMaker(viperConfig.GetString(sysctlConfigsPathName), // TODO: refactor. tunnels, routes and sysctl config maker
 			viperConfig.GetBool(mockMode),
 			logging)
 		// tunnel maker end
@@ -119,12 +117,6 @@ var rootCmd = &cobra.Command{
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("healthchecks for current services started")
 		// healthchecks end
 
-		// init config start
-		if err := initConfigFromStorage(ipvsadmConfigurator, cacheDB, uuidForRootProcess); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("init config from storage fail: %v", err)
-		}
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("init storage config successful")
-
 		// init config end
 
 		facade := application.NewBalancerFacade(locker,
@@ -138,6 +130,14 @@ var rootCmd = &cobra.Command{
 			uuidGenerator,
 			logging)
 
+		// init config start
+		if err = facade.InitializeRuntimeSettings(uuidForRootProcess); err != nil {
+			facade.DisableRuntimeSettings(uuidForRootProcess)
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatal("init r untimeSettings fail")
+		}
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
+
+		// up rest api
 		authorization := application.NewAuthorization(viperConfig.GetString(mainSecretName),
 			viperConfig.GetString(mainSecretForRefreshName),
 			viperConfig.GetStringMapString(credentials),
@@ -154,15 +154,13 @@ var rootCmd = &cobra.Command{
 
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("got shutdown signal")
 
-		if err := ipvsadmConfigurator.Flush(); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("IPVSADM can't flush data at stop: %v", err)
-		}
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("IPVSADM data has flushed")
-
 		gracefulShutdownCommandForRestAPI <- struct{}{}
 		gracefulShutdownUsecases(gracefulShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("rest API is Done")
+
+		facade.DisableRuntimeSettings(uuidForRootProcess)
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("runtime settings disabled")
 
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("program stopped")
 	},
@@ -270,19 +268,4 @@ func storageAndCacheInit(databasePath, uuid string, logging *logrus.Logger) (*po
 	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("load cache from persistent storage successful")
 
 	return cacheDB, persistentDB, nil
-}
-
-func initConfigFromStorage(ipvsadmConfigurator *portadapter.IPVSADMEntity,
-	storage *portadapter.StorageEntity,
-	eventUUID string) error {
-	configsFromStorage, err := storage.LoadAllStorageDataToDomainModel()
-	if err != nil {
-		return fmt.Errorf("fail to load  storage config at start")
-	}
-	for _, configFromStorage := range configsFromStorage {
-		if err := ipvsadmConfigurator.CreateService(configFromStorage, eventUUID); err != nil {
-			return fmt.Errorf("can't create service for %v config from storage: %v", configFromStorage, err)
-		}
-	}
-	return nil
 }

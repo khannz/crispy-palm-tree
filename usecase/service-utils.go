@@ -112,7 +112,8 @@ func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.Applica
 	return false
 }
 
-func formTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheStorage *portadapter.StorageEntity) []*domain.TunnelForApplicationServer {
+// FormTunnelsFilesInfo ...
+func FormTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheStorage *portadapter.StorageEntity) []*domain.TunnelForApplicationServer {
 	tunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
 	for _, applicationServer := range applicationServers {
 		tunnelFilesInfo := cacheStorage.ReadTunnelInfoForApplicationServer(applicationServer.ServerIP)

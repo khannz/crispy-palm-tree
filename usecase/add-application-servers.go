@@ -95,7 +95,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	}
 	logPreValidateRequestIsOk(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 
-	tunnelsFilesInfo := formTunnelsFilesInfo(newServiceInfo.ApplicationServers, addApplicationServers.cacheStorage)
+	tunnelsFilesInfo := FormTunnelsFilesInfo(newServiceInfo.ApplicationServers, addApplicationServers.cacheStorage)
 	logTryCreateNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
 	newTunnelsFilesInfo, err := addApplicationServers.tunnelConfig.CreateTunnels(tunnelsFilesInfo, addApplicationServersUUID)
 	if err != nil {

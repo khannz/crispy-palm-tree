@@ -8,3 +8,4 @@ swag
 route-tun*
 database/*
 dist/*
+nlb

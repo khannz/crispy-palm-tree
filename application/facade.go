@@ -49,6 +49,57 @@ func NewBalancerFacade(locker *domain.Locker,
 	}
 }
 
+// InitializeRuntimeSettings ...
+func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(uuid string) error {
+	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		return fmt.Errorf("fail to load  storage config at start")
+	}
+	for _, serviceConfigFromStorage := range servicesConfigsFromStorage {
+		newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
+			balancerFacade.IPVSADMConfigurator,
+			balancerFacade.CacheStorage,
+			balancerFacade.PersistentStorage,
+			balancerFacade.TunnelConfig,
+			balancerFacade.HeathcheckEntity,
+			balancerFacade.CommandGenerator,
+			balancerFacade.GracefulShutdown,
+			balancerFacade.UUIDgenerator,
+			balancerFacade.Logging)
+		if _, err := newCreateServiceEntity.CreateService(serviceConfigFromStorage, uuid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DisableRuntimeSettings ...
+func (balancerFacade *BalancerFacade) DisableRuntimeSettings(uuid string) {
+	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModel()
+	if err != nil {
+		balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": uuid}).Errorf("fail to load  storage config when programm stop: %v", err)
+		return
+	}
+	for _, serviceConfigFromStorage := range servicesConfigsFromStorage {
+		removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
+			balancerFacade.IPVSADMConfigurator,
+			balancerFacade.CacheStorage,
+			balancerFacade.PersistentStorage,
+			balancerFacade.TunnelConfig,
+			balancerFacade.GracefulShutdown,
+			balancerFacade.UUIDgenerator,
+			balancerFacade.HeathcheckEntity,
+			balancerFacade.Logging)
+		if err := removeService.RemoveService(serviceConfigFromStorage, uuid); err != nil {
+			balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": uuid}).Errorf("can't remove service when programm stop: %v", err)
+		}
+	}
+	// to be sure ipvs cleared
+	if err := balancerFacade.IPVSADMConfigurator.Flush(); err != nil {
+		balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": uuid}).Fatalf("IPVSADM can't flush data when programm stop: %v", err)
+	}
+}
+
 // CreateService ...
 func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInfo,
 	createServiceUUID string) (*domain.ServiceInfo, error) {
