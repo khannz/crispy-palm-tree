@@ -72,48 +72,53 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 	tunnelFilesInfo.TunnelName = sNewTunnelName
 	tunnelFilesInfo.SysctlConfFile = newSysctlConfFileFullPath
 
-	if err := tunnelFileMaker.writeNewTunnelFile(tunnelFilesInfo,
+	if err := tunnelFileMaker.writeNewTunnelFile(tunnelFilesInfo, // TODO: remove that
 		createTunnelUUID); err != nil {
 		return fmt.Errorf("can't write new tunnel files: %v", err)
 	}
 
 	table := 10   // TODO: remove hardcode
 	mask := "/32" // TODO: remove hardcode
-	if err := tunnelFileMaker.addRoute(newTunnelName, tunnelFilesInfo.ApplicationServerIP, mask, table); err != nil {
-		return fmt.Errorf("can't create route: %v", err)
-	}
 
 	if err := tunnelFileMaker.addAndUpNewLink("tun"+sNewTunnelName, tunnelFilesInfo.ApplicationServerIP+"/32"); err != nil {
 		return fmt.Errorf("can't up tunnel: %v", err)
 	}
 
+	if err := tunnelFileMaker.addRoute(sNewTunnelName, tunnelFilesInfo.ApplicationServerIP, mask, table); err != nil {
+		return fmt.Errorf("can't create route: %v", err)
+	}
+
 	return nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (int, error) { // TODO: rework that, it's too hard just for new number
+func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (int, error) {
+	var nextTunnelName int
+
 	files, err := ioutil.ReadDir(tunnelFileMaker.sysctlConfFilePath)
 	if err != nil {
-		return 0, fmt.Errorf("read dir %v, got error %v", tunnelFileMaker.sysctlConfFilePath, err)
+		return nextTunnelName, fmt.Errorf("read dir %v, got error %v", tunnelFileMaker.sysctlConfFilePath, err)
 	}
 	if len(files) == 0 {
-		return 0, nil
+		return nextTunnelName, nil
 	}
 
-	var sliceOfOldTunelNames []string
+	var sliceOfOldTunelNames []int
 	for _, f := range files {
+		tunnelFileMaker.logging.Warnf("file find: %v", f.Name())
 		if strings.Contains(f.Name(), "-sysctl.conf") {
-			sliceOfOldTunelNames = append(sliceOfOldTunelNames, strings.TrimPrefix(f.Name(), "-sysctl.conf"))
+			stringOldTunelName := strings.TrimSuffix(f.Name(), "-sysctl.conf")
+			intOldTunelName, err := strconv.Atoi(stringOldTunelName)
+			if err != nil {
+				tunnelFileMaker.logging.Warnf("invalid sysctl.conf '%v' name in %v", tunnelFileMaker.sysctlConfFilePath, f.Name())
+				continue
+			}
+			sliceOfOldTunelNames = append(sliceOfOldTunelNames, intOldTunelName)
 		}
 	}
 
-	var nextTunnelName int
 	if len(sliceOfOldTunelNames) > 0 { // TODO: take last "free"
-		sort.Sort(sort.Reverse(sort.StringSlice(sliceOfOldTunelNames)))
-		nextTunnelName, err = strconv.Atoi(sliceOfOldTunelNames[0])
-		if err != nil {
-			return 0, fmt.Errorf("can't convert slice of old tunel names to string, got error: %v", err)
-		}
-		nextTunnelName++
+		sort.Sort(sort.Reverse(sort.IntSlice(sliceOfOldTunelNames)))
+		nextTunnelName = sliceOfOldTunelNames[0] + 1
 	}
 	return nextTunnelName, nil
 }
@@ -143,7 +148,8 @@ func (tunnelFileMaker *TunnelFileMaker) addAndUpNewLink(tunnelName, applicationS
 	linkNew := &netlink.Iptun{LinkAttrs: netlink.LinkAttrs{Name: tunnelName}, Remote: ipNew}
 	err = netlink.LinkAdd(linkNew)
 	if err != nil {
-		return fmt.Errorf("can't LinkAdd for tunnel %v: %v", tunnelName, err)
+		tunnelFileMaker.logging.Warnf("can't LinkAdd for tunnel %v: %v", tunnelName, err)
+		// return fmt.Errorf("can't LinkAdd for tunnel %v: %v", tunnelName, err)
 	}
 	if err := netlink.LinkSetUp(linkNew); err != nil {
 		return fmt.Errorf("can't LinkSetUp for device %v: %v", tunnelName, err)
@@ -151,19 +157,26 @@ func (tunnelFileMaker *TunnelFileMaker) addAndUpNewLink(tunnelName, applicationS
 	return nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) addRoute(newTunnelName int, applicationServerIP, mask string, table int) error {
+func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServerIP, mask string, table int) error {
+	linkInfo, err := netlink.LinkByName("tun" + sNewTunnelName)
+	if err != nil {
+		return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
+	}
+
 	_, destination, err := net.ParseCIDR(applicationServerIP + mask)
 	if err != nil {
 		return fmt.Errorf("parse ip from %v fail: %v", applicationServerIP+mask, err)
 	}
 	route := &netlink.Route{
-		LinkIndex: newTunnelName,
+		LinkIndex: linkInfo.Attrs().Index,
 		Dst:       destination,
 		Table:     table,
 	}
 	return netlink.RouteAdd(route)
 }
 
+// ip link delete dev tun100 && rm -f /etc/sysctl.d/100-sysctl.conf
+// cat /sys/devices/virtual/net/tun100/ifindex
 func (tunnelFileMaker *TunnelFileMaker) downAndRemoveOldLink(tunnelName string) error {
 	linkOld, err := netlink.LinkByName(tunnelName)
 	if err != nil {
@@ -207,17 +220,18 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.Tun
 	removeTunnelUUID string) error {
 	var err error
 
-	if err = tunnelFileMaker.removeFile(tunnelFilesInfo.SysctlConfFile, removeTunnelUUID); err != nil {
-		return err
+	table := 10
+	mask := "/32" // TODO: remove hardcode
+	if err := tunnelFileMaker.removeRoute(tunnelFilesInfo.ApplicationServerIP, mask, table, tunnelFilesInfo.TunnelName); err != nil {
+		return fmt.Errorf("can't remove route: %v", err) // FIXME: here broken. maybe removed some already?
 	}
 
 	if err := tunnelFileMaker.downAndRemoveOldLink("tun" + tunnelFilesInfo.TunnelName); err != nil {
 		return fmt.Errorf("can't remove tunnel: %v", err)
 	}
 
-	mask := "/32" // TODO: remove hardcode
-	if err := tunnelFileMaker.removeRoute(tunnelFilesInfo.ApplicationServerIP, mask); err != nil {
-		return fmt.Errorf("can't remove route: %v", err)
+	if err = tunnelFileMaker.removeFile(tunnelFilesInfo.SysctlConfFile, removeTunnelUUID); err != nil {
+		return err
 	}
 
 	return nil
@@ -234,19 +248,24 @@ func (tunnelFileMaker *TunnelFileMaker) removeFile(filePath, requestUUID string)
 	return nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string) error {
-	destination, _, err := net.ParseCIDR(applicationServerIP + mask)
+func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string, table int, tunnelName string) error {
+	linkInfo, err := netlink.LinkByName("tun" + tunnelName)
+	if err != nil {
+		return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
+	}
+
+	_, destination, err := net.ParseCIDR(applicationServerIP + mask)
 	if err != nil {
 		return fmt.Errorf("parse ip from %v fail: %v", applicationServerIP+mask, err)
 	}
-	routes, err := netlink.RouteGet(destination)
-	if err != nil {
-		return fmt.Errorf("netlink can't get routes by %v", applicationServerIP+mask)
+	route := &netlink.Route{
+		LinkIndex: linkInfo.Attrs().Index,
+		Dst:       destination,
+		Table:     table,
 	}
-	for _, route := range routes {
-		if err := netlink.RouteDel(&route); err != nil {
-			return fmt.Errorf("netlink can't delete route %v: %v", route, err)
-		}
+	if err := netlink.RouteDel(route); err != nil {
+		return fmt.Errorf("netlink can't delete route %v: %v", route, err)
 	}
+
 	return nil
 }
