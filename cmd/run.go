@@ -130,12 +130,12 @@ var rootCmd = &cobra.Command{
 			uuidGenerator,
 			logging)
 
-		// init config start
-		if err = facade.InitializeRuntimeSettings(uuidForRootProcess); err != nil {
-			facade.DisableRuntimeSettings(uuidForRootProcess)
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatal("init r untimeSettings fail")
-		}
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
+		// init config start FIXME:
+		// if err = facade.InitializeRuntimeSettings(uuidForRootProcess); err != nil {
+		// 	facade.DisableRuntimeSettings(uuidForRootProcess)
+		// 	logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatal("init r untimeSettings fail")
+		// }
+		// logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
 
 		// up rest api
 		authorization := application.NewAuthorization(viperConfig.GetString(mainSecretName),
@@ -158,9 +158,9 @@ var rootCmd = &cobra.Command{
 		gracefulShutdownUsecases(gracefulShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("rest API is Done")
-
-		facade.DisableRuntimeSettings(uuidForRootProcess)
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("runtime settings disabled")
+		//  FIXME:
+		// facade.DisableRuntimeSettings(uuidForRootProcess)
+		// logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("runtime settings disabled")
 
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("program stopped")
 	},
