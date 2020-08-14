@@ -103,6 +103,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInf
 
 	errDel := ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
 	if errDel != nil {
+		// FIXME: ipvsadmEntity.logging dont return error??
 		return fmt.Errorf("error while running DelService for ipv4: %v", errDel)
 	}
 
@@ -235,7 +236,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 	}
 
 	if err = ipvsadmEntity.removeApplicationServersFromService(ipvs, serviceInfo.ServiceIP, servicePort, applicationServers); err != nil {
-		return fmt.Errorf("cant add application server to service: %v", err)
+		return fmt.Errorf("cant remove application server from service: %v", err) // not return error?
 	}
 
 	// TODO: log that ok
