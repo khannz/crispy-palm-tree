@@ -25,41 +25,41 @@ func customPortServerApplicationValidation(sl validator.StructLevel) {
 
 func customServiceHealthcheckValidation(sl validator.StructLevel) {
 	sHc := sl.Current().Interface().(ServiceHealthcheck)
-	sA := sl.Current().Interface().([]ServerApplication)
+	// sA := sl.Current().Interface().([]ServerApplication) // FIXME: broken
 	switch sHc.Type {
 	case "tcp":
 	case "http":
 	case "icmp":
 	case "http-advanced":
-		if sA != nil && len(sA) > 0 {
-			for i, applicationServer := range sA {
-				switch applicationServer.ServerHealthcheck.TypeOfCheck {
-				case "http-advanced-json":
-					if sA[i].ServerHealthcheck.AdvancedHealthcheckParameters == nil || len(sA[i].ServerHealthcheck.AdvancedHealthcheckParameters) == 0 {
-						sl.ReportError(sA[i].ServerHealthcheck.AdvancedHealthcheckParameters,
-							"advancedHealthcheckParameters",
-							"AdvancedHealthcheckParameters",
-							"At healthcheck type 'http-advanced-json' http advanced parameters must be set",
-							"")
-					}
-					for j, advancedHealthcheckParameters := range sA[i].ServerHealthcheck.AdvancedHealthcheckParameters {
-						if len(advancedHealthcheckParameters.UserDefinedData) == 0 {
-							sl.ReportError(sA[i].ServerHealthcheck.AdvancedHealthcheckParameters[j].UserDefinedData,
-								"userDefinedData",
-								"UserDefinedData",
-								"At healthcheck type 'http-advanced-json' at http advanced parameters user defined data must be set",
-								"")
-						}
-					}
-				default:
-					sl.ReportError(sA[i].ServerHealthcheck.TypeOfCheck,
-						"typeOfCheck",
-						"TypeOfCheck",
-						"Unsupported type of http advanced healthcheck",
-						"")
-				}
-			}
-		}
+		// if sA != nil && len(sA) > 0 {
+		// 	for i, applicationServer := range sA {
+		// 		switch applicationServer.ServerHealthcheck.TypeOfCheck {
+		// 		case "http-advanced-json":
+		// 			if sA[i].ServerHealthcheck.AdvancedHealthcheckParameters == nil || len(sA[i].ServerHealthcheck.AdvancedHealthcheckParameters) == 0 {
+		// 				sl.ReportError(sA[i].ServerHealthcheck.AdvancedHealthcheckParameters,
+		// 					"advancedHealthcheckParameters",
+		// 					"AdvancedHealthcheckParameters",
+		// 					"At healthcheck type 'http-advanced-json' http advanced parameters must be set",
+		// 					"")
+		// 			}
+		// 			for j, advancedHealthcheckParameters := range sA[i].ServerHealthcheck.AdvancedHealthcheckParameters {
+		// 				if len(advancedHealthcheckParameters.UserDefinedData) == 0 {
+		// 					sl.ReportError(sA[i].ServerHealthcheck.AdvancedHealthcheckParameters[j].UserDefinedData,
+		// 						"userDefinedData",
+		// 						"UserDefinedData",
+		// 						"At healthcheck type 'http-advanced-json' at http advanced parameters user defined data must be set",
+		// 						"")
+		// 				}
+		// 			}
+		// 		default:
+		// 			sl.ReportError(sA[i].ServerHealthcheck.TypeOfCheck,
+		// 				"typeOfCheck",
+		// 				"TypeOfCheck",
+		// 				"Unsupported type of http advanced healthcheck",
+		// 				"")
+		// 		}
+		// 	}
+		// }
 	default:
 		sl.ReportError(sHc.Type, "type", "Type", "unsupported healthcheck type", "")
 	}
