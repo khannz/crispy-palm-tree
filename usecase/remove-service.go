@@ -70,8 +70,8 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return fmt.Errorf("fail when loading info about current services: %v", err)
 	}
 
-	if isServiceExist(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices) {
-		return fmt.Errorf("service %v:%v already exist, can't create new one", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	if !isServiceExist(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices) {
+		return fmt.Errorf("service %v:%v not exist, can't remove it", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	}
 
 	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
@@ -86,7 +86,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	logTryCreateNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
 	oldTunnelsFilesInfo, err := removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceUUID)
 	if err != nil {
-		return fmt.Errorf("can't create tunnel files: %v", err)
+		return fmt.Errorf("can't remove tunnel files: %v", err)
 	}
 	logCreatedNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
 
