@@ -137,7 +137,7 @@ func (restAPI *RestAPIstruct) isValidUser(tokenRequest *TokenRequest) bool {
 // @Success 200 {object} application.TokenResponseOkay "If all okay"
 // @Failure 400 {object} application.TokenResponseError "Bad request"
 // @Failure 500 {object} application.TokenResponseError "Internal error"
-// @Router /jwt/refresh-token [get]
+// @Router /jwt/refresh-token [post]
 // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) tokenRefresh(ginContext *gin.Context) {
 	tokenRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
