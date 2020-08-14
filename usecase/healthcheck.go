@@ -1,6 +1,7 @@
 package usecase
 
 // TODO: healthchecks != usecase!
+// TODO: featute: check routes tunnles and syscfg exist
 import (
 	"encoding/json"
 	"fmt"
