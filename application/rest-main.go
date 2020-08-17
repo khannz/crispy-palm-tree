@@ -73,6 +73,7 @@ func NewRestAPIentity(ip, port string, authorization *Authorization, balancerFac
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
 	service := restAPI.router.Group("/service")
+	service.Use(jwt.Auth(restAPI.authorization.mainSecret))
 	service.POST("/create-service", restAPI.createService)
 	service.POST("/remove-service", restAPI.removeService)
 	service.POST("/get-services", restAPI.getServices)
@@ -80,17 +81,14 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	service.POST("/remove-application-servers", restAPI.removeApplicationServers)
 	service.POST("/get-service", restAPI.getService)
 	service.POST("/modify-service", restAPI.modifyService)
-	// service.Use(jwt.Auth(restAPI.authorization.mainSecret)) // FIXME:
 
 	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
 	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
-	newJWT := restAPI.router.Group("/jwt")
-	newJWT.POST("/request-token", restAPI.tokenRequest)
-
-	refreshJWT := restAPI.router.Group("/jwt")
-	refreshJWT.POST("/refresh-token", restAPI.tokenRefresh)
-	newJWT.Use(jwt.Auth(restAPI.authorization.mainSecretForRefresh))
+	jwtGroup := restAPI.router.Group("/jwt")
+	jwtGroup.POST("/request-token", restAPI.tokenRequest)
+	jwtGroup.Use(jwt.Auth(restAPI.authorization.mainSecretForRefresh))
+	jwtGroup.POST("/refresh-token", restAPI.tokenRefresh)
 
 	err := restAPI.server.ListenAndServe()
 	if err != nil {
