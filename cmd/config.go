@@ -143,7 +143,7 @@ func init() {
 		logging.Fatalf("fwmark number must be set")
 	}
 	if viperConfig.GetString(mainSecretName) == "" {
-		logging.Fatalf("secret for JWT number must be set")
+		logging.Fatalf("secret for JWT must be set")
 	}
 	if viperConfig.GetString(mainSecretForRefreshName) == "" {
 		logging.Fatalf("refresh secret for JWT must be set")
