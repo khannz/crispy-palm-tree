@@ -76,7 +76,7 @@ type AdvancedHealthcheckParameters struct {
 // ServerHealthcheck ...
 type ServerHealthcheck struct {
 	TypeOfCheck                   string                          `json:"typeOfCheck,omitempty" example:"http-advanced-json"`
-	HealthcheckAddress            string                          `json:"healthcheckAddress,omitempty"` // FIXME: need extra validate; ip+port, http address or some one else
+	HealthcheckAddress            string                          `json:"healthcheckAddress,omitempty"` // TODO: need extra validate; ip+port, http address or some one else
 	AdvancedHealthcheckParameters []AdvancedHealthcheckParameters `json:"advancedHealthcheckParameters"`
 }
 
