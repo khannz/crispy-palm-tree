@@ -85,7 +85,7 @@ type ServerApplication struct {
 	ServerIP                    string            `json:"ip" validate:"required,ipv4" example:"1.1.1.1"`
 	ServerPort                  string            `json:"port" validate:"required" example:"1111"`
 	ServerHealthcheck           ServerHealthcheck `json:"serverHealthcheck,omitempty"`
-	ServerСonfigurationCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"` // FIXME: ingore gin!
+	ServerСonfigurationCommands string            `json:"bashCommands,omitempty" swagger:"ignoreParam"`
 }
 
 // UniversalResponse ...
@@ -107,7 +107,7 @@ type ServerApplicationWithStates struct {
 	ServerPort                  string            `json:"port" validate:"required" example:"1111"`
 	ServerHealthcheck           ServerHealthcheck `json:"serverHealthcheck,omitempty"`
 	IsUp                        bool              `json:"serverIsUp"`
-	ServerСonfigurationCommands string            `json:"bashCommands,omitempty" swaggerignore:"true"` // FIXME: ingore gin!
+	ServerСonfigurationCommands string            `json:"bashCommands,omitempty" swagger:"ignoreParam"`
 }
 
 // UniversalResponseWithStates ...
