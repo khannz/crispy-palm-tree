@@ -24,7 +24,7 @@ func NewIPVSADMEntity() (*IPVSADMEntity, error) {
 	return &IPVSADMEntity{}, nil
 }
 
-// CreateService ... // TODO: also need protocol and balance type (weight?fwd IPVS_TUNNELING?)
+// CreateService ...
 func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInfo,
 	createServiceUUID string) error {
 	ipvsadmEntity.Lock()
@@ -55,7 +55,6 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInf
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 
-	// TODO: log that ok
 	return nil
 }
 
@@ -103,7 +102,6 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInf
 
 	errDel := ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
 	if errDel != nil {
-		// FIXME: ipvsadmEntity.logging dont return error??
 		return fmt.Errorf("error while running DelService for ipv4: %v", errDel)
 	}
 
@@ -198,7 +196,6 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(serviceInfo 
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 
-	// TODO: log that ok
 	return nil
 }
 
@@ -239,7 +236,6 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 		return fmt.Errorf("cant remove application server from service: %v", err) // not return error?
 	}
 
-	// TODO: log that ok
 	return nil
 }
 
