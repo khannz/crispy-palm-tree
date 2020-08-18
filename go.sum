@@ -118,6 +118,7 @@ github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvW
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1 h1:mweAR1A6xJ3oS2pRaGiHgQ4OO8tzTaLawm8vnODuwDk=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
+github.com/konsorten/go-windows-terminal-sequences v1.0.3 h1:CE8S1cTafDpPvMhIxNJKvHsGVBgn1xWYf1NbHQhywc8=
 github.com/konsorten/go-windows-terminal-sequences v1.0.3/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
@@ -170,8 +171,6 @@ github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
-github.com/sirupsen/logrus v1.5.0 h1:1N5EYkVAPEywqZRJd7cwnRtCb6xJx7NH3T3WUTF980Q=
-github.com/sirupsen/logrus v1.5.0/go.mod h1:+F7Ogzej0PZc/94MaYx/nvG9jOFMD2osvC3s+Squfpo=
 github.com/sirupsen/logrus v1.6.0 h1:UBcNElsrwanuuMsnGSlYmtmgbb23qDR5dG+6X6Oo89I=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
 github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d h1:zE9ykElWQ6/NYmHa3jpm/yHnI4xSofP+UP6SpjHcSeM=
@@ -219,8 +218,6 @@ github.com/thevan4/go-billet v1.0.4 h1:GK89hWqPIOMrhUUmx+SVzLKaDQeJyKLgTX1QyHWjo
 github.com/thevan4/go-billet v1.0.4/go.mod h1:uA06ebCPeBUCQCscXuR5rSgzXWYKYT3ABzkKcLMUoP4=
 github.com/thevan4/logrus-graylog-http-hook v1.1.0 h1:/+oPJ/zaQZ2S3UQj557OZgHvle+869b2Z/i/2rKszlA=
 github.com/thevan4/logrus-graylog-http-hook v1.1.0/go.mod h1:pbIqCSdtVgRweLWcba2CtyWR+0iABe+vDU2FXY51KnI=
-github.com/thevan4/logrus-wrapper v0.0.0-20200811090142-68328f9d95be h1:+ch+HE6J6I5vIkw7Bl7HhhbhwhBhQXULy7bXqtaLfR0=
-github.com/thevan4/logrus-wrapper v0.0.0-20200811090142-68328f9d95be/go.mod h1:VV93pSU1gooaxurJtU10tr+4u0LK2vqHTYDAWTQ7FNc=
 github.com/thevan4/logrus-wrapper v1.0.0 h1:N1ooVyc69cWjpt+FEY8nqeic21DehkzjXlyDqXXpJoU=
 github.com/thevan4/logrus-wrapper v1.0.0/go.mod h1:VV93pSU1gooaxurJtU10tr+4u0LK2vqHTYDAWTQ7FNc=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=

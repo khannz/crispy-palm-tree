@@ -11,6 +11,7 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/sirupsen/logrus"
+	"github.com/thevan4/go-billet/executor"
 	"github.com/vishvananda/netlink"
 )
 
@@ -157,6 +158,7 @@ func (tunnelFileMaker *TunnelFileMaker) addAndUpNewLink(tunnelName, applicationS
 	return nil
 }
 
+// TODO: global refactor func argument call (like remove route and add, give ip+mask or only ip)
 func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServerIP, mask string, table int) error {
 	linkInfo, err := netlink.LinkByName("tun" + sNewTunnelName)
 	if err != nil {
@@ -248,24 +250,37 @@ func (tunnelFileMaker *TunnelFileMaker) removeFile(filePath, requestUUID string)
 	return nil
 }
 
+// TODO: fix broken netlink lib
 func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string, table int, tunnelName string) error {
-	linkInfo, err := netlink.LinkByName("tun" + tunnelName)
+	fullCommand := "ip"
+	contextFolder := ""
+	arguments := []string{"link", "del", "tun" + tunnelName}
+	stdout, stderr, exitCode, err := executor.Execute(fullCommand, contextFolder, arguments)
 	if err != nil {
-		return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
+		return err
 	}
 
-	_, destination, err := net.ParseCIDR(applicationServerIP + mask)
-	if err != nil {
-		return fmt.Errorf("parse ip from %v fail: %v", applicationServerIP+mask, err)
+	if exitCode != 0 {
+		return fmt.Errorf("error code %v. stdout: %v; stderr: %v", exitCode, string(stdout), string(stderr))
 	}
-	route := &netlink.Route{
-		LinkIndex: linkInfo.Attrs().Index,
-		Dst:       destination,
-		Table:     table,
-	}
-	if err := netlink.RouteDel(route); err != nil {
-		return fmt.Errorf("netlink can't delete route %v: %v", route, err)
-	}
+
+	// linkInfo, err := netlink.LinkByName("tun" + tunnelName)
+	// if err != nil {
+	// 	return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
+	// }
+
+	// _, destination, err := net.ParseCIDR(applicationServerIP + mask)
+	// if err != nil {
+	// 	return fmt.Errorf("parse ip from %v fail: %v", applicationServerIP+mask, err)
+	// }
+	// route := &netlink.Route{
+	// 	LinkIndex: linkInfo.Attrs().Index,
+	// 	Dst:       destination,
+	// 	Table:     table,
+	// }
+	// if err := netlink.RouteDel(route); err != nil {
+	// 	return fmt.Errorf("netlink can't delete route %v: %v", route, err)
+	// }
 
 	return nil
 }
