@@ -85,7 +85,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 		return fmt.Errorf("can't up tunnel: %v", err)
 	}
 
-	if err := tunnelFileMaker.addRoute(sNewTunnelName, tunnelFilesInfo.ApplicationServerIP, mask, table); err != nil {
+	if err := tunnelFileMaker.addRoute(sNewTunnelName, tunnelFilesInfo.ApplicationServerIP, mask, table, createTunnelUUID); err != nil {
 		return fmt.Errorf("can't create route: %v", err)
 	}
 
@@ -159,7 +159,8 @@ func (tunnelFileMaker *TunnelFileMaker) addAndUpNewLink(tunnelName, applicationS
 }
 
 // TODO: global refactor func argument call (like remove route and add, give ip+mask or only ip)
-func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServerIP, mask string, table int) error {
+func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServerIP, mask string, table int, uuid string) error {
+
 	linkInfo, err := netlink.LinkByName("tun" + sNewTunnelName)
 	if err != nil {
 		return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
@@ -174,7 +175,15 @@ func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServ
 		Dst:       destination,
 		Table:     table,
 	}
-	return netlink.RouteAdd(route)
+
+	if err = netlink.RouteAdd(route); err != nil {
+		// FIXME: maybe broken. temp dirty fix
+		tunnelFileMaker.logging.WithFields(logrus.Fields{
+			"entity":     tunnelFileMakerEntityName,
+			"event uuid": uuid,
+		}).Warnf("can't add route for tunnel %v; server %v, mask %v, table %v", sNewTunnelName, applicationServerIP, mask, table)
+	}
+	return nil
 }
 
 // ip link delete dev tun100 && rm -f /etc/sysctl.d/100-sysctl.conf
@@ -224,8 +233,8 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.Tun
 
 	table := 10
 	mask := "/32" // TODO: remove hardcode
-	if err := tunnelFileMaker.removeRoute(tunnelFilesInfo.ApplicationServerIP, mask, table, tunnelFilesInfo.TunnelName); err != nil {
-		return fmt.Errorf("can't remove route: %v", err) // FIXME: here broken. maybe removed some already?
+	if err := tunnelFileMaker.removeRoute(tunnelFilesInfo.ApplicationServerIP, mask, table, tunnelFilesInfo.TunnelName, removeTunnelUUID); err != nil {
+		return fmt.Errorf("can't remove route: %v", err) // FIXME: broken.
 	}
 
 	if err := tunnelFileMaker.downAndRemoveOldLink("tun" + tunnelFilesInfo.TunnelName); err != nil {
@@ -250,8 +259,8 @@ func (tunnelFileMaker *TunnelFileMaker) removeFile(filePath, requestUUID string)
 	return nil
 }
 
-// TODO: fix broken netlink lib
-func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string, table int, tunnelName string) error {
+func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string, table int, tunnelName string, uuid string) error {
+	// FIXME: maybe broken. temp dirty fix
 	fullCommand := "ip"
 	contextFolder := ""
 	arguments := []string{"link", "del", "tun" + tunnelName}
@@ -264,23 +273,25 @@ func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask st
 		return fmt.Errorf("error code %v. stdout: %v; stderr: %v", exitCode, string(stdout), string(stderr))
 	}
 
-	// linkInfo, err := netlink.LinkByName("tun" + tunnelName)
-	// if err != nil {
-	// 	return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
-	// }
+	linkInfo, err := netlink.LinkByName("tun" + tunnelName)
+	if err != nil {
+		return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
+	}
 
-	// _, destination, err := net.ParseCIDR(applicationServerIP + mask)
-	// if err != nil {
-	// 	return fmt.Errorf("parse ip from %v fail: %v", applicationServerIP+mask, err)
-	// }
-	// route := &netlink.Route{
-	// 	LinkIndex: linkInfo.Attrs().Index,
-	// 	Dst:       destination,
-	// 	Table:     table,
-	// }
-	// if err := netlink.RouteDel(route); err != nil {
-	// 	return fmt.Errorf("netlink can't delete route %v: %v", route, err)
-	// }
-
+	_, destination, err := net.ParseCIDR(applicationServerIP + mask)
+	if err != nil {
+		return fmt.Errorf("parse ip from %v fail: %v", applicationServerIP+mask, err)
+	}
+	route := &netlink.Route{
+		LinkIndex: linkInfo.Attrs().Index,
+		Dst:       destination,
+		Table:     table,
+	}
+	if err := netlink.RouteDel(route); err != nil {
+		tunnelFileMaker.logging.WithFields(logrus.Fields{
+			"entity":     tunnelFileMakerEntityName,
+			"event uuid": uuid,
+		}).Warnf("can't remove route for tunnel %v; server %v, mask %v, table %v", tunnelName, applicationServerIP, mask, table)
+	}
 	return nil
 }
