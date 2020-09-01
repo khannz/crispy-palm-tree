@@ -130,9 +130,11 @@ var rootCmd = &cobra.Command{
 			uuidGenerator,
 			logging)
 
-		if err = facade.InitializeRuntimeSettings(uuidForRootProcess); err != nil {
-			facade.DisableRuntimeSettings(uuidForRootProcess)
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatal("init r untimeSettings fail")
+		if err := facade.InitializeRuntimeSettings(uuidForRootProcess); err != nil {
+			if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
+				logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("disable runtime settings fail: %v", err)
+			}
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("init runtimeSettings fail: %v", err)
 		}
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
 
@@ -159,7 +161,10 @@ var rootCmd = &cobra.Command{
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("rest API is Done")
 
 		gracefulShutdown.ShutdownNow = false // TODO: so dirty trick
-		facade.DisableRuntimeSettings(uuidForRootProcess)
+		if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("disable runtime settings fail: %v", err)
+		}
+
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("runtime settings disabled")
 
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("program stopped")
