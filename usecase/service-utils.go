@@ -27,8 +27,15 @@ func validateRemoveApplicationServers(currentApplicattionServers,
 	}
 	if len(i) != len(applicattionServersForRemove) {
 		var formError string
-		for _, k := range i {
-			formError += applicattionServersForRemove[k].ServerIP + ":" + applicattionServersForRemove[k].ServerPort + ";"
+		if len(i) >= 1 {
+			for _, k := range i {
+				formError += applicattionServersForRemove[k].ServerIP + ":" + applicattionServersForRemove[k].ServerPort + ";"
+			}
+			return fmt.Errorf("current config don't have application servers: %v", formError)
+		}
+
+		for _, k := range applicattionServersForRemove {
+			formError += k.ServerIP + ":" + k.ServerPort + ";"
 		}
 		return fmt.Errorf("current config don't have application servers: %v", formError)
 	}
@@ -42,8 +49,8 @@ loop:
 		for _, rem := range applicattionServersForRemove {
 			if url.ServerIP == rem.ServerIP && url.ServerPort == rem.ServerPort { // TODO: check that logic not broken from advanced healthcheck feature
 				currentApplicattionServers = append(currentApplicattionServers[:i], currentApplicattionServers[i+1:]...)
-				i-- // decrease index
-				continue loop
+				i--           // decrease index
+				continue loop // TODO: labels are bad, refactor that
 			}
 		}
 	}
@@ -338,7 +345,7 @@ func logAddedIpvsadmApplicationServers(usecaseName,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("ipvsadm added application servers %v for service %v:%v",
+	}).Infof("ipvsadm added application servers %v for service %v:%v",
 		applicationServers,
 		serviceIP,
 		servicePort)
@@ -457,7 +464,7 @@ func logTryRemoveIpvsadmApplicationServers(usecaseName,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("try ipvsadm remove application servers %v for service %v:%v",
+	}).Infof("try ipvsadm remove application servers %v for service %v:%v",
 		applicationServers,
 		serviceIP,
 		servicePort)
@@ -472,7 +479,7 @@ func logRemovedIpvsadmApplicationServers(usecaseName,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("ipvsadm removed application servers %v for service %v:%v",
+	}).Infof("ipvsadm removed application servers %v for service %v:%v",
 		applicationServers,
 		serviceIP,
 		servicePort)
@@ -485,7 +492,7 @@ func logTryRemoveIpvsadmService(usecaseName,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("try ipvsadm remove service %v", serviceInfo)
+	}).Infof("try ipvsadm remove service %v", serviceInfo)
 }
 
 func logRemovedIpvsadmService(usecaseName,
@@ -495,7 +502,7 @@ func logRemovedIpvsadmService(usecaseName,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("ipvsadm removed service %v", serviceInfo)
+	}).Infof("ipvsadm removed service %v", serviceInfo)
 }
 
 func logTryRemoveServiceAtHealtchecks(usecaseName,
@@ -546,7 +553,7 @@ func logServicesIPAndPortNotEqual(serviceOneIP,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("somehow services ip and port not equal: %v:%v vs %v:%v",
+	}).Infof("somehow services ip and port not equal: %v:%v vs %v:%v",
 		serviceOneIP,
 		serviceOnePort,
 		serviceTwoIP,
@@ -565,7 +572,7 @@ func logServicesHaveDifferentNumberOfApplicationServers(serviceOneIP,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("the number of application servers in the current service does not match the modification request. Services %v:%v: %v servers; %v:%v: %v servers",
+	}).Infof("the number of application servers in the current service does not match the modification request. Services %v:%v: %v servers; %v:%v: %v servers",
 		serviceOneIP,
 		serviceOnePort,
 		lenOfApplicationServersOne,
@@ -584,7 +591,7 @@ func logApplicationServerNotFound(serviceOneIP,
 	logging.WithFields(logrus.Fields{
 		"entity":     usecaseName,
 		"event uuid": uuid,
-	}).Info("in service %v:%v not found data for modify application server %v:%v",
+	}).Infof("in service %v:%v not found data for modify application server %v:%v",
 		serviceOneIP,
 		serviceOnePort,
 		applicaionServerIP,

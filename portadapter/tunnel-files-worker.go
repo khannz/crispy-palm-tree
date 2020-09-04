@@ -253,7 +253,7 @@ func (tunnelFileMaker *TunnelFileMaker) removeFile(filePath, requestUUID string)
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
 			"entity":     tunnelFileMakerEntityName,
 			"event uuid": requestUUID,
-		}).Errorf("can't remove tunnel file, got error: %v", filePath, err)
+		}).Errorf("can't remove tunnel file %v, got error: %v", filePath, err)
 		return err
 	}
 	return nil

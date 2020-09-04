@@ -152,7 +152,7 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
-		}).Error("Heathcheck error: RemoveServiceFromHealtchecks error: service %v:%v not found",
+		}).Errorf("Heathcheck error: RemoveServiceFromHealtchecks error: service %v:%v not found",
 			serviceInfo.ServiceIP,
 			serviceInfo.ServicePort)
 	}
