@@ -92,7 +92,7 @@ func init() {
 	pflag.StringP(configFilePathName, "c", defaultConfigFilePath, "Path to config file. Example value: './nw-lb.yaml'")
 	pflag.String(logOutputName, defaultLogOutput, "Log output. Example values: 'stdout', 'syslog'")
 	pflag.String(logLevelName, defaultLogLevel, "Log level. Example values: 'info', 'debug', 'trace'")
-	pflag.String(logFormatName, defaultLogFormat, "Log format. Example values: 'default', 'json'")
+	pflag.String(logFormatName, defaultLogFormat, "Log format. Example values: 'text', 'json'")
 	pflag.String(syslogTagName, defaultSystemLogTag, "Syslog tag. Example: 'trac-dgen'")
 	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
 
