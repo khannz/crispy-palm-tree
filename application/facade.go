@@ -60,7 +60,6 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.CommandGenerator,
 		balancerFacade.GracefulShutdown,
-		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 	appSvrs := []*domain.ApplicationServer{}
 	for _, appSrvr := range createService.ApplicationServers {
@@ -145,7 +144,6 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.CommandGenerator,
 		balancerFacade.GracefulShutdown,
-		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 
 	appSvrs := []*domain.ApplicationServer{}

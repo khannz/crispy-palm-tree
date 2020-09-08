@@ -157,3 +157,93 @@ func createAdvancedHealthcheckParametersForTests() (domain.AdvancedHealthcheckPa
 	}
 	return advancedHealthcheckParametersOne, advancedHealthcheckParametersTwo, advancedHealthcheckParametersThree, advancedHealthcheckParametersFour
 }
+
+// MockIPVSWorker ...
+type MockIPVSWorker struct{}
+
+// CreateService ...
+func (mockIPVSWorker *MockIPVSWorker) CreateService(*domain.ServiceInfo, string) error {
+	return nil
+}
+
+// RemoveService ...
+func (mockIPVSWorker *MockIPVSWorker) RemoveService(*domain.ServiceInfo, string) error {
+	return nil
+}
+
+// AddApplicationServersForService ...
+func (mockIPVSWorker *MockIPVSWorker) AddApplicationServersForService(*domain.ServiceInfo, string) error {
+	return nil
+}
+
+// RemoveApplicationServersFromService ...
+func (mockIPVSWorker *MockIPVSWorker) RemoveApplicationServersFromService(*domain.ServiceInfo, string) error {
+	return nil
+}
+
+// Flush ...
+func (mockIPVSWorker *MockIPVSWorker) Flush() error {
+	return nil
+}
+
+// ReadCurrentConfig ...
+func (mockIPVSWorker *MockIPVSWorker) ReadCurrentConfig() ([]*domain.ServiceInfo, error) {
+	return nil, nil
+}
+
+// MockTunnelMaker ...
+type MockTunnelMaker struct{}
+
+// CreateTunnel ...
+func (mockTunnelMaker *MockTunnelMaker) CreateTunnel(*domain.TunnelForApplicationServer, string) error {
+	return nil
+}
+
+// CreateTunnels ...
+func (mockTunnelMaker *MockTunnelMaker) CreateTunnels([]*domain.TunnelForApplicationServer, string) ([]*domain.TunnelForApplicationServer, error) {
+	return nil, nil
+}
+
+// RemoveTunnel ...
+func (mockTunnelMaker *MockTunnelMaker) RemoveTunnel(*domain.TunnelForApplicationServer, string) error {
+	return nil
+}
+
+// RemoveTunnels ...
+func (mockTunnelMaker *MockTunnelMaker) RemoveTunnels([]*domain.TunnelForApplicationServer, string) ([]*domain.TunnelForApplicationServer, error) {
+	return nil, nil
+}
+
+// MockHeathcheckWorker ...
+type MockHeathcheckWorker struct{}
+
+// StartGracefulShutdownControlForHealthchecks ...
+func (mockHeathcheckWorker *MockHeathcheckWorker) StartGracefulShutdownControlForHealthchecks() {}
+
+// StartHealthchecksForCurrentServices ...
+func (mockHeathcheckWorker *MockHeathcheckWorker) StartHealthchecksForCurrentServices() error {
+	return nil
+}
+
+// NewServiceToHealtchecks ...
+func (mockHeathcheckWorker *MockHeathcheckWorker) NewServiceToHealtchecks(*domain.ServiceInfo) {}
+
+// RemoveServiceFromHealtchecks ...
+func (mockHeathcheckWorker *MockHeathcheckWorker) RemoveServiceFromHealtchecks(*domain.ServiceInfo) {}
+
+// UpdateServiceAtHealtchecks ...
+func (mockHeathcheckWorker *MockHeathcheckWorker) UpdateServiceAtHealtchecks(*domain.ServiceInfo) error {
+	return nil
+}
+
+// CheckApplicationServersInService ...
+func (mockHeathcheckWorker *MockHeathcheckWorker) CheckApplicationServersInService(*domain.ServiceInfo) {
+}
+
+// MockCommandGenerator ...
+type MockCommandGenerator struct{}
+
+// GenerateCommandsForApplicationServers ...
+func (MockCommandGenerator *MockCommandGenerator) GenerateCommandsForApplicationServers(*domain.ServiceInfo, string) error {
+	return nil
+}
