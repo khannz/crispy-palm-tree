@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,14 +12,14 @@ const getServiceStateName = "get-service-state"
 // GetServiceStateEntity ...
 type GetServiceStateEntity struct {
 	locker           *domain.Locker
-	cacheStorage     *portadapter.StorageEntity // so dirty
+	cacheStorage     domain.StorageActions
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
 }
 
 // NewGetServiceStateEntity ...
 func NewGetServiceStateEntity(locker *domain.Locker,
-	cacheStorage *portadapter.StorageEntity,
+	cacheStorage domain.StorageActions,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *GetServiceStateEntity {
 	return &GetServiceStateEntity{

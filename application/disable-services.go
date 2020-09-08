@@ -14,7 +14,7 @@ func (balancerFacade *BalancerFacade) DisableRuntimeSettings(isMockMode bool, uu
 	balancerFacade.Locker.Lock()
 	defer balancerFacade.Locker.Unlock()
 	var errors []error
-	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModel()
+	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": uuid}).Errorf("fail to load  storage config when programm stop: %v", err)
 		return err

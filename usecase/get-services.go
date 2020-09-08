@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,14 +11,14 @@ const getAllServicesName = "get-all-services"
 
 // GetAllServices ...
 type GetAllServices struct {
-	cacheStorage     *portadapter.StorageEntity // so dirty
+	cacheStorage     domain.StorageActions
 	locker           *domain.Locker
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
 }
 
 // NewGetAllServices ...
-func NewGetAllServices(cacheStorage *portadapter.StorageEntity,
+func NewGetAllServices(cacheStorage domain.StorageActions,
 	locker *domain.Locker,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *GetAllServices {
@@ -47,5 +46,5 @@ func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID s
 	defer decreaseJobs(getAllServices.gracefulShutdown)
 	// graceful shutdown part end
 	logStartUsecase(getAllServicesName, "get all services", getAllServicesRequestUUID, nil, getAllServices.logging)
-	return getAllServices.cacheStorage.LoadAllStorageDataToDomainModel()
+	return getAllServices.cacheStorage.LoadAllStorageDataToDomainModels()
 }

@@ -9,7 +9,7 @@ import (
 
 // InitializeRuntimeSettings ...
 func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(uuid string) error {
-	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModel()
+	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return fmt.Errorf("fail to load  storage config at start")
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,9 +12,9 @@ const removeApplicationServersName = "remove-application-servers"
 // RemoveApplicationServers ...
 type RemoveApplicationServers struct {
 	locker            *domain.Locker
-	ipvsadm           *portadapter.IPVSADMEntity
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	persistentStorage *portadapter.StorageEntity // so dirty
+	ipvsadm           domain.IPVSWorker
+	cacheStorage      domain.StorageActions
+	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
 	gracefulShutdown  *domain.GracefulShutdown
@@ -25,9 +24,9 @@ type RemoveApplicationServers struct {
 
 // NewRemoveApplicationServers ...
 func NewRemoveApplicationServers(locker *domain.Locker,
-	ipvsadm *portadapter.IPVSADMEntity,
-	cacheStorage *portadapter.StorageEntity,
-	persistentStorage *portadapter.StorageEntity,
+	ipvsadm domain.IPVSWorker,
+	cacheStorage domain.StorageActions,
+	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
@@ -68,7 +67,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	logStartUsecase(removeApplicationServersName, "add new application servers to service", removeApplicationServersUUID, removeServiceInfo, removeApplicationServers.logging)
 
 	logTryPreValidateRequest(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
-	allCurrentServices, err := removeApplicationServers.cacheStorage.LoadAllStorageDataToDomainModel()
+	allCurrentServices, err := removeApplicationServers.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return removeServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}

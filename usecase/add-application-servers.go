@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,9 +12,9 @@ const addApplicationServersName = "add-application-servers"
 // AddApplicationServers ...
 type AddApplicationServers struct {
 	locker            *domain.Locker
-	ipvsadm           *portadapter.IPVSADMEntity // so dirty
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	persistentStorage *portadapter.StorageEntity // so dirty
+	ipvsadm           domain.IPVSWorker
+	cacheStorage      domain.StorageActions
+	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
@@ -26,9 +25,9 @@ type AddApplicationServers struct {
 
 // NewAddApplicationServers ...
 func NewAddApplicationServers(locker *domain.Locker,
-	ipvsadm *portadapter.IPVSADMEntity,
-	cacheStorage *portadapter.StorageEntity,
-	persistentStorage *portadapter.StorageEntity,
+	ipvsadm domain.IPVSWorker,
+	cacheStorage domain.StorageActions,
+	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
@@ -70,7 +69,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 
 	logStartUsecase(addApplicationServersName, "add new application servers to service", addApplicationServersUUID, newServiceInfo, addApplicationServers.logging)
 	logTryPreValidateRequest(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	allCurrentServices, err := addApplicationServers.cacheStorage.LoadAllStorageDataToDomainModel()
+	allCurrentServices, err := addApplicationServers.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return newServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}

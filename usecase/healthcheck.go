@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -37,9 +36,9 @@ type dummyWorker struct {
 type HeathcheckEntity struct {
 	sync.Mutex
 	runningHeathchecks []*domain.ServiceInfo
-	cacheStorage       *portadapter.StorageEntity // so dirty
-	persistentStorage  *portadapter.StorageEntity // so dirty
-	ipvsadm            *portadapter.IPVSADMEntity // so dirty
+	cacheStorage       domain.StorageActions
+	persistentStorage  domain.StorageActions
+	ipvsadm            domain.IPVSWorker
 	techInterface      *net.TCPAddr
 	locker             *domain.Locker
 	gracefulShutdown   *domain.GracefulShutdown
@@ -49,9 +48,9 @@ type HeathcheckEntity struct {
 }
 
 // NewHeathcheckEntity ...
-func NewHeathcheckEntity(cacheStorage *portadapter.StorageEntity,
-	persistentStorage *portadapter.StorageEntity,
-	ipvsadm *portadapter.IPVSADMEntity,
+func NewHeathcheckEntity(cacheStorage domain.StorageActions,
+	persistentStorage domain.StorageActions,
+	ipvsadm domain.IPVSWorker,
 	rawTechInterface string,
 	locker *domain.Locker,
 	gracefulShutdown *domain.GracefulShutdown,
@@ -106,9 +105,9 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	if hc.gracefulShutdown.ShutdownNow {
 		return nil
 	}
-	servicesInfo, err := hc.cacheStorage.LoadAllStorageDataToDomainModel()
+	servicesInfo, err := hc.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
-		return fmt.Errorf("fail when try LoadAllStorageDataToDomainModel: %v", err)
+		return fmt.Errorf("fail when try LoadAllStorageDataToDomainModels: %v", err)
 	}
 
 	for _, serviceInfo := range servicesInfo {

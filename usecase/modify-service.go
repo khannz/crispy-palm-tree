@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,9 +12,9 @@ const modifyServiceName = "modify service"
 // ModifyServiceEntity ...
 type ModifyServiceEntity struct {
 	locker            *domain.Locker
-	ipvsadm           *portadapter.IPVSADMEntity
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	persistentStorage *portadapter.StorageEntity // so dirty
+	ipvsadm           domain.IPVSWorker
+	cacheStorage      domain.StorageActions
+	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
@@ -26,9 +25,9 @@ type ModifyServiceEntity struct {
 
 // NewModifyServiceEntity ...
 func NewModifyServiceEntity(locker *domain.Locker,
-	ipvsadm *portadapter.IPVSADMEntity,
-	cacheStorage *portadapter.StorageEntity, // so dirty
-	persistentStorage *portadapter.StorageEntity, // so dirty
+	ipvsadm domain.IPVSWorker,
+	cacheStorage domain.StorageActions,
+	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
@@ -65,7 +64,7 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	defer decreaseJobs(modifyService.gracefulShutdown)
 	// graceful shutdown part end
 	logTryPreValidateRequest(modifyServiceName, modifyServiceUUID, modifyService.logging)
-	allCurrentServices, err := modifyService.cacheStorage.LoadAllStorageDataToDomainModel()
+	allCurrentServices, err := modifyService.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}

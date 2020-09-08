@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,9 +12,9 @@ const removeServiceName = "remove-service"
 // RemoveServiceEntity ...
 type RemoveServiceEntity struct {
 	locker            *domain.Locker
-	ipvsadm           *portadapter.IPVSADMEntity
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	persistentStorage *portadapter.StorageEntity // so dirty
+	ipvsadm           domain.IPVSWorker
+	cacheStorage      domain.StorageActions
+	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
 	gracefulShutdown  *domain.GracefulShutdown
 	uuidGenerator     domain.UUIDgenerator
@@ -25,9 +24,9 @@ type RemoveServiceEntity struct {
 
 // NewRemoveServiceEntity ...
 func NewRemoveServiceEntity(locker *domain.Locker,
-	ipvsadm *portadapter.IPVSADMEntity,
-	cacheStorage *portadapter.StorageEntity, // so dirty
-	persistentStorage *portadapter.StorageEntity, // so dirty
+	ipvsadm domain.IPVSWorker,
+	cacheStorage domain.StorageActions,
+	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
 	gracefulShutdown *domain.GracefulShutdown,
 	uuidGenerator domain.UUIDgenerator,
@@ -65,7 +64,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	defer decreaseJobs(removeServiceEntity.gracefulShutdown)
 	// graceful shutdown part end
 	logStartUsecase(removeServiceName, "add new application servers to service", removeServiceUUID, serviceInfo, removeServiceEntity.logging)
-	allCurrentServices, err := removeServiceEntity.cacheStorage.LoadAllStorageDataToDomainModel()
+	allCurrentServices, err := removeServiceEntity.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return fmt.Errorf("fail when loading info about current services: %v", err)
 	}
@@ -100,10 +99,10 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	}
 	logRemovedIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 
-	if err = removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.persistentStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
-	if err = removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.cacheStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
 

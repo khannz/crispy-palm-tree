@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,9 +12,9 @@ const createServiceName = "create-service"
 // CreateServiceEntity ...
 type CreateServiceEntity struct {
 	locker            *domain.Locker
-	ipvsadm           *portadapter.IPVSADMEntity
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	persistentStorage *portadapter.StorageEntity // so dirty
+	ipvsadm           domain.IPVSWorker
+	cacheStorage      domain.StorageActions
+	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
 	hc                *HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
@@ -26,9 +25,9 @@ type CreateServiceEntity struct {
 
 // NewCreateServiceEntity ...
 func NewCreateServiceEntity(locker *domain.Locker,
-	ipvsadm *portadapter.IPVSADMEntity,
-	cacheStorage *portadapter.StorageEntity, // so dirty
-	persistentStorage *portadapter.StorageEntity, // so dirty
+	ipvsadm domain.IPVSWorker,
+	cacheStorage domain.StorageActions,
+	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
 	hc *HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
@@ -67,7 +66,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	logStartUsecase(createServiceName, "add new application servers to service", createServiceUUID, serviceInfo, createService.logging)
 
 	logTryPreValidateRequest(createServiceName, createServiceUUID, createService.logging)
-	allCurrentServices, err := createService.cacheStorage.LoadAllStorageDataToDomainModel()
+	allCurrentServices, err := createService.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}
@@ -99,12 +98,12 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	logCreatedNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	// add to cache storage
 	logTryUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
-	if err := createService.cacheStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
+	if err := createService.cacheStorage.NewServiceInfoToStorage(serviceInfo, createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
 	}
 	logUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
 
-	// TODO: why not in NewServiceDataToStorage? double?
+	// TODO: why not in NewServiceInfoToStorage? double?
 	if err := createService.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
 	}
@@ -116,7 +115,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	logCreatedIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
 
 	logTryUpdateServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)
-	if err = createService.persistentStorage.NewServiceDataToStorage(serviceInfo, createServiceUUID); err != nil {
+	if err = createService.persistentStorage.NewServiceInfoToStorage(serviceInfo, createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("Error when save to persistent storage: %v", err)
 	}
 	logUpdatedServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)

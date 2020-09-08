@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -120,7 +119,7 @@ func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.Applica
 }
 
 // FormTunnelsFilesInfo ...
-func FormTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheStorage *portadapter.StorageEntity) []*domain.TunnelForApplicationServer {
+func FormTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheStorage domain.StorageActions) []*domain.TunnelForApplicationServer {
 	tunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
 	for _, applicationServer := range applicationServers {
 		tunnelFilesInfo := cacheStorage.ReadTunnelInfoForApplicationServer(applicationServer.ServerIP)

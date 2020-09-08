@@ -75,8 +75,8 @@ type TunnelForService struct {
 	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
 }
 
-// NewServiceDataToStorage add new service to storage
-func (storageEntity *StorageEntity) NewServiceDataToStorage(serviceData *domain.ServiceInfo,
+// NewServiceInfoToStorage add new service to storage
+func (storageEntity *StorageEntity) NewServiceInfoToStorage(serviceData *domain.ServiceInfo,
 	eventUUID string) error {
 	serviceDataKey, serviceDataValue, err := transformServiceDataForStorageData(serviceData)
 	if err != nil {
@@ -140,8 +140,8 @@ func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 	return nil
 }
 
-// RemoveServiceDataFromStorage ...
-func (storageEntity *StorageEntity) RemoveServiceDataFromStorage(serviceData *domain.ServiceInfo, eventUUID string) error {
+// RemoveServiceInfoFromStorage ...
+func (storageEntity *StorageEntity) RemoveServiceInfoFromStorage(serviceData *domain.ServiceInfo, eventUUID string) error {
 	keyData := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
 	storageEntity.Lock()
 	defer storageEntity.Unlock()
@@ -228,8 +228,8 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 	return currentServiceInfo, nil
 }
 
-// LoadAllStorageDataToDomainModel ...
-func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModel() ([]*domain.ServiceInfo, error) {
+// LoadAllStorageDataToDomainModels ...
+func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModels() ([]*domain.ServiceInfo, error) {
 	servicesInfo := []*domain.ServiceInfo{}
 	storageEntity.Lock()
 	defer storageEntity.Unlock()
