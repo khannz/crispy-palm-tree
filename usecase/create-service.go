@@ -16,10 +16,9 @@ type CreateServiceEntity struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *HeathcheckEntity
+	hc                domain.HeathcheckWorker
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
-	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
 
@@ -29,10 +28,9 @@ func NewCreateServiceEntity(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *HeathcheckEntity,
+	hc domain.HeathcheckWorker,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
-	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *CreateServiceEntity {
 	return &CreateServiceEntity{
 		locker:            locker,
@@ -44,7 +42,6 @@ func NewCreateServiceEntity(locker *domain.Locker,
 		commandGenerator:  commandGenerator,
 		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
-		uuidGenerator:     uuidGenerator,
 	}
 }
 
