@@ -16,9 +16,8 @@ type RemoveServiceEntity struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
+	hc                domain.HeathcheckWorker
 	gracefulShutdown  *domain.GracefulShutdown
-	uuidGenerator     domain.UUIDgenerator
-	hc                *HeathcheckEntity
 	logging           *logrus.Logger
 }
 
@@ -28,9 +27,8 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
+	hc domain.HeathcheckWorker,
 	gracefulShutdown *domain.GracefulShutdown,
-	uuidGenerator domain.UUIDgenerator,
-	hc *HeathcheckEntity,
 	logging *logrus.Logger) *RemoveServiceEntity {
 	return &RemoveServiceEntity{
 		locker:            locker,
@@ -38,9 +36,8 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
-		gracefulShutdown:  gracefulShutdown,
-		uuidGenerator:     uuidGenerator,
 		hc:                hc,
+		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
 	}
 }
@@ -115,7 +112,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 
 	logTryRemoveIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
-	if !removeServiceEntity.hc.isMockMode {
+	if !removeServiceEntity.hc.IsMockMode() {
 		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
 			return err
 		}
