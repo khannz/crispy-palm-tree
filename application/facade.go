@@ -122,8 +122,8 @@ func (balancerFacade *BalancerFacade) RemoveService(removeServiceRequest *Remove
 
 // GetServices ...
 func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]*domain.ServiceInfo, error) {
-	getNWBServices := usecase.NewGetAllServices(balancerFacade.CacheStorage,
-		balancerFacade.Locker,
+	getNWBServices := usecase.NewGetAllServices(balancerFacade.Locker,
+		balancerFacade.CacheStorage,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
 	nwbServices, err := getNWBServices.GetAllServices(getNWBServicesUUID)

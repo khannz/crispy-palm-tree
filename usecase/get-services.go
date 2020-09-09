@@ -11,15 +11,15 @@ const getAllServicesName = "get-all-services"
 
 // GetAllServices ...
 type GetAllServices struct {
-	cacheStorage     domain.StorageActions
 	locker           *domain.Locker
+	cacheStorage     domain.StorageActions
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
 }
 
 // NewGetAllServices ...
-func NewGetAllServices(cacheStorage domain.StorageActions,
-	locker *domain.Locker,
+func NewGetAllServices(locker *domain.Locker,
+	cacheStorage domain.StorageActions,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *GetAllServices {
 	return &GetAllServices{
