@@ -111,7 +111,7 @@ func copyApplicationServers(applicationServers []*domain.ApplicationServer) []*d
 func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.ApplicationServer) bool {
 	for _, tr := range toRemASs {
 		if tsIn.ServerIP == tr.ServerIP &&
-			tr.ServerPort == tr.ServerPort {
+			tsIn.ServerPort == tr.ServerPort {
 			return true
 		}
 	}

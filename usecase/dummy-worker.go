@@ -97,6 +97,10 @@ func removeAddr(addrForDel string) error {
 	}
 
 	addr, err := netlink.ParseAddr(addrForDel)
+	if err != nil {
+		return err
+	}
+
 	if err = netlink.AddrDel(dummy, addr); err != nil {
 		return err
 	}
@@ -110,6 +114,10 @@ func addAddr(addrForAdd string) error {
 	}
 
 	addr, err := netlink.ParseAddr(addrForAdd)
+	if err != nil {
+		return err
+	}
+
 	if err = netlink.AddrAdd(dummy, addr); err != nil {
 		return err
 	}

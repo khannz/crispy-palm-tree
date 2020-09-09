@@ -1,7 +1,6 @@
 package application
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -93,13 +92,6 @@ func logNewRequest(typeOfRequest, uuid string, logging *logrus.Logger) {
 		"entity":     restAPIlogName,
 		"event uuid": uuid,
 	}).Infof("got new %v request", typeOfRequest)
-}
-
-// read incoming data to buffer
-func readIncomeBytes(req *http.Request) []byte {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(req.Body)
-	return buf.Bytes()
 }
 
 func unmarshallIncomeError(errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
@@ -207,14 +199,6 @@ func convertDomainServiceInfoToRestUniversalResponse(serviceInfo *domain.Service
 		BalanceType:              serviceInfo.BalanceType,
 		RoutingType:              serviceInfo.RoutingType,
 	}
-}
-
-func convertDomainServicesInfoToRestUniversalResponse(servicesInfo []*domain.ServiceInfo, isOk bool) []UniversalResponse {
-	urs := []UniversalResponse{}
-	for _, serviceInfo := range servicesInfo {
-		urs = append(urs, convertDomainServiceInfoToRestUniversalResponse(serviceInfo, isOk))
-	}
-	return urs
 }
 
 func convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfo *domain.ServiceInfo, isOk bool) UniversalResponseWithStates {

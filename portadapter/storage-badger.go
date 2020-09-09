@@ -132,8 +132,7 @@ func updateDb(db *badger.DB, key, value []byte) error {
 
 func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 	serviceDataValue []byte) error {
-	var err error
-	err = updateDb(storageEntity.Db, serviceDataKey, serviceDataValue)
+	err := updateDb(storageEntity.Db, serviceDataKey, serviceDataValue)
 	if err != nil {
 		return fmt.Errorf("can't update db for service data: %v", err)
 	}

@@ -7,8 +7,6 @@ import (
 	"github.com/khannz/crispy-palm-tree/domain"
 )
 
-const commandGeneratorName = "command-generator"
-
 const (
 	rawCommandsForTCPHealthchecks = `ifconfig lo:10 SERVICE_IP netmask 255.255.255.255 -arp up
 	ifconfig tunl0 up

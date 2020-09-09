@@ -12,8 +12,6 @@ import (
 	logger "github.com/thevan4/logrus-wrapper"
 )
 
-const rootEntity = "root-entity"
-
 // Default values
 const (
 	defaultConfigFilePath   = "./nw-lb.yaml"
@@ -116,11 +114,17 @@ func init() {
 	pflag.Duration(expireTokenForRefreshTimeName, defaultExpireTokenForRefreshTime, "Expire time for refresh jwt token")
 
 	pflag.Parse()
-	viperConfig.BindPFlags(pflag.CommandLine)
+	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	// work with config file
 	viperConfig.SetConfigFile(viperConfig.GetString(configFilePathName))
-	viperConfig.ReadInConfig()
+	if err := viperConfig.ReadInConfig(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	// init logs
 	newLogger := &logger.Logger{

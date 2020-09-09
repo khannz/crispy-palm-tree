@@ -62,14 +62,6 @@ func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	ginContext.JSON(http.StatusOK, convertedServiceInfo)
 }
 
-func (addApplicationServersRequest *AddApplicationServersRequest) convertDataAddApplicationServersRequest() map[string]string {
-	applicationServersMap := map[string]string{}
-	for _, d := range addApplicationServersRequest.ApplicationServers {
-		applicationServersMap[d.ServerIP] = d.ServerPort
-	}
-	return applicationServersMap
-}
-
 func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApplicationServersRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortAddApplicationServersRequestValidation, AddApplicationServersRequest{})

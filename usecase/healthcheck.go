@@ -81,19 +81,16 @@ type UnknownDataStruct struct {
 // StartGracefulShutdownControlForHealthchecks ...
 func (hc *HeathcheckEntity) StartGracefulShutdownControlForHealthchecks() {
 	ticker := time.NewTicker(5 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			hc.Lock()
-			if hc.gracefulShutdown.ShutdownNow {
-				for _, serviceInfo := range hc.runningHeathchecks {
-					serviceInfo.Lock()
-					serviceInfo.Healthcheck.StopChecks <- struct{}{}
-					serviceInfo.Unlock()
-				}
+	for range ticker.C {
+		hc.Lock()
+		if hc.gracefulShutdown.ShutdownNow {
+			for _, serviceInfo := range hc.runningHeathchecks {
+				serviceInfo.Lock()
+				serviceInfo.Healthcheck.StopChecks <- struct{}{}
+				serviceInfo.Unlock()
 			}
-			hc.Unlock()
 		}
+		hc.Unlock()
 	}
 }
 
@@ -262,7 +259,12 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Lock()
 			fs.count++
 			fs.Unlock()
-			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
+			if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
+			}
 			if applicationServerInfo.IsUp {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
@@ -287,7 +289,13 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Lock()
 			fs.count++
 			fs.Unlock()
-			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
+			if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
+			}
+
 			if applicationServerInfo.IsUp {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
@@ -312,7 +320,12 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Lock()
 			fs.count++
 			fs.Unlock()
-			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
+			if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
+			}
 			if applicationServerInfo.IsUp {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
@@ -337,7 +350,12 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Lock()
 			fs.count++
 			fs.Unlock()
-			hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo)
+			if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":     healthcheckName,
+					"event uuid": healthcheckUUID,
+				}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
+			}
 			if applicationServerInfo.IsUp {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":     healthcheckName,
@@ -582,32 +600,6 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(allServiceInfo *domai
 	}
 	return hc.ipvsadm.AddApplicationServersForService(formedServiceData, healthcheckUUID)
 
-}
-
-func (hc *HeathcheckEntity) updateApplicationServicesIsUp(serviceInfo *domain.ServiceInfo) error {
-	currentConfig, err := hc.ipvsadm.ReadCurrentConfig()
-	if err != nil {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Errorf("can't read current config: %v", err)
-		return nil
-	}
-	for _, currentServiceInfo := range currentConfig {
-		if currentServiceInfo.ServiceIP == serviceInfo.ServiceIP &&
-			currentServiceInfo.ServicePort == serviceInfo.ServicePort {
-			for _, applicationServiceInfo := range serviceInfo.ApplicationServers {
-				for _, currentApplicationServer := range currentServiceInfo.ApplicationServers {
-					if applicationServiceInfo.ServerIP == currentApplicationServer.ServerIP &&
-						applicationServiceInfo.ServerPort == currentApplicationServer.ServerPort {
-						applicationServiceInfo.IsUp = currentApplicationServer.IsUp
-					}
-				}
-			}
-			return nil
-		}
-	}
-	return fmt.Errorf("service %v:%v not found in current services", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 }
 
 func percentageOfDown(total, down int) int {
