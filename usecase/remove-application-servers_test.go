@@ -9,8 +9,8 @@ import (
 	logger "github.com/thevan4/logrus-wrapper"
 )
 
-// TestRemoveService ...
-func TestRemoveService(t *testing.T) {
+// TestRemoveApplicationServers ...
+func TestRemoveApplicationServers(t *testing.T) {
 	assert := assert.New(t)
 	locker := &domain.Locker{}
 	mockIPVSWorker := &MockIPVSWorker{}
