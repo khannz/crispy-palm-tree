@@ -112,9 +112,8 @@ func (balancerFacade *BalancerFacade) RemoveService(removeServiceRequest *Remove
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
-		balancerFacade.GracefulShutdown,
-		balancerFacade.UUIDgenerator,
 		balancerFacade.HeathcheckEntity,
+		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
 	serviceInfo := &domain.ServiceInfo{ServiceIP: removeServiceRequest.ServiceIP, ServicePort: removeServiceRequest.ServicePort}
 	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
@@ -256,7 +255,6 @@ func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyService
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.CommandGenerator,
 		balancerFacade.GracefulShutdown,
-		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 	appSvrs := []*domain.ApplicationServer{}
 	for _, appSrvr := range modifyService.ApplicationServers {
