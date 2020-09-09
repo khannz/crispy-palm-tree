@@ -16,10 +16,9 @@ type ModifyServiceEntity struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *HeathcheckEntity
+	hc                domain.HeathcheckWorker
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
-	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
 
@@ -29,10 +28,9 @@ func NewModifyServiceEntity(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *HeathcheckEntity,
+	hc domain.HeathcheckWorker,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
-	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *ModifyServiceEntity {
 	return &ModifyServiceEntity{
 		locker:            locker,
@@ -44,7 +42,6 @@ func NewModifyServiceEntity(locker *domain.Locker,
 		commandGenerator:  commandGenerator,
 		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
-		uuidGenerator:     uuidGenerator,
 	}
 }
 
@@ -131,7 +128,7 @@ func (modifyService *ModifyServiceEntity) isServicesIPsAndPortsEqual(serviceOne,
 			modifyService.logging)
 		return false
 	}
-	if len(serviceOne.ApplicationServers) != len(serviceTwo.ServiceIP) {
+	if len(serviceOne.ApplicationServers) != len(serviceTwo.ApplicationServers) {
 		logServicesHaveDifferentNumberOfApplicationServers(serviceOne.ServiceIP, serviceOne.ServicePort, serviceTwo.ServiceIP, serviceTwo.ServicePort, len(serviceOne.ApplicationServers), len(serviceTwo.ServiceIP), modifyServiceName, uuid, modifyService.logging)
 		return false
 	}

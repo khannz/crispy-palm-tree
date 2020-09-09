@@ -8,4 +8,5 @@ type HeathcheckWorker interface {
 	RemoveServiceFromHealtchecks(*ServiceInfo)
 	UpdateServiceAtHealtchecks(*ServiceInfo) error
 	CheckApplicationServersInService(*ServiceInfo)
+	IsMockMode() bool
 }

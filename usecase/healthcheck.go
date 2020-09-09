@@ -627,6 +627,10 @@ func (hc *HeathcheckEntity) httpAdvancedCheckFail(serverHealthcheck domain.Serve
 	}
 }
 
+func (hc *HeathcheckEntity) IsMockMode() bool {
+	return hc.isMockMode
+}
+
 // http advanced json start
 func (hc *HeathcheckEntity) httpAdvancedJSONCheckFail(serverHealthcheck domain.ServerHealthcheck,
 	timeout time.Duration) bool {

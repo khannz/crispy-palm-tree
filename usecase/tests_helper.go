@@ -240,6 +240,10 @@ func (mockHeathcheckWorker *MockHeathcheckWorker) UpdateServiceAtHealtchecks(*do
 func (mockHeathcheckWorker *MockHeathcheckWorker) CheckApplicationServersInService(*domain.ServiceInfo) {
 }
 
+func (mockHeathcheckWorker *MockHeathcheckWorker) IsMockMode() bool {
+	return true
+}
+
 // MockCommandGenerator ...
 type MockCommandGenerator struct{}
 
