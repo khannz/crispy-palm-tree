@@ -256,6 +256,16 @@ func logTryCreateNewTunnels(usecaseName,
 	}).Infof("try create new tunnels: %v", tunnelsFilesInfo)
 }
 
+func logTryRemoveTunnels(usecaseName,
+	uuid string,
+	tunnelsFilesInfo []*domain.TunnelForApplicationServer,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("try remove tunnels: %v", tunnelsFilesInfo)
+}
+
 func logCreatedNewTunnels(usecaseName,
 	uuid string,
 	tunnelsFilesInfo []*domain.TunnelForApplicationServer,
@@ -264,6 +274,16 @@ func logCreatedNewTunnels(usecaseName,
 		"entity":     usecaseName,
 		"event uuid": uuid,
 	}).Infof("new tunnels created: %v", tunnelsFilesInfo)
+}
+
+func logRemovedTunnels(usecaseName,
+	uuid string,
+	tunnelsFilesInfo []*domain.TunnelForApplicationServer,
+	logging *logrus.Logger) {
+	logging.WithFields(logrus.Fields{
+		"entity":     usecaseName,
+		"event uuid": uuid,
+	}).Infof("tunnels removed: %v", tunnelsFilesInfo)
 }
 
 func logTryToGetCurrentServiceInfo(usecaseName,

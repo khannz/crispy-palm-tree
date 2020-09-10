@@ -78,16 +78,19 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	logGotCurrentServiceInfo(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 	logTryPreValidateRequest(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 
-	tunnelsFilesInfo := FormTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
-	logTryCreateNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
-	oldTunnelsFilesInfo, err := removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceUUID)
-	if err != nil {
-		return fmt.Errorf("can't remove tunnel files: %v", err)
-	}
-	logCreatedNewTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
+	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer
+	if currentServiceInfo.Protocol == "tcp" {
+		tunnelsFilesInfo = FormTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
+		logTryRemoveTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
+		oldTunnelsFilesInfo, err = removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceUUID)
+		if err != nil {
+			return fmt.Errorf("can't remove tunnel files: %v", err)
+		}
+		logRemovedTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
 
-	if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
-		return fmt.Errorf("can't update tunnel info")
+		if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+			return fmt.Errorf("can't update tunnel info")
+		}
 	}
 
 	logTryRemoveIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
@@ -103,8 +106,10 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return err
 	}
 
-	if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
-		return fmt.Errorf("can't update tunnel info")
+	if currentServiceInfo.Protocol == "tcp" {
+		if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+			return fmt.Errorf("can't update tunnel info")
+		}
 	}
 
 	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)

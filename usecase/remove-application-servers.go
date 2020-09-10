@@ -89,14 +89,16 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 
 	logPreValidateRequestIsOk(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 
-	tunnelsFilesInfo := FormTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
-	logTryCreateNewTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
-	oldTunnelsFilesInfo, err := removeApplicationServers.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeApplicationServersUUID)
-	if err != nil {
-		return nil, fmt.Errorf("can't create tunnel files: %v", err)
+	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer
+	if currentServiceInfo.Protocol == "tcp" {
+		tunnelsFilesInfo = FormTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
+		logTryRemoveTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
+		oldTunnelsFilesInfo, err = removeApplicationServers.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeApplicationServersUUID)
+		if err != nil {
+			return nil, fmt.Errorf("can't create tunnel files: %v", err)
+		}
+		logRemovedTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
 	}
-	logCreatedNewTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
-
 	logTryValidateRemoveApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeApplicationServers.logging)
 	if err = validateRemoveApplicationServers(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers); err != nil {
 		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
@@ -112,8 +114,10 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	}
 	logUpdateServiceInfoAtCache(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 
-	if err = removeApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
-		return currentServiceInfo, fmt.Errorf("can't update tunnel info in storage: %v", err)
+	if currentServiceInfo.Protocol == "tcp" {
+		if err = removeApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+			return currentServiceInfo, fmt.Errorf("can't update tunnel info in storage: %v", err)
+		}
 	}
 
 	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
@@ -128,8 +132,10 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	}
 	logUpdatedServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
 
-	if err = removeApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
-		return currentServiceInfo, fmt.Errorf("can't update tunnel info in storage: %v", err)
+	if currentServiceInfo.Protocol == "tcp" {
+		if err = removeApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+			return currentServiceInfo, fmt.Errorf("can't update tunnel info in storage: %v", err)
+		}
 	}
 
 	logUpdateServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)

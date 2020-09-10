@@ -92,16 +92,19 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	}
 	logPreValidateRequestIsOk(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 
-	tunnelsFilesInfo := FormTunnelsFilesInfo(newServiceInfo.ApplicationServers, addApplicationServers.cacheStorage)
-	logTryCreateNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
-	newTunnelsFilesInfo, err := addApplicationServers.tunnelConfig.CreateTunnels(tunnelsFilesInfo, addApplicationServersUUID)
-	if err != nil {
-		return nil, fmt.Errorf("can't create tunnel files: %v", err)
-	}
-	logCreatedNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
+	var tunnelsFilesInfo, newTunnelsFilesInfo []*domain.TunnelForApplicationServer
+	if currentServiceInfo.Protocol == "tcp" {
+		tunnelsFilesInfo = FormTunnelsFilesInfo(newServiceInfo.ApplicationServers, addApplicationServers.cacheStorage)
+		logTryCreateNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
+		newTunnelsFilesInfo, err = addApplicationServers.tunnelConfig.CreateTunnels(tunnelsFilesInfo, addApplicationServersUUID)
+		if err != nil {
+			return nil, fmt.Errorf("can't create tunnel files: %v", err)
+		}
+		logCreatedNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
 
-	if err := addApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
-		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
+		if err := addApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
+			return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
+		}
 	}
 
 	logTryGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
@@ -129,11 +132,11 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return currentServiceInfo, fmt.Errorf("error when update persistent storage: %v", err)
 	}
 	logUpdatedServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-
-	if err := addApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
-		return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
+	if currentServiceInfo.Protocol == "tcp" {
+		if err := addApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
+			return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
+		}
 	}
-
 	logTryGenerateCommandsForApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
 	if err := addApplicationServers.commandGenerator.GenerateCommandsForApplicationServers(updatedServiceInfo, addApplicationServersUUID); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't generate commands :%v", err)

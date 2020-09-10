@@ -86,13 +86,17 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 
 	logPreValidateRequestIsOk(createServiceName, createServiceUUID, createService.logging)
 
-	tunnelsFilesInfo := FormTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
-	logTryCreateNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
-	newTunnelsFilesInfo, err := createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)
-	if err != nil {
-		return serviceInfo, fmt.Errorf("can't create tunnel files: %v", err)
+	var tunnelsFilesInfo, newTunnelsFilesInfo []*domain.TunnelForApplicationServer
+	if serviceInfo.Protocol == "tcp" { // TODO: too many if's, that dirty
+		tunnelsFilesInfo = FormTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
+		logTryCreateNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
+		newTunnelsFilesInfo, err = createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)
+		if err != nil {
+			return serviceInfo, fmt.Errorf("can't create tunnel files: %v", err)
+		}
+		logCreatedNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	}
-	logCreatedNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
+
 	// add to cache storage
 	logTryUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
 	if err := createService.cacheStorage.NewServiceInfoToStorage(serviceInfo, createServiceUUID); err != nil {
@@ -100,11 +104,11 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	}
 	logUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
 
-	// TODO: why not in NewServiceInfoToStorage? double?
-	if err := createService.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
-		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
+	if serviceInfo.Protocol == "tcp" {
+		if err := createService.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
+			return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
+		}
 	}
-
 	logTryCreateIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
 	if err := createService.ipvsadm.CreateService(serviceInfo, createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("Error when ipvsadm create service: %v", err)
@@ -117,11 +121,11 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	}
 	logUpdatedServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)
 
-	// TODO: double?
-	if err := createService.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
-		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
+	if serviceInfo.Protocol == "tcp" {
+		if err := createService.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
+			return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
+		}
 	}
-
 	logTryGenerateCommandsForApplicationServers(createServiceName, createServiceUUID, createService.logging)
 	if err := createService.commandGenerator.GenerateCommandsForApplicationServers(serviceInfo, createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("can't generate commands :%v", err)
