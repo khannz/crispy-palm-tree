@@ -76,6 +76,7 @@ func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServic
 		BalanceType:        currentServiceInfo.BalanceType,
 		RoutingType:        currentServiceInfo.RoutingType,
 		IsUp:               currentServiceInfo.IsUp,
+		Protocol:           currentServiceInfo.Protocol,
 	}
 	return updatedServiceInfo, nil
 }
@@ -96,6 +97,7 @@ func forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, remove
 		BalanceType:        currentServiceInfo.BalanceType,
 		RoutingType:        currentServiceInfo.RoutingType,
 		IsUp:               currentServiceInfo.IsUp,
+		Protocol:           currentServiceInfo.Protocol,
 	}
 }
 

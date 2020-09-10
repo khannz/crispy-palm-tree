@@ -17,6 +17,7 @@ func createServicesInfoForTests(applicattionServersOne []*domain.ApplicationServ
 		IsUp:        true,
 		BalanceType: "rr",
 		RoutingType: "tunneling",
+		Protocol:    "tcp",
 	}
 	serviceInfoTwo := &domain.ServiceInfo{
 		ServiceIP:          "222.222.222.222",
@@ -27,6 +28,7 @@ func createServicesInfoForTests(applicattionServersOne []*domain.ApplicationServ
 		IsUp:        true,
 		BalanceType: "rr",
 		RoutingType: "tunneling",
+		Protocol:    "tcp",
 	}
 	serviceInfoThree := &domain.ServiceInfo{
 		ServiceIP:   "111.111.111.111",

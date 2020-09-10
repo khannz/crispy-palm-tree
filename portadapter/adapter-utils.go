@@ -33,6 +33,7 @@ func SortServicesInfoAndApplicationServers(unsortedServicesInfo []*domain.Servic
 					BalanceType:        unsortedServiceInfo.BalanceType,
 					RoutingType:        unsortedServiceInfo.RoutingType,
 					ExtraInfo:          unsortedServiceInfo.ExtraInfo,
+					Protocol:           unsortedServiceInfo.Protocol,
 				}
 				sortedServicesInfo = append(sortedServicesInfo, sortedServiceInfo)
 			}

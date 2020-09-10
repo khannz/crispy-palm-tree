@@ -198,6 +198,7 @@ func convertDomainServiceInfoToRestUniversalResponse(serviceInfo *domain.Service
 		ExtraInfo:                transformSliceToString(serviceInfo.ExtraInfo),
 		BalanceType:              serviceInfo.BalanceType,
 		RoutingType:              serviceInfo.RoutingType,
+		Protocol:                 serviceInfo.Protocol,
 	}
 }
 
@@ -212,6 +213,7 @@ func convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfo *doma
 		BalanceType:              serviceInfo.BalanceType,
 		RoutingType:              serviceInfo.RoutingType,
 		IsUp:                     serviceInfo.IsUp,
+		Protocol:                 serviceInfo.Protocol,
 	}
 }
 
@@ -278,6 +280,16 @@ func validateServiceRoutingType(routingType string) error {
 	case "tunneling":
 	default:
 		return fmt.Errorf("unknown routing type for service: %v; supported types: masquerading|tunneling", routingType)
+	}
+	return nil
+}
+
+func validateServiceProtocol(protocol string) error {
+	switch protocol { // maybe range by array is better?
+	case "tcp":
+	case "udp":
+	default:
+		return fmt.Errorf("unknown protocol for service: %v; supported types: tcp|udp", protocol)
 	}
 	return nil
 }

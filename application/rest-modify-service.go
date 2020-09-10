@@ -77,6 +77,9 @@ func (modifyService *ModifyServiceInfo) validatemodifyService() error {
 	if err := validateServiceRoutingType(modifyService.RoutingType); err != nil {
 		return err
 	}
+	if err := validateServiceProtocol(modifyService.Protocol); err != nil {
+		return err
+	}
 	return nil
 }
 

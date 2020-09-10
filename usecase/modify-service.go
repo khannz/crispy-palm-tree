@@ -92,6 +92,9 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	if serviceInfo.RoutingType != currentServiceInfo.RoutingType {
 		return serviceInfo, fmt.Errorf("routing type at service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
 	}
+	if serviceInfo.Protocol != currentServiceInfo.Protocol {
+		return serviceInfo, fmt.Errorf("protocol at service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
+	}
 	logPreValidateRequestIsOk(modifyServiceName, modifyServiceUUID, modifyService.logging)
 
 	logTryUpdateServiceInfoAtCache(modifyServiceName, modifyServiceUUID, modifyService.logging)

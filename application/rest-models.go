@@ -11,6 +11,7 @@ type NewServiceInfo struct {
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 	BalanceType        string              `json:"balanceType" validate:"required" example:"rr"`
 	RoutingType        string              `json:"routingType" validate:"required" example:"masquarading,tunneling"`
+	Protocol           string              `json:"protocol" validate:"required" example:"tcp,udp"`
 }
 
 // GetServiceStateRequest ...
@@ -42,6 +43,7 @@ type ModifyServiceInfo struct {
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 	BalanceType        string              `json:"balanceType" validate:"required" example:"rr"`
 	RoutingType        string              `json:"routingType" validate:"required" example:"masquarading,tunneling"`
+	Protocol           string              `json:"protocol" validate:"required" example:"tcp,udp"`
 }
 
 // RemoveApplicationServersRequest ...
@@ -99,6 +101,7 @@ type UniversalResponse struct {
 	ExtraInfo                string              `json:"extraInfo,omitempty"`
 	BalanceType              string              `json:"balanceType,omitempty"`
 	RoutingType              string              `json:"routingType,omitempty"`
+	Protocol                 string              `json:"protocol,omitempty"`
 }
 
 // ServerApplicationWithStates ...
@@ -122,6 +125,7 @@ type UniversalResponseWithStates struct {
 	BalanceType              string                        `json:"balanceType,omitempty"`
 	RoutingType              string                        `json:"routingType,omitempty"`
 	IsUp                     bool                          `json:"serviceIsUp"`
+	Protocol                 string                        `json:"protocol,omitempty"`
 }
 
 // AddApplicationServersRequest ...

@@ -88,6 +88,7 @@ func TestModifyService(t *testing.T) {
 		IsUp:               currentServiceInfoOne.IsUp,
 		BalanceType:        currentServiceInfoOne.BalanceType,
 		RoutingType:        currentServiceInfoOne.RoutingType,
+		Protocol:           currentServiceInfoOne.Protocol,
 	}
 	serviceForModify.ApplicationServers[0] = tmpApplicattionServers[0]
 	notTrueOne := modifyServiceOk.isServicesIPsAndPortsEqual(serviceForModify, currentServiceInfoOne, "")

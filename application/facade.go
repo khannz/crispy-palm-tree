@@ -99,6 +99,7 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		Healthcheck:        hcS,
 		BalanceType:        createService.BalanceType,
 		RoutingType:        createService.RoutingType,
+		Protocol:           createService.Protocol,
 		IsUp:               false,
 	}
 	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
@@ -282,6 +283,7 @@ func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyService
 		BalanceType:        modifyService.BalanceType,
 		RoutingType:        modifyService.RoutingType,
 		IsUp:               false,
+		Protocol:           modifyService.Protocol,
 	}
 	return newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceUUID)
 }

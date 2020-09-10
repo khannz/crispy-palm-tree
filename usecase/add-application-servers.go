@@ -84,6 +84,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
 	newServiceInfo.RoutingType = currentServiceInfo.RoutingType // for ipvs and for check routing type is valid
+	newServiceInfo.Protocol = currentServiceInfo.Protocol
 	logGotCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, currentServiceInfo, addApplicationServers.logging)
 
 	if err = checkRoutingTypeForApplicationServersValid(newServiceInfo, allCurrentServices); err != nil {

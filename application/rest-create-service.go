@@ -77,6 +77,9 @@ func (createService *NewServiceInfo) validateCreateService() error {
 	if err := validateServiceRoutingType(createService.RoutingType); err != nil {
 		return err
 	}
+	if err := validateServiceProtocol(createService.Protocol); err != nil {
+		return err
+	}
 	return nil
 }
 

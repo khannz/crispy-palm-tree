@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"syscall"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/tehnerd/gnl2go"
@@ -46,12 +47,12 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(serviceInfo *domain.ServiceInf
 	}
 
 	// AddService for IPv4
-	err = ipvs.AddService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")), serviceInfo.BalanceType)
+	err = ipvs.AddService(serviceInfo.ServiceIP, servicePort, protocolToUINT16(serviceInfo.Protocol), serviceInfo.BalanceType)
 	if err != nil {
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
 
-	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, serviceInfo.RoutingType, applicationServers); err != nil {
+	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, protocolToUINT16(serviceInfo.Protocol), serviceInfo.RoutingType, applicationServers); err != nil {
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 
@@ -100,7 +101,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(serviceInfo *domain.ServiceInf
 		return fmt.Errorf("can't convert port stringToUINT16: %v", err)
 	}
 
-	errDel := ipvs.DelService(serviceInfo.ServiceIP, servicePort, uint16(gnl2go.ToProtoNum("tcp")))
+	errDel := ipvs.DelService(serviceInfo.ServiceIP, servicePort, protocolToUINT16(serviceInfo.Protocol))
 	if errDel != nil {
 		return fmt.Errorf("error while running DelService for ipv4: %v", errDel)
 	}
@@ -146,11 +147,11 @@ func transformRawIPVSPoolsToDomainModel(pools []gnl2go.Pool) []*domain.ServiceIn
 }
 
 func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.IpvsClient,
-	serviceIP string, servicePort uint16, serviceRoutingType string,
+	serviceIP string, servicePort uint16, protocol uint16, serviceRoutingType string,
 	applicationServers map[string]uint16) error {
 	for ip, port := range applicationServers {
 		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
-			port, uint16(gnl2go.ToProtoNum("tcp")), 10, gnl2go.IPVS_TUNNELING)
+			port, protocol, 10, gnl2go.IPVS_TUNNELING)
 		if err != nil {
 			return fmt.Errorf("cant add dest to service sched flags: %v", err)
 		}
@@ -159,11 +160,11 @@ func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.
 }
 
 func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gnl2go.IpvsClient,
-	serviceIP string, servicePort uint16,
+	serviceIP string, servicePort uint16, protocol uint16,
 	applicationServers map[string]uint16) error {
 	for ip, port := range applicationServers {
 		err := ipvs.DelDestPort(serviceIP, servicePort, ip,
-			port, uint16(gnl2go.ToProtoNum("tcp")))
+			port, protocol)
 		if err != nil {
 			return fmt.Errorf("cant add dest to service sched flags: %v", err)
 		}
@@ -192,7 +193,7 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(serviceInfo 
 		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
 	}
 
-	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, serviceInfo.RoutingType, applicationServers); err != nil {
+	if err = ipvsadmEntity.addApplicationServersToService(ipvs, serviceInfo.ServiceIP, servicePort, protocolToUINT16(serviceInfo.Protocol), serviceInfo.RoutingType, applicationServers); err != nil {
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 
@@ -232,7 +233,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(serviceI
 		return fmt.Errorf("can't convert application server port stringToUINT16: %v", err)
 	}
 
-	if err = ipvsadmEntity.removeApplicationServersFromService(ipvs, serviceInfo.ServiceIP, servicePort, applicationServers); err != nil {
+	if err = ipvsadmEntity.removeApplicationServersFromService(ipvs, serviceInfo.ServiceIP, servicePort, protocolToUINT16(serviceInfo.Protocol), applicationServers); err != nil {
 		return fmt.Errorf("cant remove application server from service: %v", err) // not return error?
 	}
 
@@ -287,4 +288,14 @@ func actualizesApplicationServersInCurrentConfig(currentConfig []*domain.Service
 	}
 
 	return updatedApplicationServersInfo
+}
+
+func protocolToUINT16(protocol string) uint16 {
+	switch protocol {
+	case "tcp":
+		return uint16(syscall.IPPROTO_TCP)
+	case "udp":
+		return uint16(syscall.IPPROTO_UDP)
+	}
+	return uint16(0)
 }
