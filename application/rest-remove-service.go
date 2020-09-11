@@ -36,10 +36,8 @@ func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 		return
 	}
 
-	validateError := removeService.validateRemoveNWBRequest()
-	if validateError != nil {
-		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, removeServiceUUID, ginContext, restAPI.balancerFacade.Logging)
+	if validateError := removeService.validateRemoveNWBRequest(); validateError != nil {
+		validateIncomeError(validateError.Error(), removeServiceUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -73,9 +71,8 @@ func (removeService *RemoveServiceInfo) validateRemoveNWBRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortRemoveServiceInfoValidation, RemoveServiceInfo{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	err := validate.Struct(removeService)
-	if err != nil {
-		return err
+	if err := validate.Struct(removeService); err != nil {
+		return modifyValidateError(err)
 	}
 	return nil
 }

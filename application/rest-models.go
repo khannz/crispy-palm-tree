@@ -10,7 +10,7 @@ type NewServiceInfo struct {
 	Healtcheck         ServiceHealthcheck  `json:"Healtcheck" validate:"required"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 	BalanceType        string              `json:"balanceType" validate:"required" example:"rr"`
-	RoutingType        string              `json:"routingType" validate:"required" example:"masquarading,tunneling"`
+	RoutingType        string              `json:"routingType" validate:"required" example:"masquerading,tunneling"`
 	Protocol           string              `json:"protocol" validate:"required" example:"tcp,udp"`
 }
 
@@ -42,7 +42,7 @@ type ModifyServiceInfo struct {
 	Healtcheck         ServiceHealthcheck  `json:"Healtcheck" validate:"required"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 	BalanceType        string              `json:"balanceType" validate:"required" example:"rr"`
-	RoutingType        string              `json:"routingType" validate:"required" example:"masquarading,tunneling"`
+	RoutingType        string              `json:"routingType" validate:"required" example:"masquerading,tunneling"`
 	Protocol           string              `json:"protocol" validate:"required" example:"tcp,udp"`
 }
 

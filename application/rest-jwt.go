@@ -42,8 +42,7 @@ func (restAPI *RestAPIstruct) tokenRequest(ginContext *gin.Context) {
 	}
 
 	if validateError := tokenRequest.validateTokenRequest(); validateError != nil {
-		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, tokenRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), tokenRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -53,9 +52,9 @@ func (restAPI *RestAPIstruct) tokenRequest(ginContext *gin.Context) {
 	if !restAPI.isValidUser(tokenRequest) {
 		tokenResponseError := TokenResponseError{
 			ID:    tokenRequestUUID,
-			Error: "invalid login details",
+			Error: "invalid login details for user " + tokenRequest.User,
 		}
-		ginContext.JSON(500, tokenResponseError)
+		ginContext.JSON(400, tokenResponseError)
 		return
 	}
 
@@ -78,6 +77,9 @@ func (restAPI *RestAPIstruct) tokenRequest(ginContext *gin.Context) {
 func (tokenRequest *TokenRequest) validateTokenRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortValidationForTokenRequest, TokenRequest{})
+	if err := validate.Struct(tokenRequest); err != nil {
+		return modifyValidateError(err)
+	}
 	return nil
 }
 

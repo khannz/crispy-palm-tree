@@ -38,8 +38,7 @@ func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) 
 	}
 
 	if validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest(); validateError != nil {
-		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, removeApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), removeApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -68,7 +67,7 @@ func (removeApplicationServersRequest *RemoveApplicationServersRequest) validate
 	validate.RegisterStructValidation(customPortRemoveApplicationServersRequestValidation, RemoveApplicationServersRequest{})
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	if err := validate.Struct(removeApplicationServersRequest); err != nil {
-		return err
+		return modifyValidateError(err)
 	}
 	return nil
 }

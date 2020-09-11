@@ -37,8 +37,7 @@ func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	}
 
 	if validateError := addApplicationServersRequest.validateAddApplicationServersRequest(); validateError != nil {
-		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, addApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), addApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -68,7 +67,7 @@ func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApp
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealthcheck{})
 	if err := validate.Struct(addApplicationServersRequest); err != nil {
-		return err
+		return modifyValidateError(err)
 	}
 	return nil
 }

@@ -67,16 +67,17 @@ func customServiceHealthcheckValidation(sl validator.StructLevel) {
 	}
 }
 
-func errorsValidateToString(validateError error) string {
+// Only for modify go-playground/validator!
+func modifyValidateError(validateError error) error {
 	var errorsString string
 	for _, err := range validateError.(validator.ValidationErrors) {
-		errorsString += fmt.Sprintf("In data %v got %v, can't validate in for rule %v %v\n",
+		errorsString += fmt.Sprintf("at data %v got %v, can't validate in for rule %v %v;\n",
 			err.Field(),
 			err.Value(),
 			err.ActualTag(),
 			err.Param())
 	}
-	return errorsString
+	return fmt.Errorf("validate fail: %v", errorsString)
 }
 
 func transformSliceToString(slice []string) string {
@@ -279,7 +280,7 @@ func validateServiceRoutingType(routingType string) error {
 	case "masquerading":
 	case "tunneling":
 	default:
-		return fmt.Errorf("unknown routing type for service: %v; supported types: masquerading|tunneling", routingType)
+		return fmt.Errorf("unknown routing type: %v; supported types: masquerading|tunneling", routingType)
 	}
 	return nil
 }

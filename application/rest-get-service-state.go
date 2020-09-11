@@ -36,10 +36,8 @@ func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 		return
 	}
 
-	validateError := newGetServiceStateRequest.validateGetServiceStateRequest()
-	if validateError != nil {
-		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, getServicesRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+	if validateError := newGetServiceStateRequest.validateGetServiceStateRequest(); validateError != nil {
+		validateIncomeError(validateError.Error(), getServicesRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -66,7 +64,7 @@ func (getAllServiceStateRequest *GetServiceStateRequest) validateGetServiceState
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortValidationForgetAllServiceStateRequest, GetServiceStateRequest{})
 	if err := validate.Struct(getAllServiceStateRequest); err != nil {
-		return err
+		return modifyValidateError(err)
 	}
 	return nil
 }

@@ -37,8 +37,7 @@ func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 	}
 
 	if validateError := modifyService.validatemodifyService(); validateError != nil {
-		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, modifyServiceUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), modifyServiceUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -69,7 +68,7 @@ func (modifyService *ModifyServiceInfo) validatemodifyService() error {
 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
 	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealthcheck{})
 	if err := validate.Struct(modifyService); err != nil {
-		return err
+		return modifyValidateError(err)
 	}
 	if err := validateServiceBalanceType(modifyService.BalanceType); err != nil {
 		return err

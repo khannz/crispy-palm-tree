@@ -35,10 +35,8 @@ func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 		return
 	}
 
-	validateError := newGetServicesRequest.validateGetServicesRequest()
-	if validateError != nil {
-		stringValidateError := errorsValidateToString(validateError)
-		validateIncomeError(stringValidateError, getServicesRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+	if validateError := newGetServicesRequest.validateGetServicesRequest(); validateError != nil {
+		validateIncomeError(validateError.Error(), getServicesRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
@@ -74,9 +72,8 @@ func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 
 func (getAllServicesRequest *GetAllServicesRequest) validateGetServicesRequest() error {
 	validate := validator.New()
-	err := validate.Struct(getAllServicesRequest)
-	if err != nil {
-		return err
+	if err := validate.Struct(getAllServicesRequest); err != nil {
+		return modifyValidateError(err)
 	}
 	return nil
 }
