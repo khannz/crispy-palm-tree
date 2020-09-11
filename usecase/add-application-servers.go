@@ -115,7 +115,22 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	logGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersUUID, updatedServiceInfo, addApplicationServers.logging)
 
 	logTryIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
-	if err = addApplicationServers.ipvsadm.AddApplicationServersForService(newServiceInfo, addApplicationServersUUID); err != nil {
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.ServiceIP,
+		currentServiceInfo.ServicePort,
+		currentServiceInfo.RoutingType,
+		currentServiceInfo.BalanceType,
+		currentServiceInfo.Protocol,
+		newServiceInfo.ApplicationServers)
+	if err != nil {
+		return updatedServiceInfo, fmt.Errorf("Error prepare data for IPVS: %v", err)
+	}
+	if err = addApplicationServers.ipvsadm.AddApplicationServersForService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		applicationServers,
+		addApplicationServersUUID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
 	}
 	logAddedIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)

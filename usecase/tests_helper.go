@@ -164,33 +164,28 @@ func createAdvancedHealthcheckParametersForTests() (domain.AdvancedHealthcheckPa
 type MockIPVSWorker struct{}
 
 // CreateService ...
-func (mockIPVSWorker *MockIPVSWorker) CreateService(*domain.ServiceInfo, string) error {
+func (mockIPVSWorker *MockIPVSWorker) CreateService(string, uint16, uint32, string, uint16, map[string]uint16, string) error {
 	return nil
 }
 
 // RemoveService ...
-func (mockIPVSWorker *MockIPVSWorker) RemoveService(*domain.ServiceInfo, string) error {
+func (mockIPVSWorker *MockIPVSWorker) RemoveService(string, uint16, uint16, string) error {
 	return nil
 }
 
 // AddApplicationServersForService ...
-func (mockIPVSWorker *MockIPVSWorker) AddApplicationServersForService(*domain.ServiceInfo, string) error {
+func (mockIPVSWorker *MockIPVSWorker) AddApplicationServersForService(string, uint16, uint32, string, uint16, map[string]uint16, string) error {
 	return nil
 }
 
 // RemoveApplicationServersFromService ...
-func (mockIPVSWorker *MockIPVSWorker) RemoveApplicationServersFromService(*domain.ServiceInfo, string) error {
+func (mockIPVSWorker *MockIPVSWorker) RemoveApplicationServersFromService(string, uint16, uint32, string, uint16, map[string]uint16, string) error {
 	return nil
 }
 
 // Flush ...
 func (mockIPVSWorker *MockIPVSWorker) Flush() error {
 	return nil
-}
-
-// ReadCurrentConfig ...
-func (mockIPVSWorker *MockIPVSWorker) ReadCurrentConfig() ([]*domain.ServiceInfo, error) {
-	return nil, nil
 }
 
 // MockTunnelMaker ...

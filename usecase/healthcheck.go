@@ -588,7 +588,25 @@ func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(allServiceInfo *dom
 		ServicePort:        allServiceInfo.ServicePort,
 		ApplicationServers: []*domain.ApplicationServer{applicationServer},
 	}
-	return hc.ipvsadm.RemoveApplicationServersFromService(formedServiceData, healthcheckUUID)
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(formedServiceData.ServiceIP,
+		formedServiceData.ServicePort,
+		formedServiceData.RoutingType,
+		formedServiceData.BalanceType,
+		formedServiceData.Protocol,
+		formedServiceData.ApplicationServers)
+	if err != nil {
+		return fmt.Errorf("Error prepare data for IPVS: %v", err)
+	}
+	if err := hc.ipvsadm.RemoveApplicationServersFromService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		applicationServers,
+		healthcheckUUID); err != nil {
+		return fmt.Errorf("Error when ipvsadm remove application servers from service: %v", err)
+	}
+	return nil
 }
 
 func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(allServiceInfo *domain.ServiceInfo,
@@ -598,7 +616,25 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(allServiceInfo *domai
 		ServicePort:        allServiceInfo.ServicePort,
 		ApplicationServers: []*domain.ApplicationServer{applicationServer},
 	}
-	return hc.ipvsadm.AddApplicationServersForService(formedServiceData, healthcheckUUID)
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(formedServiceData.ServiceIP,
+		formedServiceData.ServicePort,
+		formedServiceData.RoutingType,
+		formedServiceData.BalanceType,
+		formedServiceData.Protocol,
+		formedServiceData.ApplicationServers)
+	if err != nil {
+		return fmt.Errorf("Error prepare data for IPVS: %v", err)
+	}
+	if err = hc.ipvsadm.AddApplicationServersForService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		applicationServers,
+		healthcheckUUID); err != nil {
+		return fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
+	}
+	return nil
 
 }
 

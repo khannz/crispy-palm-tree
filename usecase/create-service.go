@@ -110,7 +110,22 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 		}
 	}
 	logTryCreateIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
-	if err := createService.ipvsadm.CreateService(serviceInfo, createServiceUUID); err != nil {
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(serviceInfo.ServiceIP,
+		serviceInfo.ServicePort,
+		serviceInfo.RoutingType,
+		serviceInfo.BalanceType,
+		serviceInfo.Protocol,
+		serviceInfo.ApplicationServers)
+	if err != nil {
+		return serviceInfo, fmt.Errorf("error prepare data for IPVS: %v", err)
+	}
+	if err := createService.ipvsadm.CreateService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		applicationServers,
+		createServiceUUID); err != nil {
 		return serviceInfo, fmt.Errorf("Error when ipvsadm create service: %v", err)
 	}
 	logCreatedIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)

@@ -2,19 +2,10 @@ package portadapter
 
 import (
 	"math/rand"
-	"strconv"
 	"strings"
 
 	"github.com/khannz/crispy-palm-tree/domain"
 )
-
-func stringToUINT16(sval string) (uint16, error) {
-	v, err := strconv.ParseUint(sval, 0, 16)
-	if err != nil {
-		return 0, err
-	}
-	return uint16(v), nil
-}
 
 // SortServicesInfoAndApplicationServers - sort all services include child object application servers
 func SortServicesInfoAndApplicationServers(unsortedServicesInfo []*domain.ServiceInfo) []*domain.ServiceInfo {

@@ -121,7 +121,22 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	}
 
 	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
-	if err = removeApplicationServers.ipvsadm.RemoveApplicationServersFromService(removeServiceInfo, removeApplicationServersUUID); err != nil {
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.ServiceIP,
+		currentServiceInfo.ServicePort,
+		currentServiceInfo.RoutingType,
+		currentServiceInfo.BalanceType,
+		currentServiceInfo.Protocol,
+		removeServiceInfo.ApplicationServers)
+	if err != nil {
+		return currentServiceInfo, fmt.Errorf("Error prepare data for IPVS: %v", err)
+	}
+	if err = removeApplicationServers.ipvsadm.RemoveApplicationServersFromService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		applicationServers,
+		removeApplicationServersUUID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when ipvsadm remove application servers from service: %v", err)
 	}
 	logRemovedIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)

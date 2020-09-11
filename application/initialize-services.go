@@ -29,7 +29,22 @@ func (balancerFacade *BalancerFacade) InitializeCreateService(serviceConfigFromS
 		return fmt.Errorf("can't create tunnel files: %v", err)
 	}
 
-	if err := balancerFacade.IPVSADMConfigurator.CreateService(serviceConfigFromStorage, uuid); err != nil {
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(serviceConfigFromStorage.ServiceIP,
+		serviceConfigFromStorage.ServicePort,
+		serviceConfigFromStorage.RoutingType,
+		serviceConfigFromStorage.BalanceType,
+		serviceConfigFromStorage.Protocol,
+		serviceConfigFromStorage.ApplicationServers)
+	if err != nil {
+		return fmt.Errorf("Error prepare data for IPVS: %v", err)
+	}
+	if err := balancerFacade.IPVSADMConfigurator.CreateService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		applicationServers,
+		uuid); err != nil {
 		return fmt.Errorf("Error when ipvsadm create service: %v", err)
 	}
 	balancerFacade.HeathcheckEntity.NewServiceToHealtchecks(serviceConfigFromStorage)
