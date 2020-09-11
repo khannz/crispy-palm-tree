@@ -40,9 +40,12 @@ func TestRemoveApplicationServers(t *testing.T) {
 		ServiceIP:          "111.111.111.111",
 		ServicePort:        "111",
 		ApplicationServers: []*domain.ApplicationServer{appSrv},
+		BalanceType:        "rr",
+		RoutingType:        "tunneling",
+		Protocol:           "tcp",
 	}
 
-	removeServiceEntityGracefulEnd := NewRemoveServiceEntity(locker,
+	removeApplicationServersEntityGracefulEnd := NewRemoveApplicationServers(locker,
 		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
@@ -50,11 +53,11 @@ func TestRemoveApplicationServers(t *testing.T) {
 		mockHeathcheckWorker,
 		gracefulShutdown,
 		logging)
-	errNotNilOne := removeServiceEntityGracefulEnd.RemoveService(serviceInfoForRemoveAppSrvrs, "")
+	_, errNotNilOne := removeApplicationServersEntityGracefulEnd.RemoveApplicationServers(serviceInfoForRemoveAppSrvrs, "")
 	assert.NotNil(errNotNilOne)
 
 	gracefulShutdown.ShutdownNow = false
-	removeServiceEntityOk := NewRemoveServiceEntity(locker,
+	removeApplicationServersEntityOk := NewRemoveApplicationServers(locker,
 		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
@@ -65,6 +68,6 @@ func TestRemoveApplicationServers(t *testing.T) {
 	errNilPastOne := mockCacheDB.NewServiceInfoToStorage(currentServiceInfoOne, "")
 	assert.Nil(errNilPastOne)
 
-	errNilOne := removeServiceEntityOk.RemoveService(serviceInfoForRemoveAppSrvrs, "")
+	_, errNilOne := removeApplicationServersEntityOk.RemoveApplicationServers(serviceInfoForRemoveAppSrvrs, "")
 	assert.Nil(errNilOne)
 }

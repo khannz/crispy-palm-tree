@@ -16,7 +16,6 @@ func TestRemoveService(t *testing.T) {
 	mockIPVSWorker := &MockIPVSWorker{}
 	mockTunnelMaker := &MockTunnelMaker{}
 	mockHeathcheckWorker := &MockHeathcheckWorker{}
-	mockCommandGenerator := &MockCommandGenerator{}
 	gracefulShutdown := &domain.GracefulShutdown{
 		ShutdownNow:  true,
 		UsecasesJobs: 0,
@@ -37,16 +36,15 @@ func TestRemoveService(t *testing.T) {
 	currentApplicattionServers, tmpApplicattionServers, _ := createApplicationServersForTests()
 	currentServiceInfoOne, _, _ := createServicesInfoForTests(currentApplicattionServers, tmpApplicattionServers)
 
-	removeServiceGracefulEnd := NewModifyServiceEntity(locker,
+	removeServiceGracefulEnd := NewRemoveServiceEntity(locker,
 		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
 		mockHeathcheckWorker,
-		mockCommandGenerator,
 		gracefulShutdown,
 		logging)
-	_, errNotNilOne := removeServiceGracefulEnd.ModifyService(currentServiceInfoOne, "")
+	errNotNilOne := removeServiceGracefulEnd.RemoveService(currentServiceInfoOne, "")
 	assert.NotNil(errNotNilOne)
 
 	gracefulShutdown.ShutdownNow = false

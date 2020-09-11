@@ -16,9 +16,8 @@ type RemoveApplicationServers struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *HeathcheckEntity
+	hc                domain.HeathcheckWorker
 	gracefulShutdown  *domain.GracefulShutdown
-	uuidGenerator     domain.UUIDgenerator
 	logging           *logrus.Logger
 }
 
@@ -28,9 +27,8 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *HeathcheckEntity,
+	hc domain.HeathcheckWorker,
 	gracefulShutdown *domain.GracefulShutdown,
-	uuidGenerator domain.UUIDgenerator,
 	logging *logrus.Logger) *RemoveApplicationServers {
 	return &RemoveApplicationServers{
 		locker:            locker,
@@ -41,7 +39,6 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 		hc:                hc,
 		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
-		uuidGenerator:     uuidGenerator,
 	}
 }
 
@@ -72,8 +69,8 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return removeServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}
 
-	if isServiceExist(removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, allCurrentServices) {
-		return removeServiceInfo, fmt.Errorf("service %v:%v already exist, can't create new one", removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort)
+	if !isServiceExist(removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, allCurrentServices) {
+		return removeServiceInfo, fmt.Errorf("service %v:%v not exist, can't remove application servers", removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort)
 	}
 
 	logTryToGetCurrentServiceInfo(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)

@@ -193,7 +193,6 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 		balancerFacade.TunnelConfig,
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefulShutdown,
-		balancerFacade.UUIDgenerator,
 		balancerFacade.Logging)
 	appSvrs := []*domain.ApplicationServer{}
 	for _, appSrvr := range removeApplicationServersRequest.ApplicationServers {
