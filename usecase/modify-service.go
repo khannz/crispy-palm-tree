@@ -85,6 +85,7 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 		return serviceInfo, err
 	}
 
+	// FIXME: check BalanceType!
 	if !modifyService.isServicesIPsAndPortsEqual(serviceInfo, currentServiceInfo, modifyServiceUUID) {
 		return serviceInfo, fmt.Errorf("service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
 	}
