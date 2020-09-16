@@ -2,7 +2,6 @@ package application
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -76,22 +75,10 @@ func (restAPI *RestAPIstruct) tokenRequest(ginContext *gin.Context) {
 
 func (tokenRequest *TokenRequest) validateTokenRequest() error {
 	validate := validator.New()
-	validate.RegisterStructValidation(customPortValidationForTokenRequest, TokenRequest{})
 	if err := validate.Struct(tokenRequest); err != nil {
 		return modifyValidateError(err)
 	}
 	return nil
-}
-
-func customPortValidationForTokenRequest(sl validator.StructLevel) {
-	nbi := sl.Current().Interface().(NewServiceInfo)
-	port, err := strconv.Atoi(nbi.ServicePort)
-	if err != nil {
-		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
-	}
-	if !(port > 0) || !(port < 20000) {
-		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
-	}
 }
 
 func (restAPI *RestAPIstruct) newTokens() (*TokenResponseOkay, error) {
