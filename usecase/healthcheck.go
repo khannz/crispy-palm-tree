@@ -455,7 +455,11 @@ func (hc *HeathcheckEntity) tcpCheckFail(healthcheckAddress string, timeout time
 }
 
 func (hc *HeathcheckEntity) httpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
+	// FIXME:  dialer := net.Dialer{
+	// 	LocalAddr: hc.techInterface,
+	// 	Timeout:   timeout}
 	client := http.Client{
+		// Transport: dialer,
 		Timeout: timeout,
 	}
 	resp, err := client.Get(healthcheckAddress)
