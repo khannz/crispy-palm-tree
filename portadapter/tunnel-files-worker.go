@@ -93,7 +93,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 }
 
 func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (int, error) {
-	var nextTunnelName int
+	nextTunnelName := 1000
 
 	files, err := ioutil.ReadDir(tunnelFileMaker.sysctlConfFilePath)
 	if err != nil {
@@ -186,8 +186,6 @@ func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServ
 	return nil
 }
 
-// ip link delete dev tun100 && rm -f /etc/sysctl.d/100-sysctl.conf
-// cat /sys/devices/virtual/net/tun100/ifindex
 func (tunnelFileMaker *TunnelFileMaker) downAndRemoveOldLink(tunnelName string) error {
 	linkOld, err := netlink.LinkByName(tunnelName)
 	if err != nil {
@@ -234,15 +232,15 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.Tun
 	table := 10
 	mask := "/32" // TODO: remove hardcode
 	if err := tunnelFileMaker.removeRoute(tunnelFilesInfo.ApplicationServerIP, mask, table, tunnelFilesInfo.TunnelName, removeTunnelUUID); err != nil {
-		return fmt.Errorf("can't remove route: %v", err) // FIXME: broken.
+		tunnelFileMaker.logging.Errorf("can't remove route: %v", err)
 	}
 
 	if err := tunnelFileMaker.downAndRemoveOldLink("tun" + tunnelFilesInfo.TunnelName); err != nil {
-		return fmt.Errorf("can't remove tunnel: %v", err)
+		tunnelFileMaker.logging.Errorf("can't remove tunnel: %v", err)
 	}
 
 	if err = tunnelFileMaker.removeFile(tunnelFilesInfo.SysctlConfFile, removeTunnelUUID); err != nil {
-		return err
+		tunnelFileMaker.logging.Errorf("can't remove route: %v", err)
 	}
 
 	return nil
