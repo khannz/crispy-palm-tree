@@ -52,9 +52,13 @@ func formServicesInfoDomainModelFromSlice(servicesInfoSlice []string) []*domain.
 	servicesInfo := []*domain.ServiceInfo{}
 	for _, serviceInfo := range servicesInfoSlice {
 		serviceInfoSlice := strings.Split(serviceInfo, ":")
+		servicePort := ""
+		if len(serviceInfoSlice) > 1 {
+			servicePort = serviceInfoSlice[1]
+		}
 		serviceInfo := &domain.ServiceInfo{
 			ServiceIP:   serviceInfoSlice[0],
-			ServicePort: serviceInfoSlice[1],
+			ServicePort: servicePort,
 		}
 		servicesInfo = append(servicesInfo, serviceInfo)
 	}
@@ -71,10 +75,13 @@ func formApplicationServersDomainModelFromSlice(applicationServersSlice []string
 	applicationServers := []*domain.ApplicationServer{}
 	for _, applicationServer := range applicationServersSlice {
 		applicationServerSlice := strings.Split(applicationServer, ":")
-		//
+		serverPort := ""
+		if len(applicationServerSlice) > 1 {
+			serverPort = applicationServerSlice[1]
+		}
 		applicationServer := &domain.ApplicationServer{
 			ServerIP:   applicationServerSlice[0],
-			ServerPort: applicationServerSlice[1],
+			ServerPort: serverPort,
 		}
 		applicationServers = append(applicationServers, applicationServer)
 	}
@@ -120,6 +127,7 @@ func sortIPs(addrs []string) []string {
 
 // orderIPPair returns an array of two IP:PORTs in ascending order
 func orderIPPair(firstIP string, secondIP string) [2]string {
+	// FIXME: possible panic
 	//extract numbers out of IP strings
 	firstIPPortArr := strings.Split(firstIP, ":")
 	firstIPArr := strings.Split(firstIPPortArr[0], ".")

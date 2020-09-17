@@ -421,9 +421,11 @@ func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
 
 func (hc *HeathcheckEntity) tcpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
 	hcSlice := strings.Split(healthcheckAddress, ":")
+	hcPort := ""
+	if len(hcSlice) > 1 {
+		hcPort = hcSlice[1]
+	}
 	hcIP := hcSlice[0]
-	hcPort := hcSlice[1]
-
 	dialer := net.Dialer{
 		LocalAddr: hc.techInterface,
 		Timeout:   timeout}
