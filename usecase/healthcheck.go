@@ -587,19 +587,14 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 	}
 }
 
-func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(allServiceInfo *domain.ServiceInfo,
+func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(serviceInfo *domain.ServiceInfo,
 	applicationServer *domain.ApplicationServer) error {
-	formedServiceData := &domain.ServiceInfo{
-		ServiceIP:          allServiceInfo.ServiceIP,
-		ServicePort:        allServiceInfo.ServicePort,
-		ApplicationServers: []*domain.ApplicationServer{applicationServer},
-	}
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(formedServiceData.ServiceIP,
-		formedServiceData.ServicePort,
-		formedServiceData.RoutingType,
-		formedServiceData.BalanceType,
-		formedServiceData.Protocol,
-		formedServiceData.ApplicationServers)
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(serviceInfo.ServiceIP,
+		serviceInfo.ServicePort,
+		serviceInfo.RoutingType,
+		serviceInfo.BalanceType,
+		serviceInfo.Protocol,
+		[]*domain.ApplicationServer{applicationServer})
 	if err != nil {
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}
