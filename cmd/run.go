@@ -110,11 +110,7 @@ var rootCmd = &cobra.Command{
 			gracefulShutdown,
 			viperConfig.GetBool(mockMode),
 			logging)
-		if err = hc.StartHealthchecksForCurrentServices(); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
-		}
-		go hc.StartGracefulShutdownControlForHealthchecks() // TODO: graceful shutdown for healthchecks is overhead. Remove that?
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("healthchecks for current services started")
+
 		// healthchecks end
 
 		// init config end
@@ -131,12 +127,19 @@ var rootCmd = &cobra.Command{
 			logging)
 
 		if err := facade.InitializeRuntimeSettings(uuidForRootProcess); err != nil {
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("initialize runtime settings fail: %v", err)
 			if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
 				logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("disable runtime settings fail: %v", err)
 			}
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("init runtimeSettings fail: %v", err)
 		}
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
+
+		// hc start
+		if err = hc.StartHealthchecksForCurrentServices(); err != nil {
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
+		}
+		go hc.StartGracefulShutdownControlForHealthchecks() // TODO: graceful shutdown for healthchecks is overhead. Remove that?
+		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("healthchecks for current services started")
 
 		// up rest api
 		authorization := application.NewAuthorization(viperConfig.GetString(mainSecretName),
@@ -223,22 +226,26 @@ func checkPrerequisites(uuid string, logging *logrus.Logger) error {
 	}
 	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", dummyModprobeDPath)
 
-	dummyModuleFilePath := "/etc/modules-load.d/dummy.conf" // TODO: remove hardcode?
-	expectDummyModuleFileContains := "dummy"                // TODO: remove hardcode?
+	dummyModuleFilePath := "/etc/modules-load.d/lbos.conf" // TODO: remove hardcode?
+	expectDummyModuleFileContains := "dummy"               // TODO: remove hardcode?
 	if err := checkFileContains(dummyModuleFilePath, expectDummyModuleFileContains); err != nil {
 		return fmt.Errorf("error when check dummy module file: %v", err)
 	}
 	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", dummyModuleFilePath)
 
-	tunnelModuleFilePath := "/etc/modules-load.d/tunnel.conf" // TODO: remove hardcode?
-	expectTunnelModuleFileContains := "tunnel4"               // TODO: remove hardcode?
+	tunnelModuleFilePath := "/etc/modules-load.d/lbos.conf" // TODO: remove hardcode?
+	expectTunnelModuleFileContains := "tunnel4"             // TODO: remove hardcode?
 	if err := checkFileContains(tunnelModuleFilePath, expectTunnelModuleFileContains); err != nil {
 		return fmt.Errorf("error when check tunnel module file: %v", err)
 	}
 	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", tunnelModuleFilePath)
 
 	logging.WithFields(logrus.Fields{"event uuid": uuid}).Info("check all prerequisites successful")
-
+	// check all:
+	// ip_vs
+	// dummy
+	// ipip
+	// tunnel4
 	return nil
 }
 
@@ -264,7 +271,7 @@ func storageAndCacheInit(databasePath, uuid string, logging *logrus.Logger) (*po
 	if err != nil {
 		return nil, nil, fmt.Errorf("init NewStorageEntity for persistent storage error: %v", err)
 	}
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("init cacheDB successful")
+	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("init persistentDB successful")
 
 	err = cacheDB.LoadCacheFromStorage(persistentDB)
 	if err != nil {
