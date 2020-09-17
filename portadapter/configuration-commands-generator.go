@@ -73,7 +73,11 @@ func enrichApplicationServersByCommands(serviceIP,
 	switch serviceHealthcheckType {
 	case "tcp":
 		applicationServerIP := applicationServer.ServerIP
-		applicationServerPort := (strings.Split(applicationServer.ServerHealthcheck.HealthcheckAddress, ":"))[1]
+		healthcheckAddress := strings.Split(applicationServer.ServerHealthcheck.HealthcheckAddress, ":")
+		applicationServerPort := ""
+		if len(healthcheckAddress) > 1 {
+			applicationServerPort = healthcheckAddress[1]
+		}
 		tcpCommands := strings.ReplaceAll(rawCommandsForTCPHealthchecks,
 			"SERVICE_IP", serviceIP)
 		tcpCommands = strings.ReplaceAll(tcpCommands,
