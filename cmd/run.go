@@ -131,6 +131,7 @@ var rootCmd = &cobra.Command{
 			if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
 				logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("disable runtime settings fail: %v", err)
 			}
+			os.Exit(1)
 		}
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
 
