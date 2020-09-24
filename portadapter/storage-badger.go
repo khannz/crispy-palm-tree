@@ -57,16 +57,18 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 
 // ExtendedServiceData have application servers info and info abou service
 type ExtendedServiceData struct {
-	ServiceRepeatHealthcheck    time.Duration              `json:"serviceRepeatHealthcheck"`
-	ServicePercentOfAlivedForUp int                        `json:"servicePercentOfAlivedForUp"`
-	ServiceHealthcheckType      string                     `json:"serviceHealthcheckType"`
-	ServiceHealthcheckTimeout   time.Duration              `json:"serviceHealthcheckTimeout"`
-	ServiceExtraInfo            []string                   `json:"serviceExtraInfo"`
-	ServiceIsUp                 bool                       `json:"serviceIsUp"`
-	ApplicationServers          []domain.ApplicationServer `json:"applicationServers"`
-	BalanceType                 string                     `json:"balanceType"`
-	RoutingType                 string                     `json:"routingType"`
-	Protocol                    string                     `json:"protocol"`
+	ServiceRepeatHealthcheck                          time.Duration              `json:"serviceRepeatHealthcheck"`
+	ServicePercentOfAlivedForUp                       int                        `json:"servicePercentOfAlivedForUp"`
+	ServiceHealthcheckType                            string                     `json:"serviceHealthcheckType"`
+	ServiceHealthcheckTimeout                         time.Duration              `json:"serviceHealthcheckTimeout"`
+	ServiceHealthcheckRetriesForUpApplicationServer   int                        `json:"serviceHealthcheckRetriesForUpApplicationServer"`
+	ServiceHealthcheckRetriesForDownApplicationServer int                        `json:"serviceHealthcheckRetriesForDownApplicationServer"`
+	ServiceExtraInfo                                  []string                   `json:"serviceExtraInfo"`
+	ServiceIsUp                                       bool                       `json:"serviceIsUp"`
+	ApplicationServers                                []domain.ApplicationServer `json:"applicationServers"`
+	BalanceType                                       string                     `json:"balanceType"`
+	RoutingType                                       string                     `json:"routingType"`
+	Protocol                                          string                     `json:"protocol"`
 }
 
 // TunnelForService ...
@@ -107,16 +109,18 @@ func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte
 	}
 
 	transformedServiceData := ExtendedServiceData{
-		ServiceRepeatHealthcheck:    serviceData.Healthcheck.RepeatHealthcheck,
-		ServicePercentOfAlivedForUp: serviceData.Healthcheck.PercentOfAlivedForUp,
-		ServiceHealthcheckType:      serviceData.Healthcheck.Type,
-		ServiceHealthcheckTimeout:   serviceData.Healthcheck.Timeout,
-		ServiceExtraInfo:            serviceData.ExtraInfo,
-		ServiceIsUp:                 serviceData.IsUp,
-		ApplicationServers:          renewApplicationServers,
-		BalanceType:                 serviceData.BalanceType,
-		RoutingType:                 serviceData.RoutingType,
-		Protocol:                    serviceData.Protocol,
+		ServiceRepeatHealthcheck:                          serviceData.Healthcheck.RepeatHealthcheck,
+		ServicePercentOfAlivedForUp:                       serviceData.Healthcheck.PercentOfAlivedForUp,
+		ServiceHealthcheckType:                            serviceData.Healthcheck.Type,
+		ServiceHealthcheckTimeout:                         serviceData.Healthcheck.Timeout,
+		ServiceHealthcheckRetriesForUpApplicationServer:   serviceData.Healthcheck.RetriesForUpApplicationServer,
+		ServiceHealthcheckRetriesForDownApplicationServer: serviceData.Healthcheck.RetriesForDownApplicationServer,
+		ServiceExtraInfo:                                  serviceData.ExtraInfo,
+		ServiceIsUp:                                       serviceData.IsUp,
+		ApplicationServers:                                renewApplicationServers,
+		BalanceType:                                       serviceData.BalanceType,
+		RoutingType:                                       serviceData.RoutingType,
+		Protocol:                                          serviceData.Protocol,
 	}
 	serviceDataValue, err := json.Marshal(transformedServiceData)
 	if err != nil {
@@ -161,9 +165,11 @@ func (storageEntity *StorageEntity) RemoveServiceInfoFromStorage(serviceData *do
 // GetServiceInfo ...
 func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
 	shc := domain.ServiceHealthcheck{
-		RepeatHealthcheck: 3000000009,
-		Type:              "",
-		Timeout:           time.Duration(999 * time.Second),
+		RepeatHealthcheck:               3000000009,
+		Type:                            "",
+		Timeout:                         time.Duration(999 * time.Second),
+		RetriesForUpApplicationServer:   0,
+		RetriesForDownApplicationServer: 0,
 	}
 	currentServiceInfo := &domain.ServiceInfo{
 		ServiceIP:          "",
@@ -200,10 +206,12 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		}
 
 		currentServiceInfo.Healthcheck = domain.ServiceHealthcheck{
-			RepeatHealthcheck:    oldExtendedServiceData.ServiceRepeatHealthcheck,
-			PercentOfAlivedForUp: oldExtendedServiceData.ServicePercentOfAlivedForUp,
-			Type:                 oldExtendedServiceData.ServiceHealthcheckType,
-			Timeout:              oldExtendedServiceData.ServiceHealthcheckTimeout,
+			RepeatHealthcheck:               oldExtendedServiceData.ServiceRepeatHealthcheck,
+			PercentOfAlivedForUp:            oldExtendedServiceData.ServicePercentOfAlivedForUp,
+			Type:                            oldExtendedServiceData.ServiceHealthcheckType,
+			Timeout:                         oldExtendedServiceData.ServiceHealthcheckTimeout,
+			RetriesForUpApplicationServer:   oldExtendedServiceData.ServiceHealthcheckRetriesForUpApplicationServer,
+			RetriesForDownApplicationServer: oldExtendedServiceData.ServiceHealthcheckRetriesForDownApplicationServer,
 		}
 
 		if oldExtendedServiceData.ServiceExtraInfo != nil {
@@ -262,10 +270,12 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModels() ([]*domai
 				}
 
 				hc := domain.ServiceHealthcheck{
-					RepeatHealthcheck:    oldExtendedServiceData.ServiceRepeatHealthcheck,
-					PercentOfAlivedForUp: oldExtendedServiceData.ServicePercentOfAlivedForUp,
-					Type:                 oldExtendedServiceData.ServiceHealthcheckType,
-					Timeout:              oldExtendedServiceData.ServiceHealthcheckTimeout,
+					RepeatHealthcheck:               oldExtendedServiceData.ServiceRepeatHealthcheck,
+					PercentOfAlivedForUp:            oldExtendedServiceData.ServicePercentOfAlivedForUp,
+					Type:                            oldExtendedServiceData.ServiceHealthcheckType,
+					Timeout:                         oldExtendedServiceData.ServiceHealthcheckTimeout,
+					RetriesForUpApplicationServer:   oldExtendedServiceData.ServiceHealthcheckRetriesForUpApplicationServer,
+					RetriesForDownApplicationServer: oldExtendedServiceData.ServiceHealthcheckRetriesForDownApplicationServer,
 				}
 
 				serviceInfo := &domain.ServiceInfo{

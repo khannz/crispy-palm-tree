@@ -63,10 +63,12 @@ type RemoveServiceInfo struct {
 
 // ServiceHealthcheck ...
 type ServiceHealthcheck struct {
-	Type                 string        `json:"type" validate:"required" example:"tcp"`
-	Timeout              time.Duration `json:"timeout" validate:"required" example:"1000000000"`
-	RepeatHealthcheck    time.Duration `json:"repeatHealthcheck" validate:"required" example:"3000000000"`
-	PercentOfAlivedForUp int           `json:"percentOfAlivedForUp" validate:"required,gt=0,lte=100"`
+	Type                            string        `json:"type" validate:"required" example:"tcp"`
+	Timeout                         time.Duration `json:"timeout" validate:"required" example:"1000000000"`
+	RepeatHealthcheck               time.Duration `json:"repeatHealthcheck" validate:"required" example:"3000000000"`
+	PercentOfAlivedForUp            int           `json:"percentOfAlivedForUp" validate:"required,gt=0,lte=100"`
+	RetriesForUpApplicationServer   int           `json:"retriesForUpApplicationServer" validate:"required,gt=0" example:"3"`
+	RetriesForDownApplicationServer int           `json:"retriesForDownApplicationServer" validate:"required,gt=0" example:"10"`
 }
 
 // AdvancedHealthcheckParameters ...

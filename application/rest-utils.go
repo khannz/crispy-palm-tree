@@ -154,10 +154,12 @@ func logRequestIsDone(typeOfrequest, uuid string, logging *logrus.Logger) {
 
 func convertDomainHealthcheckToRest(dHC domain.ServiceHealthcheck) ServiceHealthcheck {
 	return ServiceHealthcheck{
-		Type:                 dHC.Type,
-		Timeout:              dHC.Timeout,
-		RepeatHealthcheck:    dHC.RepeatHealthcheck,
-		PercentOfAlivedForUp: dHC.PercentOfAlivedForUp,
+		Type:                            dHC.Type,
+		Timeout:                         dHC.Timeout,
+		RepeatHealthcheck:               dHC.RepeatHealthcheck,
+		PercentOfAlivedForUp:            dHC.PercentOfAlivedForUp,
+		RetriesForUpApplicationServer:   dHC.RetriesForUpApplicationServer,
+		RetriesForDownApplicationServer: dHC.RetriesForDownApplicationServer,
 	}
 }
 

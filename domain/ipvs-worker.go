@@ -17,6 +17,7 @@ type IPVSWorker interface {
 
 // Utils
 
+// PrepareDataForIPVS ...
 func PrepareDataForIPVS(rawIP,
 	rawPort,
 	rawRoutingType,

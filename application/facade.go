@@ -86,10 +86,12 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		appSvrs = append(appSvrs, as)
 	}
 	hcS := domain.ServiceHealthcheck{
-		Type:                 createService.Healtcheck.Type,
-		Timeout:              createService.Healtcheck.Timeout,
-		RepeatHealthcheck:    createService.Healtcheck.RepeatHealthcheck,
-		PercentOfAlivedForUp: createService.Healtcheck.PercentOfAlivedForUp,
+		Type:                            createService.Healtcheck.Type,
+		Timeout:                         createService.Healtcheck.Timeout,
+		RepeatHealthcheck:               createService.Healtcheck.RepeatHealthcheck,
+		PercentOfAlivedForUp:            createService.Healtcheck.PercentOfAlivedForUp,
+		RetriesForUpApplicationServer:   createService.Healtcheck.RetriesForUpApplicationServer,
+		RetriesForDownApplicationServer: createService.Healtcheck.RetriesForDownApplicationServer,
 	}
 
 	serviceInfo := &domain.ServiceInfo{
@@ -268,10 +270,12 @@ func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyService
 		appSvrs = append(appSvrs, as)
 	}
 	hcS := domain.ServiceHealthcheck{
-		Type:                 modifyService.Healtcheck.Type,
-		Timeout:              modifyService.Healtcheck.Timeout,
-		RepeatHealthcheck:    modifyService.Healtcheck.RepeatHealthcheck,
-		PercentOfAlivedForUp: modifyService.Healtcheck.PercentOfAlivedForUp,
+		Type:                            modifyService.Healtcheck.Type,
+		Timeout:                         modifyService.Healtcheck.Timeout,
+		RepeatHealthcheck:               modifyService.Healtcheck.RepeatHealthcheck,
+		PercentOfAlivedForUp:            modifyService.Healtcheck.PercentOfAlivedForUp,
+		RetriesForUpApplicationServer:   modifyService.Healtcheck.RetriesForUpApplicationServer,
+		RetriesForDownApplicationServer: modifyService.Healtcheck.RetriesForDownApplicationServer,
 	}
 
 	serviceInfo := &domain.ServiceInfo{
