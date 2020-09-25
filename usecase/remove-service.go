@@ -104,9 +104,12 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}
 	if err = removeServiceEntity.ipvsadm.RemoveService(vip, port, protocol, removeServiceUUID); err != nil {
-		return fmt.Errorf("ipvsadm can't remove service: %v. got error: %v", serviceInfo, err)
+		removeServiceEntity.logging.WithFields(logrus.Fields{
+			"event uuid": removeServiceUUID,
+		}).Warnf("ipvsadm can't remove service: %v. got error: %v", serviceInfo, err)
+	} else {
+		logRemovedIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 	}
-	logRemovedIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 
 	if err = removeServiceEntity.persistentStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
