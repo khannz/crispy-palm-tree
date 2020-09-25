@@ -426,35 +426,35 @@ func logUpdatedServiceAtHealtchecks(usecaseName,
 	}).Info("service updated at healtchecks")
 }
 
-func logTryCreateIPVSService(usecaseName,
-	uuid string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":     usecaseName,
-		"event uuid": uuid,
-	}).Infof("try ipvsadm create service %v:%v include application servers %v",
-		serviceIP,
-		servicePort,
-		applicationServers)
-}
+// func logTryCreateIPVSService(usecaseName,
+// 	uuid string,
+// 	applicationServers []*domain.ApplicationServer,
+// 	serviceIP,
+// 	servicePort string,
+// 	logging *logrus.Logger) {
+// 	logging.WithFields(logrus.Fields{
+// 		"entity":     usecaseName,
+// 		"event uuid": uuid,
+// 	}).Infof("try ipvsadm create service %v:%v include application servers %v",
+// 		serviceIP,
+// 		servicePort,
+// 		applicationServers)
+// }
 
-func logCreatedIPVSService(usecaseName,
-	uuid string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":     usecaseName,
-		"event uuid": uuid,
-	}).Infof("ipvsadm created service %v:%v include application servers %v",
-		serviceIP,
-		servicePort,
-		applicationServers)
-}
+// func logCreatedIPVSService(usecaseName,
+// 	uuid string,
+// 	applicationServers []*domain.ApplicationServer,
+// 	serviceIP,
+// 	servicePort string,
+// 	logging *logrus.Logger) {
+// 	logging.WithFields(logrus.Fields{
+// 		"entity":     usecaseName,
+// 		"event uuid": uuid,
+// 	}).Infof("ipvsadm created service %v:%v include application servers %v",
+// 		serviceIP,
+// 		servicePort,
+// 		applicationServers)
+// }
 
 func logTryValidateRemoveApplicationServers(usecaseName,
 	uuid string,
