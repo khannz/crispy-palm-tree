@@ -191,7 +191,7 @@ func enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceI
 		retriesCounterForDown := make([]bool, newServiceHealthcheck.Healthcheck.RetriesForDownApplicationServer)
 		lastIndexForUp := 0
 		lastIndexForDown := 0
-		newServiceHealthcheck.ApplicationServers[i].ServerHealthcheck.LastIndexForUp = lastIndexForUp // FIXME: invalid memory address or nil pointer dereference
+		newServiceHealthcheck.ApplicationServers[i].ServerHealthcheck.LastIndexForUp = lastIndexForUp
 		newServiceHealthcheck.ApplicationServers[i].ServerHealthcheck.LastIndexForDown = lastIndexForDown
 
 		j, isFinded := findApplicationServer(newServiceHealthcheck.ServiceIP, newServiceHealthcheck.ServicePort, oldApplicationServers)
@@ -248,6 +248,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 	fs := &failedApplicationServers{wg: new(sync.WaitGroup)}
 	for i, applicationServerInfo := range serviceInfo.ApplicationServers {
 		fs.wg.Add(1)
+		// somehow FIXME:
 		go hc.checkApplicationServerInService(serviceInfo,
 			applicationServerInfo,
 			fs,
@@ -668,19 +669,14 @@ func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(serviceInfo *domain
 	return nil
 }
 
-func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(allServiceInfo *domain.ServiceInfo,
+func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(serviceInfo *domain.ServiceInfo,
 	applicationServer *domain.ApplicationServer) error {
-	formedServiceData := &domain.ServiceInfo{
-		ServiceIP:          allServiceInfo.ServiceIP,
-		ServicePort:        allServiceInfo.ServicePort,
-		ApplicationServers: []*domain.ApplicationServer{applicationServer},
-	}
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(formedServiceData.ServiceIP,
-		formedServiceData.ServicePort,
-		formedServiceData.RoutingType,
-		formedServiceData.BalanceType,
-		formedServiceData.Protocol,
-		formedServiceData.ApplicationServers)
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(serviceInfo.ServiceIP,
+		serviceInfo.ServicePort,
+		serviceInfo.RoutingType,
+		serviceInfo.BalanceType,
+		serviceInfo.Protocol,
+		[]*domain.ApplicationServer{applicationServer})
 	if err != nil {
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}
