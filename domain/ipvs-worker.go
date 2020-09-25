@@ -42,7 +42,7 @@ func PrepareDataForIPVS(rawIP,
 	case "tunneling":
 		routingType = 2
 	default:
-		return "", 0, 0, "", 0, nil, fmt.Errorf("unknown routing type for prepare data for IPVS: %v", routingType)
+		return "", 0, 0, "", 0, nil, fmt.Errorf("unknown routing type for prepare data for IPVS: %v", rawRoutingType)
 	}
 	balanceType := rawBalanceType
 	protocol, err := protocolToUINT16(rawProtocol)
