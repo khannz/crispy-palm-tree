@@ -42,6 +42,10 @@ func NewTunnelFileMaker(sysctlConfFilePath string,
 // CreateTunnels ...
 func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(tunnelsFilesInfo []*domain.TunnelForApplicationServer,
 	createTunnelUUID string) ([]*domain.TunnelForApplicationServer, error) {
+	tunnelFileMaker.logging.WithFields(logrus.Fields{
+		"entity":     tunnelFileMakerEntityName,
+		"event uuid": createTunnelUUID,
+	}).Tracef("starting create tunnels: %v", tunnelsFilesInfo)
 	newTunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		if tunnelFilesInfo.ServicesToTunnelCount == 0 {
@@ -63,11 +67,19 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(tunnelsFilesInfo []*domain
 // CreateTunnel ...
 func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.TunnelForApplicationServer,
 	createTunnelUUID string) error {
+	tunnelFileMaker.logging.WithFields(logrus.Fields{
+		"entity":     tunnelFileMakerEntityName,
+		"event uuid": createTunnelUUID,
+	}).Tracef("starting create tunnel: %v", *tunnelFilesInfo)
 	newTunnelName, err := tunnelFileMaker.chooseNewTunnelName()
 	if err != nil {
 		return fmt.Errorf("can't choose new tunnel name: %v", err)
 	}
 	sNewTunnelName := strconv.Itoa(newTunnelName)
+	tunnelFileMaker.logging.WithFields(logrus.Fields{
+		"entity":     tunnelFileMakerEntityName,
+		"event uuid": createTunnelUUID,
+	}).Tracef("new tunnel name: %v", sNewTunnelName)
 	newSysctlConfFileFullPath := tunnelFileMaker.sysctlConfFilePath + sNewTunnelName + "-sysctl.conf"
 
 	tunnelFilesInfo.TunnelName = sNewTunnelName
