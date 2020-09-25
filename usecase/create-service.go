@@ -109,27 +109,6 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 			return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
 		}
 	}
-	logTryCreateIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
-	// FIXME: do not create? only at hc?
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(serviceInfo.ServiceIP,
-		serviceInfo.ServicePort,
-		serviceInfo.RoutingType,
-		serviceInfo.BalanceType,
-		serviceInfo.Protocol,
-		serviceInfo.ApplicationServers)
-	if err != nil {
-		return serviceInfo, fmt.Errorf("error prepare data for IPVS: %v", err)
-	}
-	if err := createService.ipvsadm.CreateService(vip,
-		port,
-		routingType,
-		balanceType,
-		protocol,
-		applicationServers,
-		createServiceUUID); err != nil {
-		return serviceInfo, fmt.Errorf("Error when ipvsadm create service: %v", err)
-	}
-	logCreatedIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
 
 	logTryUpdateServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)
 	if err = createService.persistentStorage.NewServiceInfoToStorage(serviceInfo, createServiceUUID); err != nil {
