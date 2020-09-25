@@ -284,9 +284,10 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 	var isApplicationServerUp bool
 	switch serviceInfo.Healthcheck.Type {
 	case "tcp":
-		if hc.tcpCheckFail(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
-			serviceInfo.Healthcheck.Timeout) {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		isCheckOk := hc.tcpCheckOk(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+			serviceInfo.Healthcheck.Timeout)
+		if !isCheckOk {
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, !isCheckOk) // locks inside
 			isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 			if !isApplicationServerUp {
 				fs.Lock()
@@ -301,7 +302,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 		isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 		if !isApplicationServerUp {
 			fs.Lock()
@@ -309,9 +310,10 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Unlock()
 		}
 	case "http":
-		if hc.httpCheckFail(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
-			serviceInfo.Healthcheck.Timeout) {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		isCheckOk := hc.httpCheckOk(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+			serviceInfo.Healthcheck.Timeout)
+		if !isCheckOk {
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 			isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 			if !isApplicationServerUp {
 				fs.Lock()
@@ -326,7 +328,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 		isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 		if !isApplicationServerUp {
 			fs.Lock()
@@ -334,9 +336,10 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Unlock()
 		}
 	case "http-advanced":
-		if hc.httpAdvancedCheckFail(applicationServerInfo.ServerHealthcheck,
-			serviceInfo.Healthcheck.Timeout) {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		isCheckOk := hc.httpAdvancedCheckOk(applicationServerInfo.ServerHealthcheck,
+			serviceInfo.Healthcheck.Timeout)
+		if !isCheckOk {
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 			isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 			if !isApplicationServerUp {
 				fs.Lock()
@@ -351,7 +354,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 		isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 		if !isApplicationServerUp {
 			fs.Lock()
@@ -359,9 +362,10 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Unlock()
 		}
 	case "icmp":
-		if hc.icmpCheckFail(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
-			serviceInfo.Healthcheck.Timeout) {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		isCheckOk := hc.icmpCheckOk(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+			serviceInfo.Healthcheck.Timeout)
+		if !isCheckOk {
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 			isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 			if !isApplicationServerUp {
 				fs.Lock()
@@ -376,7 +380,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, false) // locks inside
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 		isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 		if !isApplicationServerUp {
 			fs.Lock()
@@ -392,7 +396,6 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 	}
 
 	if isApplicationServerUp { // TODO: trace info TODO: do not UP when server already up!
-		applicationServerInfo.IsUp = true
 		if err := hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo); err != nil {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":     healthcheckName,
@@ -474,7 +477,7 @@ func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
 	}
 }
 
-func (hc *HeathcheckEntity) tcpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
+func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
 	hcSlice := strings.Split(healthcheckAddress, ":")
 	hcPort := ""
 	if len(hcSlice) > 1 {
@@ -491,7 +494,7 @@ func (hc *HeathcheckEntity) tcpCheckFail(healthcheckAddress string, timeout time
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: Connecting tcp connect error: %v", err)
-		return true
+		return false
 	}
 	defer conn.Close()
 
@@ -500,7 +503,7 @@ func (hc *HeathcheckEntity) tcpCheckFail(healthcheckAddress string, timeout time
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck info port opened: %v", net.JoinHostPort(hcIP, hcPort))
-		return false
+		return true
 	}
 
 	// somehow it can be..
@@ -508,10 +511,10 @@ func (hc *HeathcheckEntity) tcpCheckFail(healthcheckAddress string, timeout time
 		"entity":     healthcheckName,
 		"event uuid": healthcheckUUID,
 	}).Error("Heathcheck has unknown error: connection is nil, but have no errors")
-	return true
+	return false
 }
 
-func (hc *HeathcheckEntity) httpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
+func (hc *HeathcheckEntity) httpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
 	// FIXME:  dialer := net.Dialer{
 	// 	LocalAddr: hc.techInterface,
 	// 	Timeout:   timeout}
@@ -525,7 +528,7 @@ func (hc *HeathcheckEntity) httpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: Connecting http error: %v", err)
-		return true
+		return false
 	}
 
 	_, err = ioutil.ReadAll(resp.Body)
@@ -534,12 +537,12 @@ func (hc *HeathcheckEntity) httpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: Read http response errror: %v", err)
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
-func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout time.Duration) bool {
+func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
 	// Start listening for icmp replies
 	icpmConnection, err := icmp.ListenPacket("ip4:icmp", hc.techInterface.String())
 	if err != nil {
@@ -547,7 +550,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm connection error: %v", err)
-		return true
+		return false
 	}
 	defer icpmConnection.Close()
 
@@ -558,7 +561,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm resolve ip addr error: %v", err)
-		return true
+		return false
 	}
 
 	m := icmp.Message{
@@ -576,7 +579,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm marshall message error: %v", err)
-		return true
+		return false
 	}
 
 	// Send it
@@ -586,13 +589,13 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm write bytes to error: %v", err)
-		return true
+		return false
 	} else if n != len(b) {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm write bytes to error (not all of bytes was send): %v", err)
-		return true
+		return false
 	}
 
 	// Wait for a reply
@@ -603,7 +606,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm set read deadline error: %v", err)
-		return true
+		return false
 	}
 	n, peer, err := icpmConnection.ReadFrom(reply)
 	if err != nil {
@@ -611,7 +614,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm read reply error: %v", err)
-		return true
+		return false
 	}
 
 	// Let's look what we have in reply
@@ -621,7 +624,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: icpm parse message error: %v", err)
-		return true
+		return false
 	}
 	switch rm.Type {
 	case ipv4.ICMPTypeEchoReply:
@@ -629,7 +632,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck icpm for %v succes", healthcheckAddress)
-		return false
+		return true
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
@@ -638,7 +641,7 @@ func (hc *HeathcheckEntity) icmpCheckFail(healthcheckAddress string, timeout tim
 			healthcheckAddress,
 			rm,
 			peer)
-		return true
+		return false
 	}
 }
 
@@ -705,17 +708,17 @@ func percentageOfDown(total, down int) int {
 }
 
 // http advanced start
-func (hc *HeathcheckEntity) httpAdvancedCheckFail(serverHealthcheck domain.ServerHealthcheck,
+func (hc *HeathcheckEntity) httpAdvancedCheckOk(serverHealthcheck domain.ServerHealthcheck,
 	timeout time.Duration) bool {
 	switch serverHealthcheck.TypeOfCheck {
 	case "http-advanced-json":
-		return hc.httpAdvancedJSONCheckFail(serverHealthcheck, timeout)
+		return hc.httpAdvancedJSONCheckOk(serverHealthcheck, timeout)
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Errorf("Heathcheck error: http advanced check fail error: unknown check type: %v", serverHealthcheck.TypeOfCheck)
-		return true
+		return false
 	}
 }
 
@@ -724,7 +727,7 @@ func (hc *HeathcheckEntity) IsMockMode() bool {
 }
 
 // http advanced json start
-func (hc *HeathcheckEntity) httpAdvancedJSONCheckFail(serverHealthcheck domain.ServerHealthcheck,
+func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(serverHealthcheck domain.ServerHealthcheck,
 	timeout time.Duration) bool {
 	client := http.Client{
 		Timeout: timeout,
@@ -736,7 +739,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckFail(serverHealthcheck domain.S
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Errorf("Heathcheck error: http advanced JSON check fail error: can't make new http request: %v", err)
-		return true
+		return false
 	}
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
@@ -747,7 +750,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckFail(serverHealthcheck domain.S
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: Connecting http advanced JSON check error: %v", err)
-		return true
+		return false
 	}
 
 	response, err := ioutil.ReadAll(resp.Body)
@@ -756,7 +759,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckFail(serverHealthcheck domain.S
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: Read http response errror: %v", err)
-		return true
+		return false
 	}
 
 	u := UnknownDataStruct{}
@@ -768,7 +771,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckFail(serverHealthcheck domain.S
 			}).Tracef("Heathcheck error: http advanced JSON check fail error: can't unmarshal response from: %v, error: %v",
 				serverHealthcheck.HealthcheckAddress,
 				err)
-			return true
+			return false
 		}
 	}
 
@@ -777,21 +780,21 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckFail(serverHealthcheck domain.S
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Tracef("Heathcheck error: http advanced JSON check fail error: response is nil from: %v", serverHealthcheck.HealthcheckAddress)
-		return true
+		return false
 	}
 
 	for _, aHP := range serverHealthcheck.AdvancedHealthcheckParameters { // go through the array of search objects
 		if aHP.NearFieldsMode { // mode for finding all matches for the desired object in a single map
 			if hc.isFinderForNearFieldsModeFail(aHP.UserDefinedData, u, serverHealthcheck.HealthcheckAddress) { // if false do not return, continue range params
-				return true
+				return false
 			}
 		} else {
 			if hc.isFinderMapToMapFail(aHP.UserDefinedData, u, serverHealthcheck.HealthcheckAddress) { // if false do not return, continue range params
-				return true
+				return false
 			}
 		}
 	}
-	return false
+	return true
 }
 
 func (hc *HeathcheckEntity) isFinderForNearFieldsModeFail(userSearchData map[string]interface{},
