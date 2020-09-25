@@ -287,7 +287,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		isCheckOk := hc.tcpCheckOk(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, !isCheckOk) // locks inside
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 			isApplicationServerUp = hc.isApplicationServerUp(serviceInfo, applicationServerInfoIndex)
 			if !isApplicationServerUp {
 				fs.Lock()

@@ -385,6 +385,72 @@ func (storageEntity *StorageEntity) ReadTunnelInfoForApplicationServer(ip string
 	return dTunnelInfo
 }
 
+// GetAllApplicationServersWhoHaveTunnels bad code :(
+func (storageEntity *StorageEntity) GetAllApplicationServersIPWhoHaveTunnels() ([]string, error) {
+	var applicationServersIPWithTunnels []string
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 10
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			key := item.Key()
+			err := item.Value(func(val []byte) error {
+				rawServiceData := strings.Split(string(key), ":")
+				if len(rawServiceData) == 1 {
+					applicationServersIPWithTunnels = append(applicationServersIPWithTunnels, rawServiceData[0])
+					return nil
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return applicationServersIPWithTunnels, err
+	}
+	return applicationServersIPWithTunnels, nil
+}
+
+// RemoveAllTunnelsInfoForApplicationServer
+func (storageEntity *StorageEntity) RemoveAllTunnelsInfoForApplicationServer(ip string) error {
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+	keyData := []byte(ip)
+
+	if err := storageEntity.Db.Update(func(txn *badger.Txn) error {
+		if err := txn.Delete(keyData); err != nil {
+			return fmt.Errorf("txn.Delete fail: %v", err)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RemoveTunnelsInfoForApplicationServerFromStorage ...
+func (storageEntity *StorageEntity) RemoveTunnelsInfoForApplicationServerFromStorage(ip string) error {
+	keyData := []byte(ip)
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+
+	if err := storageEntity.Db.Update(func(txn *badger.Txn) error {
+		if err := txn.Delete(keyData); err != nil {
+			return fmt.Errorf("txn.Delete fail: %v", err)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpdateTunnelFilesInfoAtStorage ...
 func (storageEntity *StorageEntity) UpdateTunnelFilesInfoAtStorage(tunnelsFilesInfo []*domain.TunnelForApplicationServer) error {
 	storageEntity.Lock()

@@ -110,6 +110,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 		}
 	}
 	logTryCreateIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
+	// FIXME: do not create? only at hc?
 	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(serviceInfo.ServiceIP,
 		serviceInfo.ServicePort,
 		serviceInfo.RoutingType,
@@ -138,7 +139,7 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 
 	if serviceInfo.Protocol == "tcp" {
 		if err := createService.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
-			return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
+			return serviceInfo, fmt.Errorf("can't add to persistent storage :%v", err)
 		}
 	}
 	logTryGenerateCommandsForApplicationServers(createServiceName, createServiceUUID, createService.logging)
