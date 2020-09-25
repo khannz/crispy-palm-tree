@@ -108,7 +108,13 @@ func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.
 		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
 			port, protocol, 10, routingType)
 		if err != nil {
-			return fmt.Errorf("cant add dest to service sched flags: %v", err)
+			return fmt.Errorf("cant add application server %v:%v to service %v:%v, protocol: %v, FWDMethod(routingType):%v",
+				ip,
+				port,
+				serviceIP,
+				servicePort,
+				protocol,
+				routingType)
 		}
 	}
 	return nil
@@ -121,7 +127,12 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 		err := ipvs.DelDestPort(serviceIP, servicePort, ip,
 			port, protocol)
 		if err != nil {
-			return fmt.Errorf("cant add dest to service sched flags: %v", err)
+			return fmt.Errorf("cant remove application server %v:%v from service %v:%v, protocol: %v",
+				ip,
+				port,
+				serviceIP,
+				servicePort,
+				protocol)
 		}
 	}
 	return nil
