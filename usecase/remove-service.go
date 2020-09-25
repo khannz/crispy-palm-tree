@@ -111,12 +111,18 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		logRemovedIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 	}
 
+	removeServiceEntity.logging.WithFields(logrus.Fields{
+		"event uuid": removeServiceUUID,
+	}).Debugf("try remove from storages service %v", serviceInfo)
 	if err = removeServiceEntity.persistentStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
 	if err = removeServiceEntity.cacheStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceUUID); err != nil {
 		return err
 	}
+	removeServiceEntity.logging.WithFields(logrus.Fields{
+		"event uuid": removeServiceUUID,
+	}).Debugf("removed from storages service %v", serviceInfo)
 
 	if currentServiceInfo.Protocol == "tcp" {
 		if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
