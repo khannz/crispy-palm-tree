@@ -2,9 +2,9 @@ package portadapter
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"github.com/tehnerd/gnl2go"
 	"github.com/thevan4/go-billet/executor"
 )
@@ -14,15 +14,16 @@ import (
 // IPVSADMEntity ...
 type IPVSADMEntity struct {
 	sync.Mutex
+	logging *logrus.Logger
 }
 
 // NewIPVSADMEntity ...
-func NewIPVSADMEntity() (*IPVSADMEntity, error) {
+func NewIPVSADMEntity(logging *logrus.Logger) (*IPVSADMEntity, error) {
 	_, _, exitCode, err := executor.Execute("ipvsadm", "", nil)
 	if err != nil || exitCode != 0 {
 		return nil, fmt.Errorf("got error when execute ipvsadm command: %v, exit code %v", err, exitCode)
 	}
-	return &IPVSADMEntity{}, nil
+	return &IPVSADMEntity{logging: logging}, nil
 }
 
 // CreateService ...
@@ -91,18 +92,6 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveService(vip string,
 	return nil
 }
 
-func transformRawIPVSPoolsToMap(pools []gnl2go.Pool) map[string]map[string]uint16 {
-	servicesMapInfo := map[string]map[string]uint16{}
-	for _, pool := range pools {
-		applicationServers := map[string]uint16{}
-		for _, dest := range pool.Dests {
-			applicationServers[dest.IP] = dest.Port
-		}
-		servicesMapInfo[pool.Service.VIP+strconv.Itoa(int(pool.Service.Port))] = applicationServers
-	}
-	return servicesMapInfo
-}
-
 func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.IpvsClient,
 	serviceIP string, servicePort uint16, protocol uint16, routingType uint32,
 	applicationServers map[string]uint16) error {
@@ -136,6 +125,7 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 				servicePort,
 				protocol)
 		}
+		ipvsadmEntity.logging.Debugf("at service %v:%v application server %v:%v removed from ipvs", serviceIP, servicePort, ip, port)
 	}
 	return nil
 }
@@ -179,23 +169,8 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(vip stri
 	}
 	defer ipvs.Exit()
 
-	pools, err := ipvs.GetPools()
-	if err != nil {
-		return fmt.Errorf("ipvs can't get pools: %v", err)
-	}
-
-	actualConfig := transformRawIPVSPoolsToMap(pools)
-	if err != nil {
-		return fmt.Errorf("can't read current config: %v", err)
-	}
-
-	vipAndPort := vip + strconv.Itoa(int(port))
-	updatedApplicationServers := actualizesApplicationServersInCurrentConfig(actualConfig, vipAndPort, applicationServers)
-
-	if updatedApplicationServers != nil {
-		if err = ipvsadmEntity.removeApplicationServersFromService(ipvs, vip, port, protocol, updatedApplicationServers); err != nil {
-			return fmt.Errorf("cant remove application server from service: %v", err) // TODO: do not return error?
-		}
+	if err = ipvsadmEntity.removeApplicationServersFromService(ipvs, vip, port, protocol, applicationServers); err != nil {
+		return fmt.Errorf("cant remove application servers from service: %v", err)
 	}
 
 	return nil
@@ -214,22 +189,6 @@ func (ipvsadmEntity *IPVSADMEntity) Flush() error {
 	err = ipvs.Flush()
 	if err != nil {
 		return fmt.Errorf("can't ipvs Flush: %v", err)
-	}
-	return nil
-}
-
-// actualizesApplicationServersInCurrentConfig - actualizes application servers state
-func actualizesApplicationServersInCurrentConfig(currentConfig map[string]map[string]uint16, incomeVipAndPort string, incomeApplicationServers map[string]uint16) map[string]uint16 {
-	updatedApplicationServers := map[string]uint16{}
-	if oldApplicationServers, serviceFinded := currentConfig[incomeVipAndPort]; serviceFinded {
-		for incomeApplicationServerIP, incomeApplicationServerPort := range incomeApplicationServers {
-			if oldApplicationServerPort, ipFinded := oldApplicationServers[incomeApplicationServerIP]; ipFinded {
-				if oldApplicationServerPort == incomeApplicationServerPort {
-					updatedApplicationServers[incomeApplicationServerIP] = incomeApplicationServerPort
-				}
-			}
-		}
-		return oldApplicationServers
 	}
 	return nil
 }

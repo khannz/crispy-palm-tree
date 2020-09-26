@@ -8,7 +8,8 @@ import (
 
 // ServiceHealthcheck ...
 type ServiceHealthcheck struct {
-	StopChecks                      chan struct{} `json:"-"` // when need to stop checks
+	StopChecks                      chan struct{} `json:"-"` // when we need to say stop checks
+	ChecksStoped                    chan struct{} `json:"-"` // when checks stoped
 	PercentOfAlivedForUp            int           `json:"percentOfAlivedForUp"`
 	Type                            string        `json:"type" example:"http"`
 	Timeout                         time.Duration `json:"timeout" example:"1000000000"`

@@ -117,7 +117,7 @@ func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (int, error) {
 
 	var sliceOfOldTunelNames []int
 	for _, f := range files {
-		tunnelFileMaker.logging.Warnf("file find: %v", f.Name())
+		tunnelFileMaker.logging.Tracef("file find: %v", f.Name())
 		if strings.Contains(f.Name(), "-sysctl.conf") {
 			stringOldTunelName := strings.TrimSuffix(f.Name(), "-sysctl.conf")
 			intOldTunelName, err := strconv.Atoi(stringOldTunelName)

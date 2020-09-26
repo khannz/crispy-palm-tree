@@ -51,14 +51,15 @@ var rootCmd = &cobra.Command{
 			"number of users":           len(viperConfig.GetStringMapString(credentials)),
 		}).Info("")
 
-		if isColdStart() && !viperConfig.GetBool(mockMode) {
-			err := checkPrerequisites(uuidForRootProcess, logging)
-			if err != nil {
-				logging.WithFields(logrus.Fields{
-					"event uuid": uuidForRootProcess,
-				}).Fatalf("check prerequisites error: %v", err)
-			}
-		}
+		// FIXME: uncomment
+		// if isColdStart() && !viperConfig.GetBool(mockMode) {
+		// 	err := checkPrerequisites(uuidForRootProcess, logging)
+		// 	if err != nil {
+		// 		logging.WithFields(logrus.Fields{
+		// 			"event uuid": uuidForRootProcess,
+		// 		}).Fatalf("check prerequisites error: %v", err)
+		// 	}
+		// }
 
 		locker := &domain.Locker{}
 		gracefulShutdown := &domain.GracefulShutdown{}
@@ -88,7 +89,7 @@ var rootCmd = &cobra.Command{
 		defer persistentDB.Db.Close()
 
 		// ipvsadmConfigurator start
-		ipvsadmConfigurator, err := portadapter.NewIPVSADMEntity()
+		ipvsadmConfigurator, err := portadapter.NewIPVSADMEntity(logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
@@ -135,10 +136,6 @@ var rootCmd = &cobra.Command{
 		}
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
 
-		// hc start
-		if err = hc.StartHealthchecksForCurrentServices(); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("Fail to load storage data to services info for healthcheck: %v", err)
-		}
 		go hc.StartGracefulShutdownControlForHealthchecks() // TODO: graceful shutdown for healthchecks is overhead. Remove that?
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("healthchecks for current services started")
 
@@ -164,7 +161,7 @@ var rootCmd = &cobra.Command{
 		<-restAPIisDone
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("rest API is Done")
 
-		gracefulShutdown.ShutdownNow = false // TODO: so dirty trick
+		// gracefulShutdown.ShutdownNow = false // TODO: so dirty trick
 		if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
 			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("disable runtime settings fail: %v", err)
 		}

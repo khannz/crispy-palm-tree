@@ -80,17 +80,15 @@ type UnknownDataStruct struct {
 
 // StartGracefulShutdownControlForHealthchecks ...
 func (hc *HeathcheckEntity) StartGracefulShutdownControlForHealthchecks() {
-	ticker := time.NewTicker(5 * time.Second)
-	for range ticker.C {
-		hc.Lock()
-		if hc.gracefulShutdown.ShutdownNow {
-			for _, serviceInfo := range hc.runningHeathchecks {
-				serviceInfo.Lock()
-				serviceInfo.Healthcheck.StopChecks <- struct{}{}
-				serviceInfo.Unlock()
-			}
+	hc.Lock()
+	defer hc.Unlock()
+	if hc.gracefulShutdown.ShutdownNow {
+		for _, serviceInfo := range hc.runningHeathchecks {
+			serviceInfo.Healthcheck.StopChecks <- struct{}{}
 		}
-		hc.Unlock()
+		for _, serviceInfo := range hc.runningHeathchecks {
+			<-serviceInfo.Healthcheck.ChecksStoped
+		}
 	}
 }
 
@@ -127,19 +125,23 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(serviceInfo *domain.ServiceI
 	go hc.startHealthchecksForCurrentService(serviceInfo)
 }
 
-// RemoveServiceFromHealtchecks ...
+// RemoveServiceFromHealtchecks will work until removed
 func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.ServiceInfo) {
 	hc.Lock()
-	defer hc.Unlock()
 	if hc.gracefulShutdown.ShutdownNow {
+		hc.Unlock()
 		return
 	}
 	indexForRemove, isFinded := hc.findServiceInHealtcheckSlice(serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	hc.Unlock()
 	if isFinded {
-		hc.runningHeathchecks[indexForRemove].Lock()
 		hc.runningHeathchecks[indexForRemove].Healthcheck.StopChecks <- struct{}{}
-		hc.runningHeathchecks[indexForRemove].Unlock()
+		<-hc.runningHeathchecks[indexForRemove].Healthcheck.ChecksStoped
+		hc.runningHeathchecks[indexForRemove].Lock()
+		hc.Lock()
 		hc.runningHeathchecks = append(hc.runningHeathchecks[:indexForRemove], hc.runningHeathchecks[indexForRemove+1:]...)
+		hc.Unlock()
+		hc.runningHeathchecks[indexForRemove].Unlock()
 	} else {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":     healthcheckName,
@@ -153,19 +155,27 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 // UpdateServiceAtHealtchecks ...
 func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.ServiceInfo) error {
 	hc.Lock()
-	defer hc.Unlock()
 	if hc.gracefulShutdown.ShutdownNow {
+		hc.Unlock()
 		return nil
 	}
 	updateIndex, isFinded := hc.findServiceInHealtcheckSlice(serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	hc.Unlock()
 	if isFinded {
 		hc.runningHeathchecks[updateIndex].Lock()
+		hc.Lock()
 		currentApplicationServers := getCopyOfApplicationServersFromService(hc.runningHeathchecks[updateIndex])
-		hc.runningHeathchecks[updateIndex].Healthcheck.StopChecks <- struct{}{}
+		hc.Unlock()
 		hc.runningHeathchecks[updateIndex].Unlock()
+		hc.runningHeathchecks[updateIndex].Healthcheck.StopChecks <- struct{}{}
+		<-hc.runningHeathchecks[updateIndex].Healthcheck.ChecksStoped
 		enrichApplicationServersHealthchecks(serviceInfo, currentApplicationServers) // locks inside
 		tmpHC := append(hc.runningHeathchecks[:updateIndex], serviceInfo)
+		hc.runningHeathchecks[updateIndex].Lock()
+		hc.Lock()
 		hc.runningHeathchecks = append(tmpHC, hc.runningHeathchecks[updateIndex+1:]...)
+		hc.Unlock()
+		hc.runningHeathchecks[updateIndex].Unlock()
 		go hc.startHealthchecksForCurrentService(serviceInfo)
 		return nil
 	}
@@ -186,6 +196,7 @@ func enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceI
 	newServiceHealthcheck.Lock()
 	defer newServiceHealthcheck.Unlock()
 	newServiceHealthcheck.Healthcheck.StopChecks = make(chan struct{}, 1)
+	newServiceHealthcheck.Healthcheck.ChecksStoped = make(chan struct{}, 1)
 	for i := range newServiceHealthcheck.ApplicationServers {
 		retriesCounterForUp := make([]bool, newServiceHealthcheck.Healthcheck.RetriesForUpApplicationServer)
 		retriesCounterForDown := make([]bool, newServiceHealthcheck.Healthcheck.RetriesForDownApplicationServer)
@@ -236,6 +247,7 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(serviceInfo *doma
 	for {
 		select {
 		case <-serviceInfo.Healthcheck.StopChecks:
+			serviceInfo.Healthcheck.ChecksStoped <- struct{}{}
 			return
 		case <-ticker.C:
 			hc.CheckApplicationServersInService(serviceInfo)
@@ -246,37 +258,67 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(serviceInfo *doma
 // CheckApplicationServersInService ...
 func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain.ServiceInfo) {
 	fs := &failedApplicationServers{wg: new(sync.WaitGroup)}
-	for i, applicationServerInfo := range serviceInfo.ApplicationServers {
+
+	for i := range serviceInfo.ApplicationServers {
 		fs.wg.Add(1)
 		go hc.checkApplicationServerInService(serviceInfo,
-			applicationServerInfo,
 			fs,
 			i) // locks inside
 	}
 	fs.wg.Wait()
-	percentageDown := percentageOfDown(len(serviceInfo.ApplicationServers), fs.count)
+	percentageUp := percentageOfUp(len(serviceInfo.ApplicationServers), fs.count)
 	hc.logging.WithFields(logrus.Fields{
 		"entity":     healthcheckName,
 		"event uuid": healthcheckUUID,
-	}).Debugf("Heathcheck: in service %v:%v failed services is %v of %v; %v failed percent of %v max for this service",
+	}).Debugf("Heathcheck: in service %v:%v failed services is %v of %v; %v up percent of %v max for this service",
 		serviceInfo.ServiceIP,
 		serviceInfo.ServicePort,
 		fs.count,
 		len(serviceInfo.ApplicationServers),
-		percentageDown,
+		percentageUp,
 		serviceInfo.Healthcheck.PercentOfAlivedForUp)
-	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageDown, serviceInfo.Healthcheck.PercentOfAlivedForUp)
-	if isServiceUp {
+	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageUp, serviceInfo.Healthcheck.PercentOfAlivedForUp)
+	hc.logging.Debugf("Old service state %v. New service state %v", serviceInfo.IsUp, isServiceUp)
+
+	if !serviceInfo.IsUp && isServiceUp {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Warnf("service %v:%v is up now", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		serviceInfo.IsUp = true
-		hc.addToDummyWrapper(serviceInfo.ServiceIP) // FIXME: do not touch dummy
-	} else {
+		hc.addToDummyWrapper(serviceInfo.ServiceIP)
+	} else if serviceInfo.IsUp && !isServiceUp {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Warnf("service %v:%v is down now", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		serviceInfo.IsUp = false
-		hc.removeFromDummyWrapper(serviceInfo.ServiceIP) // FIXME: do not touch dummy
+		hc.removeFromDummyWrapper(serviceInfo.ServiceIP)
+	} else {
+		hc.logging.Debugf("service state not changed")
+	}
+	hc.updateInStorages(serviceInfo)
+}
+
+func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
+	errUpdataCache := hc.cacheStorage.UpdateServiceInfo(serviceInfo, healthcheckUUID)
+	if errUpdataCache != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Errorf("Heathcheck update info in cache fail: %v", errUpdataCache)
+	}
+
+	errPersistantStorage := hc.persistentStorage.UpdateServiceInfo(serviceInfo, healthcheckUUID)
+	if errPersistantStorage != nil {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":     healthcheckName,
+			"event uuid": healthcheckUUID,
+		}).Errorf("Heathcheck update info in persistent storage fail: %v", errPersistantStorage)
 	}
 }
 
 func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.ServiceInfo,
-	applicationServerInfo *domain.ApplicationServer,
 	fs *failedApplicationServers,
 	applicationServerInfoIndex int) {
 	// TODO: to many code here.. Refactor to funcs
@@ -284,17 +326,25 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 	var isApplicationServerUp, isApplicationServerChangeState bool
 	switch serviceInfo.Healthcheck.Type {
 	case "tcp":
-		isCheckOk := hc.tcpCheckOk(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+		isCheckOk := hc.tcpCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
+			hc.logging.Debugf("one HC for %v:%v fail",
+				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
+				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort)
 			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
-			if !isApplicationServerUp {
+			hc.logging.Debugf("NOT OK CheckOk: isApplicationServer %v:%v Up: %v; is change state: %v",
+				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
+				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort,
+				isApplicationServerUp,
+				isApplicationServerChangeState)
+			if !isApplicationServerUp { // FIXME: fail by 1 ping count
 				fs.Lock()
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, serviceInfo.ApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":     healthcheckName,
 							"event uuid": healthcheckUUID,
@@ -306,13 +356,18 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		}
 		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+		hc.logging.Debugf("CheckOk: isApplicationServer %v:%v Up: %v; is change state: %v",
+			serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
+			serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort,
+			isApplicationServerUp,
+			isApplicationServerChangeState)
 		if !isApplicationServerUp {
 			fs.Lock()
 			fs.count++
 			fs.Unlock()
 		}
 	case "http":
-		isCheckOk := hc.httpCheckOk(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+		isCheckOk := hc.httpCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
 			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
@@ -322,7 +377,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, serviceInfo.ApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":     healthcheckName,
 							"event uuid": healthcheckUUID,
@@ -340,7 +395,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Unlock()
 		}
 	case "http-advanced":
-		isCheckOk := hc.httpAdvancedCheckOk(applicationServerInfo.ServerHealthcheck,
+		isCheckOk := hc.httpAdvancedCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
 			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
@@ -350,7 +405,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, serviceInfo.ApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":     healthcheckName,
 							"event uuid": healthcheckUUID,
@@ -368,7 +423,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			fs.Unlock()
 		}
 	case "icmp":
-		isCheckOk := hc.icmpCheckOk(applicationServerInfo.ServerHealthcheck.HealthcheckAddress,
+		isCheckOk := hc.icmpCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
 			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
@@ -378,7 +433,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, applicationServerInfo); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(serviceInfo, serviceInfo.ApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":     healthcheckName,
 							"event uuid": healthcheckUUID,
@@ -404,7 +459,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 	}
 
 	if isApplicationServerUp && isApplicationServerChangeState { // TODO: trace info TODO: do not UP when server already up!
-		if err := hc.inclideApplicationServerInIPVS(serviceInfo, applicationServerInfo); err != nil {
+		if err := hc.inclideApplicationServerInIPVS(serviceInfo, serviceInfo.ApplicationServers[applicationServerInfoIndex]); err != nil {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":     healthcheckName,
 				"event uuid": healthcheckUUID,
@@ -419,10 +474,13 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(serviceInfo *dom
 	//return isUp and isChagedState booleans
 	serviceInfo.Lock()
 	defer serviceInfo.Unlock()
+	hc.logging.Tracef("real: %v:%v, RetriesCounterForDown: %v", serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP, serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort, serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.RetriesCounterForDown)
+	hc.logging.Tracef("real: %v:%v, RetriesCounterForUp: %v", serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP, serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort, serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.RetriesCounterForUp)
+
 	if serviceInfo.ApplicationServers[applicationServerInfoIndex].IsUp {
 		// check it not down
-		for _, state := range serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.RetriesCounterForDown {
-			if state { // at least one hc ok
+		for _, isUp := range serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.RetriesCounterForDown {
+			if isUp {
 				return true, false // do not change up state
 			}
 		}
@@ -436,20 +494,24 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(serviceInfo *dom
 		return false, true
 	}
 
-	for _, state := range serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.RetriesCounterForUp {
-		if state { // at least one hc ok
-			serviceInfo.ApplicationServers[applicationServerInfoIndex].IsUp = true // if all hc fail at RetriesCounterForDown - change state
-			hc.logging.WithFields(logrus.Fields{
-				"event uuid": healthcheckUUID,
-			}).Warnf("at service %v:%v real server %v:%v UP", serviceInfo.ServiceIP,
-				serviceInfo.ServicePort,
-				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
-				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort)
-			return true, true
+	for _, isUp := range serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.RetriesCounterForUp {
+		if !isUp {
+			// do not change down state
+			return false, false
 		}
+
 	}
-	return false, false
-	// do not change down state
+
+	// all RetriesCounterForUp true
+	serviceInfo.ApplicationServers[applicationServerInfoIndex].IsUp = true // if all hc fail at RetriesCounterForDown - change state
+	hc.logging.WithFields(logrus.Fields{
+		"event uuid": healthcheckUUID,
+	}).Warnf("at service %v:%v real server %v:%v UP", serviceInfo.ServiceIP,
+		serviceInfo.ServicePort,
+		serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
+		serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort)
+	return true, true
+
 }
 
 func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(serviceInfo *domain.ServiceInfo, applicationServerInfoIndex int, isUpNow bool) {
@@ -683,19 +745,20 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(serviceInfo *domain.S
 
 }
 
-func percentageOfDown(rawTotal, rawDown int) float32 {
+func percentageOfUp(rawTotal, rawDown int) float32 {
 	total := float32(rawTotal)
 	down := float32(rawDown)
 	if down == total {
-		return 100
+		return 0
 	}
 	if down == 0 {
-		return 0
+		return 100
 	}
 	return (total - down) * 100 / total
 }
-func percentageOfDownBelowMPercentOfAlivedForUp(pofDown float32, maxDownForUp int) bool {
-	return float32(maxDownForUp) >= pofDown
+
+func percentageOfDownBelowMPercentOfAlivedForUp(pofUp float32, maxDownForUp int) bool {
+	return float32(maxDownForUp) <= pofUp
 }
 
 // http advanced start

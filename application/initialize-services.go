@@ -9,6 +9,9 @@ import (
 
 // InitializeRuntimeSettings ...
 func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(uuid string) error {
+	if err := balancerFacade.resetHealtchecksInfo(uuid); err != nil {
+		return err
+	}
 	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return fmt.Errorf("fail to load  storage config at start")
@@ -17,8 +20,29 @@ func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(uuid string) err
 		return fmt.Errorf("fail to remove old tunnels data: %v", err)
 	}
 	for _, serviceConfigFromStorage := range servicesConfigsFromStorage {
+
 		if err := balancerFacade.InitializeCreateService(serviceConfigFromStorage, uuid); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (balancerFacade *BalancerFacade) resetHealtchecksInfo(uuid string) error {
+	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
+	if err != nil {
+		return fmt.Errorf("fail to load storage config at start")
+	}
+	for i := range servicesConfigsFromStorage {
+		servicesConfigsFromStorage[i].IsUp = false
+		for j := range servicesConfigsFromStorage[i].ApplicationServers {
+			servicesConfigsFromStorage[i].ApplicationServers[j].IsUp = false
+		}
+		if err := balancerFacade.CacheStorage.UpdateServiceInfo(servicesConfigsFromStorage[i], uuid); err != nil {
+			return fmt.Errorf("fail to update service info at start")
+		}
+		if err := balancerFacade.PersistentStorage.UpdateServiceInfo(servicesConfigsFromStorage[i], uuid); err != nil {
+			return fmt.Errorf("fail to update service info at start")
 		}
 	}
 	return nil

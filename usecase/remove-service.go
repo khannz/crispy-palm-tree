@@ -79,7 +79,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	logTryPreValidateRequest(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 
 	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
-	removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
+	removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo) // will wait until removed
 	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 
 	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer
