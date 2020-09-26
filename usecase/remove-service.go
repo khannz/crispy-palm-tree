@@ -60,7 +60,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	removeServiceEntity.gracefulShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefulShutdown)
 	// graceful shutdown part end
-	logStartUsecase(removeServiceName, "add new application servers to service", removeServiceUUID, serviceInfo, removeServiceEntity.logging)
+	logStartUsecase(removeServiceName, "remove service", removeServiceUUID, serviceInfo, removeServiceEntity.logging)
 	allCurrentServices, err := removeServiceEntity.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return fmt.Errorf("fail when loading info about current services: %v", err)
@@ -77,6 +77,10 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	}
 	logGotCurrentServiceInfo(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
 	logTryPreValidateRequest(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
+
+	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
+	removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
+	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
 
 	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer
 	if currentServiceInfo.Protocol == "tcp" {
@@ -130,16 +134,15 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		}
 	}
 
-	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
-	removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
-	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
-
 	logTryRemoveIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
 	if !removeServiceEntity.hc.IsMockMode() {
 		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
-			return err
+			removeServiceEntity.logging.WithFields(logrus.Fields{
+				"event uuid": removeServiceUUID,
+			}).Warnf("remove service from dummy error: %v", err)
+		} else {
+			logRemovedIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
 		}
 	}
-	logRemovedIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
 	return nil
 }

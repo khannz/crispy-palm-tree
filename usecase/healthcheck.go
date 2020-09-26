@@ -268,13 +268,12 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 		serviceInfo.Healthcheck.PercentOfAlivedForUp)
 	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageDown, serviceInfo.Healthcheck.PercentOfAlivedForUp)
 	if isServiceUp {
-		serviceInfo.IsUp = false
-		hc.removeFromDummyWrapper(serviceInfo.ServiceIP) // FIXME: do not touch dummy
-	} else {
 		serviceInfo.IsUp = true
 		hc.addToDummyWrapper(serviceInfo.ServiceIP) // FIXME: do not touch dummy
+	} else {
+		serviceInfo.IsUp = false
+		hc.removeFromDummyWrapper(serviceInfo.ServiceIP) // FIXME: do not touch dummy
 	}
-	hc.updateInStorages(serviceInfo)
 }
 
 func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.ServiceInfo,
@@ -459,24 +458,6 @@ func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(serviceInfo *domai
 	}
 	serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.RetriesCounterForDown[serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.LastIndexForDown] = isUpNow
 	serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.LastIndexForDown++
-}
-
-func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
-	errUpdataCache := hc.cacheStorage.UpdateServiceInfo(serviceInfo, healthcheckUUID)
-	if errUpdataCache != nil {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Errorf("Heathcheck update info in cache fail: %v", errUpdataCache)
-	}
-
-	errPersistantStorage := hc.persistentStorage.UpdateServiceInfo(serviceInfo, healthcheckUUID)
-	if errPersistantStorage != nil {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":     healthcheckName,
-			"event uuid": healthcheckUUID,
-		}).Errorf("Heathcheck update info in persistent storage fail: %v", errPersistantStorage)
-	}
 }
 
 func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
