@@ -97,6 +97,26 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 		logCreatedNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
 	}
 
+	logTryCreateIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
+	vip, port, routingType, balanceType, protocol, err := domain.PrepareServiceForIPVS(serviceInfo.ServiceIP,
+		serviceInfo.ServicePort,
+		serviceInfo.RoutingType,
+		serviceInfo.BalanceType,
+		serviceInfo.Protocol)
+	if err != nil {
+		return serviceInfo, fmt.Errorf("error prepare data for IPVS: %v", err)
+	}
+	if err := createService.ipvsadm.CreateService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		nil,
+		createServiceUUID); err != nil {
+		return serviceInfo, fmt.Errorf("Error when ipvsadm create service: %v", err)
+	}
+	logCreatedIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
+
 	// add to cache storage
 	logTryUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
 	if err := createService.cacheStorage.NewServiceInfoToStorage(serviceInfo, createServiceUUID); err != nil {

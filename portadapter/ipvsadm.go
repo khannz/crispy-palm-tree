@@ -47,8 +47,10 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(vip string,
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
 
-	if err = ipvsadmEntity.addApplicationServersToService(ipvs, vip, port, protocol, routingType, applicationServers); err != nil {
-		return fmt.Errorf("cant add application server to service: %v", err)
+	if applicationServers != nil {
+		if err = ipvsadmEntity.addApplicationServersToService(ipvs, vip, port, protocol, routingType, applicationServers); err != nil {
+			return fmt.Errorf("cant add application server to service: %v", err)
+		}
 	}
 
 	return nil

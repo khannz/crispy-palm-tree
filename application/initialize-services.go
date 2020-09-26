@@ -59,6 +59,23 @@ func (balancerFacade *BalancerFacade) InitializeCreateService(serviceConfigFromS
 			return fmt.Errorf("can't add to persistent storage :%v", err)
 		}
 	}
+	vip, port, routingType, balanceType, protocol, err := domain.PrepareServiceForIPVS(serviceConfigFromStorage.ServiceIP,
+		serviceConfigFromStorage.ServicePort,
+		serviceConfigFromStorage.RoutingType,
+		serviceConfigFromStorage.BalanceType,
+		serviceConfigFromStorage.Protocol)
+	if err != nil {
+		return fmt.Errorf("error prepare data for IPVS: %v", err)
+	}
+	if err := balancerFacade.IPVSADMConfigurator.CreateService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		nil,
+		uuid); err != nil {
+		return fmt.Errorf("Error when ipvsadm create service: %v", err)
+	}
 	balancerFacade.HeathcheckEntity.NewServiceToHealtchecks(serviceConfigFromStorage)
 	return nil
 }
