@@ -266,7 +266,8 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 		len(serviceInfo.ApplicationServers),
 		percentageDown,
 		serviceInfo.Healthcheck.PercentOfAlivedForUp)
-	if percentageDown > serviceInfo.Healthcheck.PercentOfAlivedForUp {
+	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageDown, serviceInfo.Healthcheck.PercentOfAlivedForUp)
+	if isServiceUp {
 		serviceInfo.IsUp = false
 		hc.removeFromDummyWrapper(serviceInfo.ServiceIP) // FIXME: do not touch dummy
 	} else {
@@ -693,14 +694,19 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(serviceInfo *domain.S
 
 }
 
-func percentageOfDown(total, down int) int {
-	if total == down {
+func percentageOfDown(rawTotal, rawDown int) float32 {
+	total := float32(rawTotal)
+	down := float32(rawDown)
+	if down == total {
 		return 100
 	}
 	if down == 0 {
 		return 0
 	}
 	return (total - down) * 100 / total
+}
+func percentageOfDownBelowMPercentOfAlivedForUp(pofDown float32, maxDownForUp int) bool {
+	return float32(maxDownForUp) >= pofDown
 }
 
 // http advanced start
