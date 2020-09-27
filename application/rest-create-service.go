@@ -31,6 +31,7 @@ func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 	createService := &NewServiceInfo{}
 
 	if err := ginContext.ShouldBindJSON(createService); err != nil {
+		// TODO: log here
 		unmarshallIncomeError(err.Error(),
 			createServiceUUID,
 			ginContext,

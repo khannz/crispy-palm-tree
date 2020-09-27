@@ -108,8 +108,7 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 }
 
 // RemoveService ...
-func (balancerFacade *BalancerFacade) RemoveService(removeServiceRequest *RemoveServiceInfo,
-	newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestUUID string) error {
 	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -118,7 +117,7 @@ func (balancerFacade *BalancerFacade) RemoveService(removeServiceRequest *Remove
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	serviceInfo := &domain.ServiceInfo{ServiceIP: removeServiceRequest.ServiceIP, ServicePort: removeServiceRequest.ServicePort}
+	serviceInfo := &domain.ServiceInfo{ServiceIP: ip, ServicePort: port}
 	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
 }
 

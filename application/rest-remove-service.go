@@ -2,10 +2,8 @@ package application
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 const removeServiceRequestName = "remove service"
@@ -14,37 +12,24 @@ const removeServiceRequestName = "remove service"
 // @tags Load balancer
 // @Summary Remove nlb service
 // @Description Больше, чем балансировщик
-// @Param incomeJSON body application.RemoveServiceInfo true "Expected json"
-// @Accept json
+// @Param addr path string true "IP"
+// @Param port path uint true "Port"
 // @Produce json
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /service/remove-service [post]
+// @Router /service/{addr}/{port} [delete]
 // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+	// TODO: log here. and all code below
 	logNewRequest(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
 
-	removeService := &RemoveServiceInfo{}
-
-	if err := ginContext.ShouldBindJSON(removeService); err != nil {
-		unmarshallIncomeError(err.Error(),
-			removeServiceUUID,
-			ginContext,
-			restAPI.balancerFacade.Logging)
-		return
-	}
-
-	if validateError := removeService.validateRemoveNWBRequest(); validateError != nil {
-		validateIncomeError(validateError.Error(), removeServiceUUID, ginContext, restAPI.balancerFacade.Logging)
-		return
-	}
-
-	logChangeUUID(removeServiceUUID, removeService.ID, restAPI.balancerFacade.Logging)
-	removeServiceUUID = removeService.ID
-
-	err := restAPI.balancerFacade.RemoveService(removeService,
+	ip := ginContext.Param("addr")
+	port := ginContext.Param("port")
+	// FIXME: validate ip and port
+	err := restAPI.balancerFacade.RemoveService(ip,
+		port,
 		removeServiceUUID)
 	if err != nil {
 		uscaseFail(removeServiceRequestName,
@@ -59,31 +44,31 @@ func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 
 	serviceRemoved := UniversalResponse{
 		ID:                       removeServiceUUID,
-		ServiceIP:                removeService.ServiceIP,
-		ServicePort:              removeService.ServicePort,
+		ServiceIP:                ip,
+		ServicePort:              port,
 		JobCompletedSuccessfully: true,
 		ExtraInfo:                "service removed",
 	}
 	ginContext.JSON(http.StatusOK, serviceRemoved)
 }
 
-func (removeService *RemoveServiceInfo) validateRemoveNWBRequest() error {
-	validate := validator.New()
-	validate.RegisterStructValidation(customPortRemoveServiceInfoValidation, RemoveServiceInfo{})
-	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	if err := validate.Struct(removeService); err != nil {
-		return modifyValidateError(err)
-	}
-	return nil
-}
+// func (removeService *RemoveServiceInfo) validateRemoveNWBRequest() error {
+// 	validate := validator.New()
+// 	validate.RegisterStructValidation(customPortRemoveServiceInfoValidation, RemoveServiceInfo{})
+// 	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
+// 	if err := validate.Struct(removeService); err != nil {
+// 		return modifyValidateError(err)
+// 	}
+// 	return nil
+// }
 
-func customPortRemoveServiceInfoValidation(sl validator.StructLevel) {
-	nrbi := sl.Current().Interface().(RemoveServiceInfo)
-	port, err := strconv.Atoi(nrbi.ServicePort)
-	if err != nil {
-		sl.ReportError(nrbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
-	}
-	if !(port > 0) || !(port < 20000) {
-		sl.ReportError(nrbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
-	}
-}
+// func customPortRemoveServiceInfoValidation(sl validator.StructLevel) {
+// 	nrbi := sl.Current().Interface().(RemoveServiceInfo)
+// 	port, err := strconv.Atoi(nrbi.ServicePort)
+// 	if err != nil {
+// 		sl.ReportError(nrbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
+// 	}
+// 	if !(port > 0) || !(port < 20000) {
+// 		sl.ReportError(nrbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
+// 	}
+// }
