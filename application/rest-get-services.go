@@ -29,7 +29,7 @@ func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 		rError := &UniversalResponse{
 			ID:                       getServicesRequestUUID,
 			JobCompletedSuccessfully: false,
-			ExtraInfo:                "can't %v, got internal error: " + err.Error(),
+			ExtraInfo:                "got internal error: " + err.Error(),
 		}
 		ginContext.JSON(http.StatusInternalServerError, rError)
 		return

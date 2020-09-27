@@ -76,11 +76,11 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	// service := restAPI.router.Group("/service")
 	// service.Use(jwt.Auth(restAPI.authorization.mainSecret))
 	restAPI.router.GET("/services", restAPI.getServices)
+	restAPI.router.GET("/service/:addr/:port", restAPI.getService)
 	restAPI.router.POST("/create-service", restAPI.createService)
 	restAPI.router.POST("/remove-service", restAPI.removeService)
 	restAPI.router.POST("/add-application-servers", restAPI.addApplicationServers)
 	restAPI.router.POST("/remove-application-servers", restAPI.removeApplicationServers)
-	restAPI.router.POST("/get-service", restAPI.getService)
 	restAPI.router.POST("/modify-service", restAPI.modifyService)
 
 	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
