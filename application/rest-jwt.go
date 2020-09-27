@@ -19,7 +19,7 @@ const (
 // @tags auth
 // @Summary Create jwt
 // @Description Make jwt easier ;)
-// @Param incomeJSON body application.TokenRequest true "Expected json"
+// @Param incomeJSON body application.LoginRequest true "Expected json"
 // @Accept json
 // @Produce json
 // @Success 200 {object} application.LoginResponseOkay "If all okay"
