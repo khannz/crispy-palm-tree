@@ -11,7 +11,7 @@ import (
 const removeApplicationServersRequestName = "remove application servers"
 
 // removeApplicationServers godoc
-// @tags Load balancer
+// @tags load balancer
 // @Summary Remove application servers
 // @Description Больше, чем балансировщик
 // @Param incomeJSON body application.RemoveApplicationServersRequest true "Expected json"
@@ -21,7 +21,7 @@ const removeApplicationServersRequestName = "remove application servers"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/remove-application-servers [post]
-// @Security ApiKeyAuth
+// // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) {
 	removeApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 

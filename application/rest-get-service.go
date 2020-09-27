@@ -10,7 +10,7 @@ import (
 const getServiceRequestName = "get service state"
 
 // getService godoc
-// @tags Load balancer
+// @tags load balancer
 // @Summary Get service
 // @Description Больше, чем балансировщик
 // @Param addr path string true "IP"
@@ -20,7 +20,7 @@ const getServiceRequestName = "get service state"
 // @Failure 400 {object} application.UniversalResponseWithStates "Bad request"
 // @Failure 500 {object} application.UniversalResponseWithStates "Internal error"
 // @Router /service/{addr}/{port} [get]
-// @Security ApiKeyAuth
+// // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 	getServiceRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": getServiceRequestUUID}).Infof("got new %v request", getServiceRequestName)

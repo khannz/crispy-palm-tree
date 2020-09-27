@@ -12,7 +12,7 @@ import (
 const createServiceRequestName = "create service"
 
 // createService godoc
-// @tags Load balancer
+// @tags load balancer
 // @Summary Create service
 // @Description Больше, чем балансировщик
 // @Param addr path string true "IP"
@@ -24,7 +24,7 @@ const createServiceRequestName = "create service"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/{addr}/{port} [post]
-// @Security ApiKeyAuth
+// // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 	createServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": createServiceUUID}).Infof("got new %v request", createServiceRequestName)

@@ -9,7 +9,7 @@ import (
 const removeServiceRequestName = "remove service"
 
 // removeService godoc
-// @tags Load balancer
+// @tags load balancer
 // @Summary Remove nlb service
 // @Description Больше, чем балансировщик
 // @Param addr path string true "IP"
@@ -19,7 +19,7 @@ const removeServiceRequestName = "remove service"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/{addr}/{port} [delete]
-// @Security ApiKeyAuth
+// // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	// TODO: log here. and all code below

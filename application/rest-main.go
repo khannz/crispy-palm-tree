@@ -86,10 +86,10 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
 	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
-	jwtGroup := restAPI.router.Group("/jwt")
-	jwtGroup.POST("/request-token", restAPI.loginRequest)
+	// jwtGroup := restAPI.router.Group("/jwt")
+	// jwtGroup.POST("/request-token", restAPI.loginRequest)
 	// jwtGroup.Use(jwt.Auth(restAPI.authorization.mainSecretForRefresh))
-	jwtGroup.POST("/refresh-token", restAPI.tokenRefresh)
+	// jwtGroup.POST("/refresh-token", restAPI.tokenRefresh)
 
 	err := restAPI.server.ListenAndServe()
 	if err != nil {

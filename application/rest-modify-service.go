@@ -12,7 +12,7 @@ import (
 const modifyServiceRequestName = "modify service"
 
 // modifyService godoc
-// @tags Load balancer
+// @tags load balancer
 // @Summary Modify service
 // @Description Больше, чем балансировщик
 // @Param addr path string true "IP"
@@ -24,7 +24,7 @@ const modifyServiceRequestName = "modify service"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/{addr}/{port} [put]
-// @Security ApiKeyAuth
+// // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 	modifyServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": modifyServiceUUID}).Infof("got new %v request", modifyServiceRequestName)

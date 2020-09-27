@@ -11,7 +11,7 @@ import (
 const addApplicationServersRequestName = "add application servers"
 
 // addApplicationServers godoc
-// @tags Load balancer
+// @tags load balancer
 // @Summary Add application servers
 // @Description Больше, чем балансировщик
 // @Param incomeJSON body application.AddApplicationServersRequest true "Expected json"
@@ -21,7 +21,7 @@ const addApplicationServersRequestName = "add application servers"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /service/add-application-servers [post]
-// @Security ApiKeyAuth
+// // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	addApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	logNewRequest(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)

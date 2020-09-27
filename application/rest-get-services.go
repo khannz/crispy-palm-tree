@@ -10,14 +10,14 @@ import (
 const getServicesName = "get services"
 
 // getServices godoc
-// @tags Load balancer
+// @tags load balancer
 // @Summary Get services
 // @Description Больше, чем балансировщик
 // @Produce json
 // @Success 200 {object} application.GetAllServicesResponse "If all okay"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
 // @Router /services [get]
-// @Security ApiKeyAuth
+// // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": getServicesRequestUUID}).Infof("got new %v request", getServicesName)
