@@ -23,7 +23,6 @@ const getServiceRequestName = "get service state"
 // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 	getServiceRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	logNewRequest(getServiceRequestName, getServiceRequestUUID, restAPI.balancerFacade.Logging)
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": getServiceRequestUUID}).Infof("got new %v request", getServiceRequestName)
 	ip := ginContext.Param("addr")
 	port := ginContext.Param("port")

@@ -6,26 +6,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
 )
 
-const addServiceRequestName = "add service"
+const createServiceRequestName = "create service"
 
 // createService godoc
-// @tags Network balance services
+// @tags Load balancer
 // @Summary Create service
-// @Description Make network balance service easier ;)
+// @Description Больше, чем балансировщик
+// @Param addr path string true "IP"
+// @Param port path uint true "Port"
 // @Param incomeJSON body application.NewServiceInfo true "Expected json"
 // @Accept json
 // @Produce json
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /create-service [post]
+// @Router /service/{addr}/{port} [post]
 // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 	createServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	logNewRequest(addServiceRequestName, createServiceUUID, restAPI.balancerFacade.Logging)
-
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": createServiceUUID}).Infof("got new %v request", createServiceRequestName)
 	createService := &NewServiceInfo{}
 
 	if err := ginContext.ShouldBindJSON(createService); err != nil {
@@ -35,29 +37,37 @@ func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 			restAPI.balancerFacade.Logging)
 		return
 	}
+	ip := ginContext.Param("addr")
+	port := ginContext.Param("port")
+	createService.ServiceIP = ip
+	createService.ServicePort = port
 
 	if validateError := createService.validateCreateService(); validateError != nil {
+		// TODO: log and response here
 		validateIncomeError(validateError.Error(), createServiceUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
-	logChangeUUID(createServiceUUID, createService.ID, restAPI.balancerFacade.Logging)
-	createServiceUUID = createService.ID
-
 	nwbServiceInfo, err := restAPI.balancerFacade.CreateService(createService,
 		createServiceUUID)
 	if err != nil {
-		uscaseFail(addServiceRequestName,
-			err.Error(),
-			createServiceUUID,
-			ginContext,
-			restAPI.balancerFacade.Logging)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"event uuid": createServiceUUID,
+		}).Errorf("can't %v, got error: %v", createServiceRequestName, err)
+		rError := &UniversalResponse{
+			ID:                       createServiceUUID,
+			JobCompletedSuccessfully: false,
+			ExtraInfo:                "got internal error: %b" + err.Error(),
+		}
+		ginContext.JSON(http.StatusInternalServerError, rError)
 		return
 	}
 
-	logRequestIsDone(addServiceRequestName, createServiceUUID, restAPI.balancerFacade.Logging)
-
 	serviceInfo := convertDomainServiceInfoToRestUniversalResponse(nwbServiceInfo, true)
+
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"event uuid": createServiceUUID,
+	}).Infof("request %v done", createServiceRequestName)
 
 	ginContext.JSON(http.StatusOK, serviceInfo)
 }

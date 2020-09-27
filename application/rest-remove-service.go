@@ -11,9 +11,9 @@ import (
 const removeServiceRequestName = "remove service"
 
 // removeService godoc
-// @tags Network balance services
+// @tags Load balancer
 // @Summary Remove nlb service
-// @Description Make network balance service easier ;)
+// @Description Больше, чем балансировщик
 // @Param incomeJSON body application.RemoveServiceInfo true "Expected json"
 // @Accept json
 // @Produce json

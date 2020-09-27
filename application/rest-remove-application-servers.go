@@ -11,9 +11,9 @@ import (
 const removeApplicationServersRequestName = "remove application servers"
 
 // removeApplicationServers godoc
-// @tags Network balance services
+// @tags Load balancer
 // @Summary Remove application servers
-// @Description Make network balance service easier ;)
+// @Description Больше, чем балансировщик
 // @Param incomeJSON body application.RemoveApplicationServersRequest true "Expected json"
 // @Accept json
 // @Produce json

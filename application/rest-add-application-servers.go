@@ -11,9 +11,9 @@ import (
 const addApplicationServersRequestName = "add application servers"
 
 // addApplicationServers godoc
-// @tags Network balance services
+// @tags Load balancer
 // @Summary Add application servers
-// @Description Make network balance service easier ;)
+// @Description Больше, чем балансировщик
 // @Param incomeJSON body application.AddApplicationServersRequest true "Expected json"
 // @Accept json
 // @Produce json

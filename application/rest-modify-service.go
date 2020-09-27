@@ -11,16 +11,16 @@ import (
 const modifyServiceRequestName = "modify service"
 
 // modifyService godoc
-// @tags Network balance services
+// @tags Load balancer
 // @Summary Modify service
-// @Description Make network balance service easier ;)
+// @Description Больше, чем балансировщик
 // @Param incomeJSON body application.ModifyServiceInfo true "Expected json"
 // @Accept json
 // @Produce json
 // @Success 200 {object} application.UniversalResponse "If all okay"
 // @Failure 400 {object} application.UniversalResponse "Bad request"
 // @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /service/create-service [post]
+// @Router /modify-service [post]
 // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 	modifyServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
