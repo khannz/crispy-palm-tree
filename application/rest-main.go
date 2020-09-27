@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/contrib/ginrus"
-	"github.com/gin-gonic/contrib/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
@@ -41,6 +40,7 @@ func NewAuthorization(mainSecret, mainSecretForRefresh string, credentials map[s
 // RestAPIstruct restapi entity
 type RestAPIstruct struct {
 	server         *http.Server
+	ip             string
 	router         *gin.Engine
 	balancerFacade *BalancerFacade
 	authorization  *Authorization
@@ -62,6 +62,7 @@ func NewRestAPIentity(ip, port string, authorization *Authorization, balancerFac
 
 	restAPI := &RestAPIstruct{
 		server:         server,
+		ip:             ip,
 		router:         router,
 		balancerFacade: balancerFacade,
 		authorization:  authorization,
@@ -73,7 +74,7 @@ func NewRestAPIentity(ip, port string, authorization *Authorization, balancerFac
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
 	service := restAPI.router.Group("/service")
-	service.Use(jwt.Auth(restAPI.authorization.mainSecret))
+	// service.Use(jwt.Auth(restAPI.authorization.mainSecret))
 	service.POST("/create-service", restAPI.createService)
 	service.POST("/remove-service", restAPI.removeService)
 	service.POST("/get-services", restAPI.getServices)
@@ -86,8 +87,8 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
 	jwtGroup := restAPI.router.Group("/jwt")
-	jwtGroup.POST("/request-token", restAPI.tokenRequest)
-	jwtGroup.Use(jwt.Auth(restAPI.authorization.mainSecretForRefresh))
+	jwtGroup.POST("/request-token", restAPI.loginRequest)
+	// jwtGroup.Use(jwt.Auth(restAPI.authorization.mainSecretForRefresh))
 	jwtGroup.POST("/refresh-token", restAPI.tokenRefresh)
 
 	err := restAPI.server.ListenAndServe()

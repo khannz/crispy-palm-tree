@@ -12,76 +12,72 @@ import (
 
 const (
 	requestTokenName = "token request"
-	refreshTokenName = "token refresh"
+	tokenRefreshName = "token refresh"
 )
 
-// newToken godoc
-// @tags jwt
+// login godoc
+// @tags auth
 // @Summary Create jwt
 // @Description Make jwt easier ;)
 // @Param incomeJSON body application.TokenRequest true "Expected json"
 // @Accept json
 // @Produce json
-// @Success 200 {object} application.TokenResponseOkay "If all okay"
-// @Failure 400 {object} application.TokenResponseError "Bad request"
-// @Failure 500 {object} application.TokenResponseError "Internal error"
-// @Router /jwt/request-token [post]
-func (restAPI *RestAPIstruct) tokenRequest(ginContext *gin.Context) {
-	tokenRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	logNewRequest(requestTokenName, tokenRequestUUID, restAPI.balancerFacade.Logging)
+// @Success 200 {object} application.LoginResponseOkay "If all okay"
+// @Failure 400 {object} application.LoginResponseError "Bad request"
+// @Failure 500 {object} application.LoginResponseError "Internal error"
+// @Router /login [post]
+func (restAPI *RestAPIstruct) loginRequest(ginContext *gin.Context) {
+	loginRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+	logNewRequest(requestTokenName, loginRequestUUID, restAPI.balancerFacade.Logging)
 
-	tokenRequest := &TokenRequest{}
+	loginRequest := &LoginRequest{}
 
-	if err := ginContext.ShouldBindJSON(tokenRequest); err != nil {
+	if err := ginContext.ShouldBindJSON(loginRequest); err != nil {
 		unmarshallIncomeError(err.Error(),
-			tokenRequestUUID,
+			loginRequestUUID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
-	if validateError := tokenRequest.validateTokenRequest(); validateError != nil {
-		validateIncomeError(validateError.Error(), tokenRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+	if validateError := loginRequest.validateLoginRequest(); validateError != nil {
+		validateIncomeError(validateError.Error(), loginRequestUUID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
-	logChangeUUID(tokenRequestUUID, tokenRequest.ID, restAPI.balancerFacade.Logging)
-	tokenRequestUUID = tokenRequest.ID
-
-	if !restAPI.isValidUser(tokenRequest) {
-		tokenResponseError := TokenResponseError{
-			ID:    tokenRequestUUID,
-			Error: "invalid login details for user " + tokenRequest.User,
+	if !restAPI.isValidUser(loginRequest) {
+		tokenResponseError := LoginResponseError{
+			Error: "invalid login details for user " + loginRequest.User,
 		}
 		ginContext.JSON(400, tokenResponseError)
 		return
 	}
 
-	tokenResponseOkay, err := restAPI.newTokens()
+	token, refreshToken, err := restAPI.newTokens()
 	if err != nil {
-		tokenResponseError := TokenResponseError{
-			ID:    tokenRequestUUID,
+		tokenResponseError := LoginResponseError{
 			Error: err.Error(),
 		}
 		ginContext.JSON(500, tokenResponseError)
 		return
 	}
-	tokenResponseOkay.ID = tokenRequestUUID
 
-	logRequestIsDone(requestTokenName, tokenRequestUUID, restAPI.balancerFacade.Logging)
+	ginContext.SetCookie("JWT", refreshToken, 86400000, "/", restAPI.ip, false, true)
 
-	ginContext.JSON(200, tokenResponseOkay)
+	logRequestIsDone(requestTokenName, loginRequestUUID, restAPI.balancerFacade.Logging)
+
+	ginContext.JSON(200, LoginResponseOkay{AccessToken: token})
 }
 
-func (tokenRequest *TokenRequest) validateTokenRequest() error {
+func (loginRequest *LoginRequest) validateLoginRequest() error {
 	validate := validator.New()
-	if err := validate.Struct(tokenRequest); err != nil {
+	if err := validate.Struct(loginRequest); err != nil {
 		return modifyValidateError(err)
 	}
 	return nil
 }
 
-func (restAPI *RestAPIstruct) newTokens() (*TokenResponseOkay, error) {
+func (restAPI *RestAPIstruct) newTokens() (string, string, error) {
 	forNewToken := jwt_lib.New(jwt_lib.GetSigningMethod("HS256"))
 	forNewToken.Claims = jwt_lib.MapClaims{
 		"exp": time.Now().Add(restAPI.authorization.expireToken).Unix(),
@@ -89,61 +85,60 @@ func (restAPI *RestAPIstruct) newTokens() (*TokenResponseOkay, error) {
 
 	forRefreshToken := jwt_lib.New(jwt_lib.GetSigningMethod("HS256"))
 	forRefreshToken.Claims = jwt_lib.MapClaims{
-		"exp": time.Now().Add(restAPI.authorization.expireTokenForRefresh).Unix(),
+		// "exp": time.Now().Add(restAPI.authorization.expireTokenForRefresh).Unix(),
 	}
 
 	newToken, err := forNewToken.SignedString([]byte(restAPI.authorization.mainSecret))
 	if err != nil {
-		return nil, fmt.Errorf("Could not generate token")
+		return "", "", fmt.Errorf("can't not generate new token")
 	}
 
 	refreshToken, err := forRefreshToken.SignedString([]byte(restAPI.authorization.mainSecretForRefresh))
 	if err != nil {
-		return nil, fmt.Errorf("Could not generate token")
+		return "", "", fmt.Errorf("can't not generate refresh token")
 	}
 
-	return &TokenResponseOkay{
-		AccessToken:  newToken,
-		RefreshToken: refreshToken,
-	}, nil
+	return newToken, refreshToken, nil
 }
 
-func (restAPI *RestAPIstruct) isValidUser(tokenRequest *TokenRequest) bool {
-	user := strings.ToLower(tokenRequest.User)
+func (restAPI *RestAPIstruct) isValidUser(loginRequest *LoginRequest) bool {
+	user := strings.ToLower(loginRequest.User)
 	if password, ok := restAPI.authorization.credentials[user]; ok {
-		if password == tokenRequest.Password {
+		if password == loginRequest.Password {
 			return true
 		}
 	}
 	return false
 }
 
-// refreshToken godoc
-// @tags jwt
-// @Summary refresh jwt
+// tokenRefresh godoc
+// @tags auth
+// @Summary Refresh jwt
 // @Description Make jwt easier ;)
 // @Produce json
-// @Success 200 {object} application.TokenResponseOkay "If all okay"
-// @Failure 400 {object} application.TokenResponseError "Bad request"
-// @Failure 500 {object} application.TokenResponseError "Internal error"
-// @Router /jwt/refresh-token [post]
+// @Success 200 {object} application.LoginResponseOkay "If all okay"
+// @Failure 400 {object} application.LoginResponseError "Bad request"
+// @Failure 500 {object} application.LoginResponseError "Internal error"
+// @Router /token [get]
 // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) tokenRefresh(ginContext *gin.Context) {
-	tokenRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	logNewRequest(refreshTokenName, tokenRequestUUID, restAPI.balancerFacade.Logging)
+	tokenRefreshUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+	logNewRequest(tokenRefreshName, tokenRefreshUUID, restAPI.balancerFacade.Logging)
 
-	tokenResponseOkay, err := restAPI.newTokens()
+	// cookie, err := c.Cookie("JWT") // TODO: fail
+
+	token, refreshToken, err := restAPI.newTokens()
 	if err != nil {
-		tokenResponseError := TokenResponseError{
-			ID:    tokenRequestUUID,
+		tokenResponseError := LoginResponseError{
 			Error: err.Error(),
 		}
 		ginContext.JSON(500, tokenResponseError)
 		return
 	}
-	tokenResponseOkay.ID = tokenRequestUUID
 
-	logRequestIsDone(refreshTokenName, tokenRequestUUID, restAPI.balancerFacade.Logging)
+	ginContext.SetCookie("JWT", refreshToken, 86400000, "/", restAPI.ip, false, true)
 
-	ginContext.JSON(200, tokenResponseOkay)
+	logRequestIsDone(tokenRefreshName, tokenRefreshUUID, restAPI.balancerFacade.Logging)
+
+	ginContext.JSON(200, LoginResponseOkay{AccessToken: token})
 }

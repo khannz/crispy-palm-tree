@@ -138,22 +138,18 @@ type AddApplicationServersRequest struct {
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
 }
 
-// TokenRequest ...
-type TokenRequest struct {
+// LoginRequest ...
+type LoginRequest struct {
 	User     string `json:"user" validate:"required" example:"Sneshana-IE"`
 	Password string `json:"password" validate:"required" example:"secret-password"`
-	ID       string `json:"id" validate:"required,uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 }
 
-// TokenResponseOkay ...
-type TokenResponseOkay struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ID           string `json:"id"`
+// LoginResponseOkay ...
+type LoginResponseOkay struct {
+	AccessToken string `json:"accessToken"`
 }
 
-// TokenResponseError ...
-type TokenResponseError struct {
+// LoginResponseError ...
+type LoginResponseError struct {
 	Error string `json:"error"`
-	ID    string `json:"id"`
 }
