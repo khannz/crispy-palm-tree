@@ -321,25 +321,23 @@ func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
 func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.ServiceInfo,
 	fs *failedApplicationServers,
 	applicationServerInfoIndex int) {
-	// TODO: to many code here.. Refactor to funcs
+	// FIXME: to many code here.. Refactor to funcs
 	defer fs.wg.Done()
 	var isApplicationServerUp, isApplicationServerChangeState bool
 	switch serviceInfo.Healthcheck.Type {
 	case "tcp":
 		isCheckOk := hc.tcpCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
+
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 		if !isCheckOk {
-			hc.logging.Debugf("one HC for %v:%v fail",
-				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
-				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort)
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
 			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
-			hc.logging.Debugf("NOT OK CheckOk: isApplicationServer %v:%v Up: %v; is change state: %v",
+			hc.logging.Debugf("one hc for application server %v:%v fail: %v; is change state: %v",
 				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
 				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort,
 				isApplicationServerUp,
 				isApplicationServerChangeState)
-			if !isApplicationServerUp { // FIXME: fail by 1 ping count
+			if !isApplicationServerUp {
 				fs.Lock()
 				fs.count++
 				fs.Unlock()
@@ -354,9 +352,9 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
+
 		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
-		hc.logging.Debugf("CheckOk: isApplicationServer %v:%v Up: %v; is change state: %v",
+		hc.logging.Debugf("one hc for application server %v:%v ok: %v; is change state: %v",
 			serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
 			serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort,
 			isApplicationServerUp,
@@ -469,6 +467,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 	}
 }
 
+// func isCheckOk
+
 func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(serviceInfo *domain.ServiceInfo,
 	applicationServerInfoIndex int) (bool, bool) {
 	//return isUp and isChagedState booleans
@@ -568,12 +568,16 @@ func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.D
 }
 
 func (hc *HeathcheckEntity) httpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
-	// FIXME:  dialer := net.Dialer{
-	// 	LocalAddr: hc.techInterface,
-	// 	Timeout:   timeout}
+	roundTripper := &http.Transport{
+		Dial: (&net.Dialer{
+			LocalAddr: hc.techInterface,
+			Timeout:   timeout,
+		}).Dial,
+		TLSHandshakeTimeout: timeout / 2,
+	}
 	client := http.Client{
-		// Transport: dialer,
-		Timeout: timeout,
+		Transport: roundTripper,
+		Timeout:   timeout,
 	}
 	resp, err := client.Get(healthcheckAddress)
 	if err != nil {
