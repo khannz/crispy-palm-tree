@@ -35,16 +35,18 @@ type dummyWorker struct {
 // HeathcheckEntity ...
 type HeathcheckEntity struct {
 	sync.Mutex
-	runningHeathchecks []*domain.ServiceInfo
-	cacheStorage       domain.StorageActions
-	persistentStorage  domain.StorageActions
-	ipvsadm            domain.IPVSWorker
-	techInterface      *net.TCPAddr
-	locker             *domain.Locker
-	gracefulShutdown   *domain.GracefulShutdown
-	dw                 *dummyWorker
-	isMockMode         bool
-	logging            *logrus.Logger
+	StopAllHeatlthchecks chan struct{}
+	AllHeatlthchecksDone chan struct{}
+	runningHeathchecks   []*domain.ServiceInfo
+	cacheStorage         domain.StorageActions
+	persistentStorage    domain.StorageActions
+	ipvsadm              domain.IPVSWorker
+	techInterface        *net.TCPAddr
+	locker               *domain.Locker
+	gracefulShutdown     *domain.GracefulShutdown
+	dw                   *dummyWorker
+	isMockMode           bool
+	logging              *logrus.Logger
 }
 
 // NewHeathcheckEntity ...
@@ -59,16 +61,18 @@ func NewHeathcheckEntity(cacheStorage domain.StorageActions,
 	ti, _, _ := net.ParseCIDR(rawTechInterface + "/32")
 
 	return &HeathcheckEntity{
-		runningHeathchecks: []*domain.ServiceInfo{}, // need for append
-		cacheStorage:       cacheStorage,
-		persistentStorage:  persistentStorage,
-		ipvsadm:            ipvsadm,
-		techInterface:      &net.TCPAddr{IP: ti},
-		locker:             locker,
-		gracefulShutdown:   gracefulShutdown,
-		dw:                 new(dummyWorker),
-		isMockMode:         isMockMode,
-		logging:            logging,
+		StopAllHeatlthchecks: make(chan struct{}, 1),
+		AllHeatlthchecksDone: make(chan struct{}, 1),
+		runningHeathchecks:   []*domain.ServiceInfo{}, // need for append
+		cacheStorage:         cacheStorage,
+		persistentStorage:    persistentStorage,
+		ipvsadm:              ipvsadm,
+		techInterface:        &net.TCPAddr{IP: ti},
+		locker:               locker,
+		gracefulShutdown:     gracefulShutdown,
+		dw:                   new(dummyWorker),
+		isMockMode:           isMockMode,
+		logging:              logging,
 	}
 }
 
@@ -80,16 +84,19 @@ type UnknownDataStruct struct {
 
 // StartGracefulShutdownControlForHealthchecks ...
 func (hc *HeathcheckEntity) StartGracefulShutdownControlForHealthchecks() {
+	<-hc.StopAllHeatlthchecks
 	hc.Lock()
-	defer hc.Unlock()
-	if hc.gracefulShutdown.ShutdownNow {
-		for _, serviceInfo := range hc.runningHeathchecks {
-			serviceInfo.Healthcheck.StopChecks <- struct{}{}
-		}
-		for _, serviceInfo := range hc.runningHeathchecks {
-			<-serviceInfo.Healthcheck.ChecksStoped
-		}
+	hc.gracefulShutdown.ShutdownNow = true
+	hc.Unlock()
+	for _, serviceInfo := range hc.runningHeathchecks {
+		serviceInfo.Healthcheck.StopChecks <- struct{}{}
+		hc.logging.Tracef("send stop checks for service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	}
+	for _, serviceInfo := range hc.runningHeathchecks {
+		<-serviceInfo.Healthcheck.ChecksStoped
+		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	}
+	hc.AllHeatlthchecksDone <- struct{}{}
 }
 
 // StartHealthchecksForCurrentServices ...
@@ -135,8 +142,10 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 	indexForRemove, isFinded := hc.findServiceInHealtcheckSlice(serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	hc.Unlock()
 	if isFinded {
+		hc.logging.Tracef("send stop checks for service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		hc.runningHeathchecks[indexForRemove].Healthcheck.StopChecks <- struct{}{}
 		<-hc.runningHeathchecks[indexForRemove].Healthcheck.ChecksStoped
+		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		hc.runningHeathchecks[indexForRemove].Lock()
 		hc.Lock()
 		hc.runningHeathchecks = append(hc.runningHeathchecks[:indexForRemove], hc.runningHeathchecks[indexForRemove+1:]...)
@@ -167,8 +176,10 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.Servi
 		currentApplicationServers := getCopyOfApplicationServersFromService(hc.runningHeathchecks[updateIndex])
 		hc.Unlock()
 		hc.runningHeathchecks[updateIndex].Unlock()
+		hc.logging.Tracef("send stop checks for service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		hc.runningHeathchecks[updateIndex].Healthcheck.StopChecks <- struct{}{}
 		<-hc.runningHeathchecks[updateIndex].Healthcheck.ChecksStoped
+		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		enrichApplicationServersHealthchecks(serviceInfo, currentApplicationServers) // locks inside
 		tmpHC := append(hc.runningHeathchecks[:updateIndex], serviceInfo)
 		hc.runningHeathchecks[updateIndex].Lock()
@@ -235,11 +246,6 @@ func (hc *HeathcheckEntity) findServiceInHealtcheckSlice(serviceIP, servicePort 
 }
 
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(serviceInfo *domain.ServiceInfo) {
-	hc.gracefulShutdown.Lock()
-	hc.gracefulShutdown.UsecasesJobs++
-	hc.gracefulShutdown.Unlock()
-	defer decreaseJobs(hc.gracefulShutdown)
-
 	// first run hc at create entity
 	hc.CheckApplicationServersInService(serviceInfo) // locks inside
 
@@ -247,6 +253,7 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(serviceInfo *doma
 	for {
 		select {
 		case <-serviceInfo.Healthcheck.StopChecks:
+			hc.logging.Tracef("get stop checks command for service %v:%v; send checks stoped and return", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 			serviceInfo.Healthcheck.ChecksStoped <- struct{}{}
 			return
 		case <-ticker.C:
@@ -453,7 +460,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			"entity":     healthcheckName,
 			"event uuid": healthcheckUUID,
 		}).Errorf("Heathcheck error: unknown healtcheck type: %v", serviceInfo.Healthcheck.Type)
-		return // must never will be. all data already validated
+		return // must never will bfe. all data already validated
 	}
 
 	if isApplicationServerUp && isApplicationServerChangeState { // TODO: trace info TODO: do not UP when server already up!

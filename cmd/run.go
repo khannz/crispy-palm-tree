@@ -136,7 +136,7 @@ var rootCmd = &cobra.Command{
 		}
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
 
-		go hc.StartGracefulShutdownControlForHealthchecks() // TODO: graceful shutdown for healthchecks is overhead. Remove that?
+		go hc.StartGracefulShutdownControlForHealthchecks()
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("healthchecks for current services started")
 
 		// up rest api
@@ -161,9 +161,11 @@ var rootCmd = &cobra.Command{
 		<-restAPIisDone
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("rest API is Done")
 
+		hc.StopAllHeatlthchecks <- struct{}{}
+		<-hc.AllHeatlthchecksDone
 		// gracefulShutdown.ShutdownNow = false // TODO: so dirty trick
 		if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("disable runtime settings fail: %v", err)
+			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Warnf("disable runtime settings errors: %v", err)
 		}
 
 		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("runtime settings disabled")
