@@ -105,7 +105,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 }
 
 func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (int, error) {
-	nextTunnelName := 1000
+	nextTunnelName := 100
 
 	files, err := ioutil.ReadDir(tunnelFileMaker.sysctlConfFilePath)
 	if err != nil {
