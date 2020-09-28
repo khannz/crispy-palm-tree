@@ -18,6 +18,7 @@ type TunnelMaker interface {
 	CreateTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
 	RemoveTunnel(*TunnelForApplicationServer, string) error
 	RemoveTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
+	RemoveAllTunnels([]*TunnelForApplicationServer, string) error
 }
 
 // Release stringer interface for print/log data in []*TunnelForApplicationServer

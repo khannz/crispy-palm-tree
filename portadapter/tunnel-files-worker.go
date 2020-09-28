@@ -11,7 +11,6 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/sirupsen/logrus"
-	"github.com/thevan4/go-billet/executor"
 	"github.com/vishvananda/netlink"
 )
 
@@ -236,6 +235,23 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(tunnelsFilesInfo []*domain
 	return newTunnelsFilesInfo, nil
 }
 
+// RemoveAllTunnels remove tunnels whithout any checks
+func (tunnelFileMaker *TunnelFileMaker) RemoveAllTunnels(tunnelsFilesInfo []*domain.TunnelForApplicationServer,
+	removeTunnelUUID string) error {
+	var errors []error
+	for _, tunnelFilesInfo := range tunnelsFilesInfo {
+		tunnelFileMaker.logging.WithFields(logrus.Fields{
+			"entity":     tunnelFileMakerEntityName,
+			"event uuid": removeTunnelUUID,
+		}).Debugf("remove tunnel %v; file: %v", tunnelFilesInfo.ApplicationServerIP, tunnelFilesInfo.SysctlConfFile)
+
+		if err := tunnelFileMaker.RemoveTunnel(tunnelFilesInfo, removeTunnelUUID); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return combineErrors(errors)
+}
+
 // RemoveTunnel ...
 func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.TunnelForApplicationServer,
 	removeTunnelUUID string) error {
@@ -270,22 +286,9 @@ func (tunnelFileMaker *TunnelFileMaker) removeFile(filePath, requestUUID string)
 }
 
 func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string, table int, tunnelName string, uuid string) error {
-	// FIXME: maybe broken. temp dirty fix
-	fullCommand := "ip"
-	contextFolder := ""
-	arguments := []string{"link", "del", "tun" + tunnelName}
-	stdout, stderr, exitCode, err := executor.Execute(fullCommand, contextFolder, arguments)
-	if err != nil {
-		return err
-	}
-
-	if exitCode != 0 {
-		return fmt.Errorf("error code %v. stdout: %v; stderr: %v", exitCode, string(stdout), string(stderr))
-	}
-
 	linkInfo, err := netlink.LinkByName("tun" + tunnelName)
 	if err != nil {
-		return fmt.Errorf("can't get link onfo for add route for application server %v: %v", applicationServerIP, err)
+		return fmt.Errorf("can't get link onfo for remove route for application server %v:%v", applicationServerIP, err)
 	}
 
 	_, destination, err := net.ParseCIDR(applicationServerIP + mask)
@@ -304,4 +307,15 @@ func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask st
 		}).Warnf("can't remove route for tunnel %v; server %v, mask %v, table %v", tunnelName, applicationServerIP, mask, table)
 	}
 	return nil
+}
+
+func combineErrors(errors []error) error {
+	if len(errors) == 0 {
+		return nil
+	}
+	var errorsStringSlice []string
+	for _, err := range errors {
+		errorsStringSlice = append(errorsStringSlice, err.Error())
+	}
+	return fmt.Errorf(strings.Join(errorsStringSlice, "\n"))
 }

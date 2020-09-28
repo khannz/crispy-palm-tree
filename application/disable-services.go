@@ -41,8 +41,8 @@ func (balancerFacade *BalancerFacade) DisableRemoveService(serviceConfigFromStor
 	uuid string) error {
 	var errors []error
 	tunnelsFilesInfo := usecase.FormTunnelsFilesInfo(serviceConfigFromStorage.ApplicationServers, balancerFacade.CacheStorage)
-	_, err := balancerFacade.TunnelConfig.RemoveTunnels(tunnelsFilesInfo, uuid)
-	if err != nil {
+
+	if err := balancerFacade.TunnelConfig.RemoveAllTunnels(tunnelsFilesInfo, uuid); err != nil {
 		balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": uuid}).Errorf("can't remove tunnels: %v", err)
 		errors = append(errors, err)
 	}

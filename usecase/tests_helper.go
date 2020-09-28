@@ -211,6 +211,11 @@ func (mockTunnelMaker *MockTunnelMaker) RemoveTunnels([]*domain.TunnelForApplica
 	return nil, nil
 }
 
+// RemoveTunnels ...
+func (mockTunnelMaker *MockTunnelMaker) RemoveAllTunnels([]*domain.TunnelForApplicationServer, string) error {
+	return nil
+}
+
 // MockHeathcheckWorker ...
 type MockHeathcheckWorker struct{}
 
