@@ -22,18 +22,18 @@ const getServiceRequestName = "get service state"
 // @Router /service/{addr}/{port} [get]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
-	getServiceRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": getServiceRequestUUID}).Infof("got new %v request", getServiceRequestName)
+	getServiceRequestID := restAPI.balancerFacade.IDgenerator.NewID()
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event id": getServiceRequestID}).Infof("got new %v request", getServiceRequestName)
 	ip := ginContext.Param("addr")
 	port := ginContext.Param("port")
 	// FIXME: validate ip and port
-	serviceInfoWithState, err := restAPI.balancerFacade.GetServiceState(ip, port, getServiceRequestUUID)
+	serviceInfoWithState, err := restAPI.balancerFacade.GetServiceState(ip, port, getServiceRequestID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"event uuid": getServiceRequestUUID,
+			"event id": getServiceRequestID,
 		}).Errorf("can't %v, got error: %v", getServiceRequestName, err)
 		rError := &UniversalResponse{
-			ID:                       getServiceRequestUUID,
+			ID:                       getServiceRequestID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "got internal error: %b" + err.Error(),
 		}
@@ -44,7 +44,7 @@ func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {
 	convertedServiceInfoWithState := convertDomainServiceInfoToRestUniversalResponseWithStates(serviceInfoWithState, true)
 
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"event uuid": getServiceRequestUUID,
+		"event id": getServiceRequestID,
 	}).Infof("request %v done", getServiceRequestName)
 
 	ginContext.JSON(http.StatusOK, convertedServiceInfoWithState)

@@ -33,7 +33,7 @@ func (ipvsadmEntity *IPVSADMEntity) CreateService(vip string,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	createServiceUUID string) error {
+	createServiceID string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -75,7 +75,7 @@ func ipvsInit() (*gnl2go.IpvsClient, error) {
 func (ipvsadmEntity *IPVSADMEntity) RemoveService(vip string,
 	port uint16,
 	protocol uint16,
-	requestUUID string) error {
+	requestID string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -137,7 +137,7 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(vip string,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	updateServiceUUID string) error {
+	updateServiceID string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -160,7 +160,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(vip stri
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	updateServiceUUID string) error {
+	updateServiceID string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()

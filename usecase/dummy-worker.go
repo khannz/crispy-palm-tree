@@ -14,8 +14,8 @@ func (hc *HeathcheckEntity) removeFromDummyWrapper(serviceIP string) {
 	if !hc.isMockMode {
 		if err := RemoveFromDummy(serviceIP); err != nil {
 			hc.logging.WithFields(logrus.Fields{
-				"entity":     healthcheckName,
-				"event uuid": healthcheckUUID,
+				"entity":   healthcheckName,
+				"event id": healthcheckID,
 			}).Errorf("Heathcheck error: can't remove service ip from dummy: %v", err)
 		}
 	}
@@ -27,8 +27,8 @@ func (hc *HeathcheckEntity) addToDummyWrapper(serviceIP string) {
 	if !hc.isMockMode {
 		if err := addToDummy(serviceIP); err != nil {
 			hc.logging.WithFields(logrus.Fields{
-				"entity":     healthcheckName,
-				"event uuid": healthcheckUUID,
+				"entity":   healthcheckName,
+				"event id": healthcheckID,
 			}).Errorf("Heathcheck error: can't add service ip to dummy: %v", err)
 		}
 	}

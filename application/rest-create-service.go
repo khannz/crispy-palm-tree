@@ -26,14 +26,14 @@ const createServiceRequestName = "create service"
 // @Router /service/{addr}/{port} [post]
 // // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
-	createServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": createServiceUUID}).Infof("got new %v request", createServiceRequestName)
+	createServiceID := restAPI.balancerFacade.IDgenerator.NewID()
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event id": createServiceID}).Infof("got new %v request", createServiceRequestName)
 	createService := &NewServiceInfo{}
 
 	if err := ginContext.ShouldBindJSON(createService); err != nil {
 		// TODO: log here
 		unmarshallIncomeError(err.Error(),
-			createServiceUUID,
+			createServiceID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
@@ -45,18 +45,18 @@ func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 
 	if validateError := createService.validateCreateService(); validateError != nil {
 		// TODO: log and response here
-		validateIncomeError(validateError.Error(), createServiceUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), createServiceID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
 	nwbServiceInfo, err := restAPI.balancerFacade.CreateService(createService,
-		createServiceUUID)
+		createServiceID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"event uuid": createServiceUUID,
+			"event id": createServiceID,
 		}).Errorf("can't %v, got error: %v", createServiceRequestName, err)
 		rError := &UniversalResponse{
-			ID:                       createServiceUUID,
+			ID:                       createServiceID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "got internal error: %b" + err.Error(),
 		}
@@ -67,7 +67,7 @@ func (restAPI *RestAPIstruct) createService(ginContext *gin.Context) {
 	serviceInfo := convertDomainServiceInfoToRestUniversalResponse(nwbServiceInfo, true)
 
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"event uuid": createServiceUUID,
+		"event id": createServiceID,
 	}).Infof("request %v done", createServiceRequestName)
 
 	ginContext.JSON(http.StatusOK, serviceInfo)

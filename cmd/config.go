@@ -36,6 +36,7 @@ const (
 	defaultMainSecretForRefresh      = "" // required
 	defaultExpireTokenTime           = 12 * time.Hour
 	defaultExpireTokenForRefreshTime = 96 * time.Hour
+	defaultIDType                    = "nanoid"
 )
 
 var defaultCredentials = map[string]string{}
@@ -65,6 +66,7 @@ const (
 	credentials                   = "credentials"
 	expireTokenTimeName           = "expire token time"
 	expireTokenForRefreshTimeName = "expire token for refresh time"
+	idTypeName                    = "id-type"
 )
 
 // // For builds with ldflags
@@ -113,6 +115,8 @@ func init() {
 	pflag.Duration(expireTokenTimeName, defaultExpireTokenTime, "Expire time for jwt token")
 	pflag.Duration(expireTokenForRefreshTimeName, defaultExpireTokenForRefreshTime, "Expire time for refresh jwt token")
 
+	pflag.String(idTypeName, defaultIDType, "ID type(nanoid|uuid4)")
+
 	pflag.Parse()
 	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {
 		fmt.Println(err)
@@ -154,5 +158,12 @@ func init() {
 	}
 	if len(viperConfig.GetStringMapString(credentials)) == 0 {
 		logging.Fatalf("credentials for JWT must be set")
+	}
+
+	switch viperConfig.GetString(idTypeName) {
+	case "nanoid":
+	case "id4":
+	default:
+		logging.Fatalf("unsuported id type: %v; supported types: nanoid|id4", viperConfig.GetString(idTypeName))
 	}
 }

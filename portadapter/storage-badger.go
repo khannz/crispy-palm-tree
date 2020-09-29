@@ -80,7 +80,7 @@ type TunnelForService struct {
 
 // NewServiceInfoToStorage add new service to storage
 func (storageEntity *StorageEntity) NewServiceInfoToStorage(serviceData *domain.ServiceInfo,
-	eventUUID string) error {
+	eventID string) error {
 	serviceDataKey, serviceDataValue, err := transformServiceDataForStorageData(serviceData)
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)
@@ -146,7 +146,7 @@ func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 }
 
 // RemoveServiceInfoFromStorage ...
-func (storageEntity *StorageEntity) RemoveServiceInfoFromStorage(serviceData *domain.ServiceInfo, eventUUID string) error {
+func (storageEntity *StorageEntity) RemoveServiceInfoFromStorage(serviceData *domain.ServiceInfo, eventID string) error {
 	keyData := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
 	storageEntity.Lock()
 	defer storageEntity.Unlock()
@@ -163,7 +163,7 @@ func (storageEntity *StorageEntity) RemoveServiceInfoFromStorage(serviceData *do
 }
 
 // GetServiceInfo ...
-func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventUUID string) (*domain.ServiceInfo, error) {
+func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.ServiceInfo, eventID string) (*domain.ServiceInfo, error) {
 	shc := domain.ServiceHealthcheck{
 		RepeatHealthcheck:               3000000009,
 		Type:                            "",
@@ -335,7 +335,7 @@ func (storageEntity *StorageEntity) LoadCacheFromStorage(oldStorageEntity *Stora
 }
 
 // UpdateServiceInfo validate and update service
-func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData *domain.ServiceInfo, eventUUID string) error {
+func (storageEntity *StorageEntity) UpdateServiceInfo(newServiceData *domain.ServiceInfo, eventID string) error {
 	serviceDataKey, serviceDataValue, err := transformServiceDataForStorageData(newServiceData)
 	if err != nil {
 		return fmt.Errorf("can't form data for storage: %v", err)

@@ -27,21 +27,21 @@ package application
 // // @Failure 500 {object} application.LoginResponseError "Internal error"
 // // @Router /login [post]
 // func (restAPI *RestAPIstruct) loginRequest(ginContext *gin.Context) {
-// 	loginRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-// 	logNewRequest(requestTokenName, loginRequestUUID, restAPI.balancerFacade.Logging)
+// 	loginRequestID := restAPI.balancerFacade.IDgenerator.NewID()
+// 	logNewRequest(requestTokenName, loginRequestID, restAPI.balancerFacade.Logging)
 
 // 	loginRequest := &LoginRequest{}
 
 // 	if err := ginContext.ShouldBindJSON(loginRequest); err != nil {
 // 		unmarshallIncomeError(err.Error(),
-// 			loginRequestUUID,
+// 			loginRequestID,
 // 			ginContext,
 // 			restAPI.balancerFacade.Logging)
 // 		return
 // 	}
 
 // 	if validateError := loginRequest.validateLoginRequest(); validateError != nil {
-// 		validateIncomeError(validateError.Error(), loginRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+// 		validateIncomeError(validateError.Error(), loginRequestID, ginContext, restAPI.balancerFacade.Logging)
 // 		return
 // 	}
 
@@ -64,7 +64,7 @@ package application
 
 // 	ginContext.SetCookie("JWT", refreshToken, 86400000, "/", restAPI.ip, false, true)
 
-// 	logRequestIsDone(requestTokenName, loginRequestUUID, restAPI.balancerFacade.Logging)
+// 	logRequestIsDone(requestTokenName, loginRequestID, restAPI.balancerFacade.Logging)
 
 // 	ginContext.JSON(200, LoginResponseOkay{AccessToken: token})
 // }
@@ -122,8 +122,8 @@ package application
 // // @Router /token [get]
 // // // @Security ApiKeyAuth
 // func (restAPI *RestAPIstruct) tokenRefresh(ginContext *gin.Context) {
-// 	tokenRefreshUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-// 	logNewRequest(tokenRefreshName, tokenRefreshUUID, restAPI.balancerFacade.Logging)
+// 	tokenRefreshID := restAPI.balancerFacade.IDgenerator.NewID()
+// 	logNewRequest(tokenRefreshName, tokenRefreshID, restAPI.balancerFacade.Logging)
 
 // 	// cookie, err := c.Cookie("JWT") // TODO: fail
 
@@ -138,7 +138,7 @@ package application
 
 // 	ginContext.SetCookie("JWT", refreshToken, 86400000, "/", restAPI.ip, false, true)
 
-// 	logRequestIsDone(tokenRefreshName, tokenRefreshUUID, restAPI.balancerFacade.Logging)
+// 	logRequestIsDone(tokenRefreshName, tokenRefreshID, restAPI.balancerFacade.Logging)
 
 // 	ginContext.JSON(200, LoginResponseOkay{AccessToken: token})
 // }

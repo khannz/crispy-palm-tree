@@ -23,40 +23,40 @@ const removeApplicationServersRequestName = "remove application servers"
 // @Router /service/remove-application-servers [post]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) {
-	removeApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+	removeApplicationServersRequestID := restAPI.balancerFacade.IDgenerator.NewID()
 
-	logNewRequest(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
+	logNewRequest(removeApplicationServersRequestName, removeApplicationServersRequestID, restAPI.balancerFacade.Logging)
 
 	removeApplicationServersRequest := &RemoveApplicationServersRequest{}
 
 	if err := ginContext.ShouldBindJSON(removeApplicationServersRequest); err != nil {
 		unmarshallIncomeError(err.Error(),
-			removeApplicationServersRequestUUID,
+			removeApplicationServersRequestID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
 	if validateError := removeApplicationServersRequest.validateRemoveApplicationServersRequest(); validateError != nil {
-		validateIncomeError(validateError.Error(), removeApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), removeApplicationServersRequestID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
-	logChangeUUID(removeApplicationServersRequestUUID, removeApplicationServersRequest.ID, restAPI.balancerFacade.Logging)
-	removeApplicationServersRequestUUID = removeApplicationServersRequest.ID
+	logChangeID(removeApplicationServersRequestID, removeApplicationServersRequest.ID, restAPI.balancerFacade.Logging)
+	removeApplicationServersRequestID = removeApplicationServersRequest.ID
 
 	updatedServiceInfo, err := restAPI.balancerFacade.RemoveApplicationServers(removeApplicationServersRequest,
-		removeApplicationServersRequestUUID)
+		removeApplicationServersRequestID)
 	if err != nil {
 		uscaseFail(removeApplicationServersRequestName,
 			err.Error(),
-			removeApplicationServersRequestUUID,
+			removeApplicationServersRequestID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
-	logRequestIsDone(removeApplicationServersRequestName, removeApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
+	logRequestIsDone(removeApplicationServersRequestName, removeApplicationServersRequestID, restAPI.balancerFacade.Logging)
 
 	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
 	ginContext.JSON(http.StatusOK, convertedServiceInfo)

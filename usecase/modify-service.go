@@ -47,7 +47,7 @@ func NewModifyServiceEntity(locker *domain.Locker,
 
 // ModifyService ...
 func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.ServiceInfo,
-	modifyServiceUUID string) (*domain.ServiceInfo, error) {
+	modifyServiceID string) (*domain.ServiceInfo, error) {
 	// graceful shutdown part start
 	modifyService.locker.Lock()
 	defer modifyService.locker.Unlock()
@@ -60,7 +60,7 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	modifyService.gracefulShutdown.Unlock()
 	defer decreaseJobs(modifyService.gracefulShutdown)
 	// graceful shutdown part end
-	logTryPreValidateRequest(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	logTryPreValidateRequest(modifyServiceName, modifyServiceID, modifyService.logging)
 	allCurrentServices, err := modifyService.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
@@ -70,12 +70,12 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 		return serviceInfo, fmt.Errorf("service %v:%v does not exist, can't modify", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	}
 
-	logTryToGetCurrentServiceInfo(modifyServiceName, modifyServiceUUID, modifyService.logging)
-	currentServiceInfo, err := modifyService.cacheStorage.GetServiceInfo(serviceInfo, modifyServiceUUID)
+	logTryToGetCurrentServiceInfo(modifyServiceName, modifyServiceID, modifyService.logging)
+	currentServiceInfo, err := modifyService.cacheStorage.GetServiceInfo(serviceInfo, modifyServiceID)
 	if err != nil {
 		return serviceInfo, fmt.Errorf("can't get current service info: %v", err)
 	}
-	logGotCurrentServiceInfo(modifyServiceName, modifyServiceUUID, currentServiceInfo, modifyService.logging)
+	logGotCurrentServiceInfo(modifyServiceName, modifyServiceID, currentServiceInfo, modifyService.logging)
 
 	if err = checkApplicationServersExistInService(serviceInfo.ApplicationServers, currentServiceInfo); err != nil {
 		return serviceInfo, err
@@ -86,7 +86,7 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	}
 
 	// FIXME: check BalanceType!
-	if !modifyService.isServicesIPsAndPortsEqual(serviceInfo, currentServiceInfo, modifyServiceUUID) {
+	if !modifyService.isServicesIPsAndPortsEqual(serviceInfo, currentServiceInfo, modifyServiceID) {
 		return serviceInfo, fmt.Errorf("service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
 	}
 
@@ -96,31 +96,31 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	if serviceInfo.Protocol != currentServiceInfo.Protocol {
 		return serviceInfo, fmt.Errorf("protocol at service for modify and current service not equal, cannot modify: %v", currentServiceInfo)
 	}
-	logPreValidateRequestIsOk(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	logPreValidateRequestIsOk(modifyServiceName, modifyServiceID, modifyService.logging)
 
-	logTryUpdateServiceInfoAtCache(modifyServiceName, modifyServiceUUID, modifyService.logging)
-	if err = modifyService.cacheStorage.UpdateServiceInfo(serviceInfo, modifyServiceUUID); err != nil {
+	logTryUpdateServiceInfoAtCache(modifyServiceName, modifyServiceID, modifyService.logging)
+	if err = modifyService.cacheStorage.UpdateServiceInfo(serviceInfo, modifyServiceID); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
-	logUpdateServiceInfoAtCache(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	logUpdateServiceInfoAtCache(modifyServiceName, modifyServiceID, modifyService.logging)
 
-	logTryUpdateServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceUUID, modifyService.logging)
-	if err = modifyService.persistentStorage.UpdateServiceInfo(serviceInfo, modifyServiceUUID); err != nil {
+	logTryUpdateServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceID, modifyService.logging)
+	if err = modifyService.persistentStorage.UpdateServiceInfo(serviceInfo, modifyServiceID); err != nil {
 		return currentServiceInfo, fmt.Errorf("error when update persistent storage: %v", err)
 	}
-	logUpdatedServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	logUpdatedServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceID, modifyService.logging)
 
-	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceID, modifyService.logging)
 	if err = modifyService.hc.UpdateServiceAtHealtchecks(serviceInfo); err != nil {
 		return serviceInfo, fmt.Errorf("service modify for healtchecks not activated, an error occurred when changing healtchecks: %v", err)
 	}
-	logUpdatedServiceAtHealtchecks(modifyServiceName, modifyServiceUUID, modifyService.logging)
+	logUpdatedServiceAtHealtchecks(modifyServiceName, modifyServiceID, modifyService.logging)
 
 	return serviceInfo, nil
 }
 
 func (modifyService *ModifyServiceEntity) isServicesIPsAndPortsEqual(serviceOne,
-	serviceTwo *domain.ServiceInfo, uuid string) bool {
+	serviceTwo *domain.ServiceInfo, id string) bool {
 	if serviceOne.ServiceIP != serviceTwo.ServiceIP ||
 		serviceOne.ServicePort != serviceTwo.ServicePort {
 		logServicesIPAndPortNotEqual(serviceOne.ServiceIP,
@@ -128,12 +128,12 @@ func (modifyService *ModifyServiceEntity) isServicesIPsAndPortsEqual(serviceOne,
 			serviceTwo.ServiceIP,
 			serviceTwo.ServicePort,
 			modifyServiceName,
-			uuid,
+			id,
 			modifyService.logging)
 		return false
 	}
 	if len(serviceOne.ApplicationServers) != len(serviceTwo.ApplicationServers) {
-		logServicesHaveDifferentNumberOfApplicationServers(serviceOne.ServiceIP, serviceOne.ServicePort, serviceTwo.ServiceIP, serviceTwo.ServicePort, len(serviceOne.ApplicationServers), len(serviceTwo.ServiceIP), modifyServiceName, uuid, modifyService.logging)
+		logServicesHaveDifferentNumberOfApplicationServers(serviceOne.ServiceIP, serviceOne.ServicePort, serviceTwo.ServiceIP, serviceTwo.ServicePort, len(serviceOne.ApplicationServers), len(serviceTwo.ServiceIP), modifyServiceName, id, modifyService.logging)
 		return false
 	}
 
@@ -146,7 +146,7 @@ func (modifyService *ModifyServiceEntity) isServicesIPsAndPortsEqual(serviceOne,
 			}
 		}
 		if !isFunded {
-			logApplicationServerNotFound(serviceOne.ServiceIP, serviceOne.ServicePort, applicationServerFromServiceOne.ServerIP, applicationServerFromServiceOne.ServerPort, modifyServiceName, uuid, modifyService.logging)
+			logApplicationServerNotFound(serviceOne.ServiceIP, serviceOne.ServicePort, applicationServerFromServiceOne.ServerIP, applicationServerFromServiceOne.ServerPort, modifyServiceName, id, modifyService.logging)
 			return false
 		}
 	}

@@ -8,8 +8,8 @@ import (
 )
 
 // InitializeRuntimeSettings ...
-func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(uuid string) error {
-	if err := balancerFacade.resetHealtchecksInfo(uuid); err != nil {
+func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(id string) error {
+	if err := balancerFacade.resetHealtchecksInfo(id); err != nil {
 		return err
 	}
 	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
@@ -21,14 +21,14 @@ func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(uuid string) err
 	}
 	for _, serviceConfigFromStorage := range servicesConfigsFromStorage {
 
-		if err := balancerFacade.InitializeCreateService(serviceConfigFromStorage, uuid); err != nil {
+		if err := balancerFacade.InitializeCreateService(serviceConfigFromStorage, id); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (balancerFacade *BalancerFacade) resetHealtchecksInfo(uuid string) error {
+func (balancerFacade *BalancerFacade) resetHealtchecksInfo(id string) error {
 	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return fmt.Errorf("fail to load storage config at start")
@@ -38,10 +38,10 @@ func (balancerFacade *BalancerFacade) resetHealtchecksInfo(uuid string) error {
 		for j := range servicesConfigsFromStorage[i].ApplicationServers {
 			servicesConfigsFromStorage[i].ApplicationServers[j].IsUp = false
 		}
-		if err := balancerFacade.CacheStorage.UpdateServiceInfo(servicesConfigsFromStorage[i], uuid); err != nil {
+		if err := balancerFacade.CacheStorage.UpdateServiceInfo(servicesConfigsFromStorage[i], id); err != nil {
 			return fmt.Errorf("fail to update service info at start")
 		}
-		if err := balancerFacade.PersistentStorage.UpdateServiceInfo(servicesConfigsFromStorage[i], uuid); err != nil {
+		if err := balancerFacade.PersistentStorage.UpdateServiceInfo(servicesConfigsFromStorage[i], id); err != nil {
 			return fmt.Errorf("fail to update service info at start")
 		}
 	}
@@ -65,12 +65,12 @@ func (balancerFacade *BalancerFacade) removeOldTunnelsData(servicesConfigsFromSt
 }
 
 // InitializeCreateService ...
-func (balancerFacade *BalancerFacade) InitializeCreateService(serviceConfigFromStorage *domain.ServiceInfo, uuid string) error {
+func (balancerFacade *BalancerFacade) InitializeCreateService(serviceConfigFromStorage *domain.ServiceInfo, id string) error {
 	var tunnelsFilesInfo, newTunnelsFilesInfo []*domain.TunnelForApplicationServer
 	var err error
 	if serviceConfigFromStorage.Protocol == "tcp" { // TODO: too many if's, that dirty
 		tunnelsFilesInfo = usecase.FormTunnelsFilesInfo(serviceConfigFromStorage.ApplicationServers, balancerFacade.CacheStorage)
-		newTunnelsFilesInfo, err = balancerFacade.TunnelConfig.CreateTunnels(tunnelsFilesInfo, uuid)
+		newTunnelsFilesInfo, err = balancerFacade.TunnelConfig.CreateTunnels(tunnelsFilesInfo, id)
 		if err != nil {
 			return fmt.Errorf("can't create tunnel files: %v", err)
 		}
@@ -97,7 +97,7 @@ func (balancerFacade *BalancerFacade) InitializeCreateService(serviceConfigFromS
 		balanceType,
 		protocol,
 		nil,
-		uuid); err != nil {
+		id); err != nil {
 		return fmt.Errorf("Error when ipvsadm create service: %v", err)
 	}
 	balancerFacade.HeathcheckEntity.NewServiceToHealtchecks(serviceConfigFromStorage)

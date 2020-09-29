@@ -45,7 +45,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 // RemoveApplicationServers ...
 // TODO: rollbacks need refactor
 func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServers(removeServiceInfo *domain.ServiceInfo,
-	removeApplicationServersUUID string) (*domain.ServiceInfo, error) {
+	removeApplicationServersID string) (*domain.ServiceInfo, error) {
 	var err error
 	var updatedServiceInfo *domain.ServiceInfo
 
@@ -61,9 +61,9 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	removeApplicationServers.gracefulShutdown.Unlock()
 	defer decreaseJobs(removeApplicationServers.gracefulShutdown)
 	// graceful shutdown part end
-	logStartUsecase(removeApplicationServersName, "add new application servers to service", removeApplicationServersUUID, removeServiceInfo, removeApplicationServers.logging)
+	logStartUsecase(removeApplicationServersName, "add new application servers to service", removeApplicationServersID, removeServiceInfo, removeApplicationServers.logging)
 
-	logTryPreValidateRequest(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+	logTryPreValidateRequest(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 	allCurrentServices, err := removeApplicationServers.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return removeServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
@@ -73,43 +73,43 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return removeServiceInfo, fmt.Errorf("service %v:%v not exist, can't remove application servers", removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort)
 	}
 
-	logTryToGetCurrentServiceInfo(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
-	currentServiceInfo, err := removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersUUID)
+	logTryToGetCurrentServiceInfo(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
+	currentServiceInfo, err := removeApplicationServers.cacheStorage.GetServiceInfo(removeServiceInfo, removeApplicationServersID)
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
-	logGotCurrentServiceInfo(removeApplicationServersName, removeApplicationServersUUID, currentServiceInfo, removeApplicationServers.logging)
+	logGotCurrentServiceInfo(removeApplicationServersName, removeApplicationServersID, currentServiceInfo, removeApplicationServers.logging)
 
 	if err = checkApplicationServersExistInService(removeServiceInfo.ApplicationServers, currentServiceInfo); err != nil {
 		return removeServiceInfo, err
 	}
 
-	logPreValidateRequestIsOk(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+	logPreValidateRequestIsOk(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 
 	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer
 	if currentServiceInfo.Protocol == "tcp" {
 		tunnelsFilesInfo = FormTunnelsFilesInfo(removeServiceInfo.ApplicationServers, removeApplicationServers.cacheStorage)
-		logTryRemoveTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
-		oldTunnelsFilesInfo, err = removeApplicationServers.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeApplicationServersUUID)
+		logTryRemoveTunnels(removeApplicationServersName, removeApplicationServersID, tunnelsFilesInfo, removeApplicationServers.logging)
+		oldTunnelsFilesInfo, err = removeApplicationServers.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeApplicationServersID)
 		if err != nil {
 			return nil, fmt.Errorf("can't create tunnel files: %v", err)
 		}
-		logRemovedTunnels(removeApplicationServersName, removeApplicationServersUUID, tunnelsFilesInfo, removeApplicationServers.logging)
+		logRemovedTunnels(removeApplicationServersName, removeApplicationServersID, tunnelsFilesInfo, removeApplicationServers.logging)
 	}
-	logTryValidateRemoveApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeApplicationServers.logging)
+	logTryValidateRemoveApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeApplicationServers.logging)
 	if err = validateRemoveApplicationServers(currentServiceInfo.ApplicationServers, removeServiceInfo.ApplicationServers); err != nil {
 		return updatedServiceInfo, fmt.Errorf("validate remove application servers fail: %v", err)
 	}
-	logValidateRemoveApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeApplicationServers.logging)
+	logValidateRemoveApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeApplicationServers.logging)
 
-	updatedServiceInfo = forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersUUID) // ignore check unique error
+	updatedServiceInfo = forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, removeServiceInfo, removeApplicationServersID) // ignore check unique error
 	// update for cache storage
 
-	logTryUpdateServiceInfoAtCache(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
-	if err = removeApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersUUID); err != nil {
+	logTryUpdateServiceInfoAtCache(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
+	if err = removeApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
-	logUpdateServiceInfoAtCache(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+	logUpdateServiceInfoAtCache(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 
 	if currentServiceInfo.Protocol == "tcp" {
 		if err = removeApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
@@ -117,7 +117,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		}
 	}
 
-	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
+	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
 	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.ServiceIP,
 		currentServiceInfo.ServicePort,
 		currentServiceInfo.RoutingType,
@@ -133,16 +133,16 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		balanceType,
 		protocol,
 		applicationServers,
-		removeApplicationServersUUID); err != nil {
+		removeApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when ipvsadm remove application servers from service: %v", err)
 	}
-	logRemovedIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersUUID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
+	logRemovedIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
 
-	logTryUpdateServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
-	if err = removeApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersUUID); err != nil {
+	logTryUpdateServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
+	if err = removeApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
 	}
-	logUpdatedServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+	logUpdatedServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 
 	if currentServiceInfo.Protocol == "tcp" {
 		if err = removeApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
@@ -150,11 +150,11 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		}
 	}
 
-	logUpdateServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+	logUpdateServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 	if err = removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("application server removed, butan error occurred when removing it from the healtchecks: %v", err)
 	}
-	logUpdatedServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersUUID, removeApplicationServers.logging)
+	logUpdatedServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 
 	return updatedServiceInfo, nil
 }

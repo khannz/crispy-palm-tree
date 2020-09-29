@@ -4,7 +4,7 @@ import "time"
 
 // NewServiceInfo ...
 type NewServiceInfo struct {
-	ID                 string              `json:"id,omitempty" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ID                 string              `json:"id,omitempty" validate:"id4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP,omitempty" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort,omitempty" validate:"required" example:"1111"`
 	Healtcheck         ServiceHealthcheck  `json:"Healtcheck" validate:"required"`
@@ -24,7 +24,7 @@ type GetAllServicesResponse struct {
 
 // ModifyServiceInfo ...
 type ModifyServiceInfo struct {
-	ID                 string              `json:"id,omitempty" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ID                 string              `json:"id,omitempty" validate:"id4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
 	Healtcheck         ServiceHealthcheck  `json:"Healtcheck" validate:"required"`
@@ -36,7 +36,7 @@ type ModifyServiceInfo struct {
 
 // RemoveApplicationServersRequest ...
 type RemoveApplicationServersRequest struct {
-	ID                 string              `json:"id,omitempty" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ID                 string              `json:"id,omitempty" validate:"id4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`
@@ -44,7 +44,7 @@ type RemoveApplicationServersRequest struct {
 
 // RemoveServiceInfo ...
 type RemoveServiceInfo struct {
-	ID          string `json:"id,omitempty" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ID          string `json:"id,omitempty" validate:"id4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP   string `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort string `json:"servicePort" validate:"required" example:"1111"`
 }
@@ -120,7 +120,7 @@ type UniversalResponseWithStates struct {
 
 // AddApplicationServersRequest ...
 type AddApplicationServersRequest struct {
-	ID                 string              `json:"id,omitempty" validate:"uuid4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
+	ID                 string              `json:"id,omitempty" validate:"id4" example:"7a7aebea-4e05-45b9-8d11-c4115dbdd4a2"`
 	ServiceIP          string              `json:"serviceIP" validate:"ipv4" example:"1.1.1.1"`
 	ServicePort        string              `json:"servicePort" validate:"required" example:"1111"`
 	ApplicationServers []ServerApplication `json:"applicationServers" validate:"required,dive,required"`

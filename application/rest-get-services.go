@@ -19,15 +19,15 @@ const getServicesName = "get services"
 // @Router /services [get]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
-	getServicesRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": getServicesRequestUUID}).Infof("got new %v request", getServicesName)
-	nwbServices, err := restAPI.balancerFacade.GetServices(getServicesRequestUUID)
+	getServicesRequestID := restAPI.balancerFacade.IDgenerator.NewID()
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event id": getServicesRequestID}).Infof("got new %v request", getServicesName)
+	nwbServices, err := restAPI.balancerFacade.GetServices(getServicesRequestID)
 	if err != nil {
 		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-			"event uuid": getServicesRequestUUID,
+			"event id": getServicesRequestID,
 		}).Errorf("can't %v, got error: %v", getServicesName, err)
 		rError := &UniversalResponse{
-			ID:                       getServicesRequestUUID,
+			ID:                       getServicesRequestID,
 			JobCompletedSuccessfully: false,
 			ExtraInfo:                "got internal error: " + err.Error(),
 		}
@@ -42,14 +42,14 @@ func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 		extraInfo = "No services here"
 	}
 	getServicesResponse := GetAllServicesResponse{
-		ID:                       getServicesRequestUUID,
+		ID:                       getServicesRequestID,
 		JobCompletedSuccessfully: true,
 		AllServices:              allServices,
 		ExtraInfo:                extraInfo,
 	}
 
 	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
-		"event uuid": getServicesRequestUUID,
+		"event id": getServicesRequestID,
 	}).Infof("request %v done", getServicesName)
 
 	ginContext.JSON(http.StatusOK, getServicesResponse)

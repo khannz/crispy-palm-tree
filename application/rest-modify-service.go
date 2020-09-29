@@ -26,14 +26,14 @@ const modifyServiceRequestName = "modify service"
 // @Router /service/{addr}/{port} [put]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
-	modifyServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event uuid": modifyServiceUUID}).Infof("got new %v request", modifyServiceRequestName)
+	modifyServiceID := restAPI.balancerFacade.IDgenerator.NewID()
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event id": modifyServiceID}).Infof("got new %v request", modifyServiceRequestName)
 	modifyService := &ModifyServiceInfo{}
 
 	if err := ginContext.ShouldBindJSON(modifyService); err != nil {
 		// TODO: log here
 		unmarshallIncomeError(err.Error(),
-			modifyServiceUUID,
+			modifyServiceID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
@@ -45,17 +45,17 @@ func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 
 	if validateError := modifyService.validatemodifyService(); validateError != nil {
 		// TODO: log here
-		validateIncomeError(validateError.Error(), modifyServiceUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), modifyServiceID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
 	nwbServiceInfo, err := restAPI.balancerFacade.ModifyService(modifyService,
-		modifyServiceUUID)
+		modifyServiceID)
 	if err != nil {
 		// TODO: log here
 		uscaseFail(modifyServiceRequestName,
 			err.Error(),
-			modifyServiceUUID,
+			modifyServiceID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
@@ -64,7 +64,7 @@ func (restAPI *RestAPIstruct) modifyService(ginContext *gin.Context) {
 	serviceInfo := convertDomainServiceInfoToRestUniversalResponse(nwbServiceInfo, true)
 
 	// TODO: log here
-	logRequestIsDone(modifyServiceRequestName, modifyServiceUUID, restAPI.balancerFacade.Logging)
+	logRequestIsDone(modifyServiceRequestName, modifyServiceID, restAPI.balancerFacade.Logging)
 	ginContext.JSON(http.StatusOK, serviceInfo)
 }
 

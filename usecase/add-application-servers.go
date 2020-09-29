@@ -47,7 +47,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 
 // AddNewApplicationServers ...
 func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(newServiceInfo *domain.ServiceInfo,
-	addApplicationServersUUID string) (*domain.ServiceInfo, error) {
+	addApplicationServersID string) (*domain.ServiceInfo, error) {
 	var err error
 	var updatedServiceInfo *domain.ServiceInfo
 
@@ -64,8 +64,8 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	defer decreaseJobs(addApplicationServers.gracefulShutdown)
 	// graceful shutdown part end
 
-	logStartUsecase(addApplicationServersName, "add new application servers to service", addApplicationServersUUID, newServiceInfo, addApplicationServers.logging)
-	logTryPreValidateRequest(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	logStartUsecase(addApplicationServersName, "add new application servers to service", addApplicationServersID, newServiceInfo, addApplicationServers.logging)
+	logTryPreValidateRequest(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 	allCurrentServices, err := addApplicationServers.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return newServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
@@ -78,43 +78,43 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		return newServiceInfo, err
 	}
 
-	logTryToGetCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	currentServiceInfo, err := addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersUUID)
+	logTryToGetCurrentServiceInfo(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
+	currentServiceInfo, err := addApplicationServers.cacheStorage.GetServiceInfo(newServiceInfo, addApplicationServersID)
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't get service info: %v", err)
 	}
 	newServiceInfo.RoutingType = currentServiceInfo.RoutingType // for ipvs and for check routing type is valid
 	newServiceInfo.Protocol = currentServiceInfo.Protocol
-	logGotCurrentServiceInfo(addApplicationServersName, addApplicationServersUUID, currentServiceInfo, addApplicationServers.logging)
+	logGotCurrentServiceInfo(addApplicationServersName, addApplicationServersID, currentServiceInfo, addApplicationServers.logging)
 
 	if err = checkRoutingTypeForApplicationServersValid(newServiceInfo, allCurrentServices); err != nil {
 		return newServiceInfo, err
 	}
-	logPreValidateRequestIsOk(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	logPreValidateRequestIsOk(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 
 	var tunnelsFilesInfo, newTunnelsFilesInfo []*domain.TunnelForApplicationServer
 	if currentServiceInfo.Protocol == "tcp" {
 		tunnelsFilesInfo = FormTunnelsFilesInfo(newServiceInfo.ApplicationServers, addApplicationServers.cacheStorage)
-		logTryCreateNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
-		newTunnelsFilesInfo, err = addApplicationServers.tunnelConfig.CreateTunnels(tunnelsFilesInfo, addApplicationServersUUID)
+		logTryCreateNewTunnels(addApplicationServersName, addApplicationServersID, tunnelsFilesInfo, addApplicationServers.logging)
+		newTunnelsFilesInfo, err = addApplicationServers.tunnelConfig.CreateTunnels(tunnelsFilesInfo, addApplicationServersID)
 		if err != nil {
 			return nil, fmt.Errorf("can't create tunnel files: %v", err)
 		}
-		logCreatedNewTunnels(addApplicationServersName, addApplicationServersUUID, tunnelsFilesInfo, addApplicationServers.logging)
+		logCreatedNewTunnels(addApplicationServersName, addApplicationServersID, tunnelsFilesInfo, addApplicationServers.logging)
 
 		if err := addApplicationServers.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 			return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
 		}
 	}
 
-	logTryGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	updatedServiceInfo, err = forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo, addApplicationServersUUID)
+	logTryGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
+	updatedServiceInfo, err = forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServiceInfo, addApplicationServersID)
 	if err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't form update service info: %v", err)
 	}
-	logGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersUUID, updatedServiceInfo, addApplicationServers.logging)
+	logGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersID, updatedServiceInfo, addApplicationServers.logging)
 
-	logTryIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
+	logTryIpvsadmApplicationServers(addApplicationServersName, addApplicationServersID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
 	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.ServiceIP,
 		currentServiceInfo.ServicePort,
 		currentServiceInfo.RoutingType,
@@ -130,38 +130,38 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 		balanceType,
 		protocol,
 		applicationServers,
-		addApplicationServersUUID); err != nil {
+		addApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
 	}
-	logAddedIpvsadmApplicationServers(addApplicationServersName, addApplicationServersUUID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
+	logAddedIpvsadmApplicationServers(addApplicationServersName, addApplicationServersID, newServiceInfo.ApplicationServers, newServiceInfo.ServiceIP, newServiceInfo.ServicePort, addApplicationServers.logging)
 
 	// add to cache storage
-	logTryUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	if err = addApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersUUID); err != nil {
+	logTryUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
+	if err = addApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("can't add to cache storage: %v", err)
 	}
-	logUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	logUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 
-	logTryUpdateServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	if err = addApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersUUID); err != nil {
+	logTryUpdateServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
+	if err = addApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("error when update persistent storage: %v", err)
 	}
-	logUpdatedServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	logUpdatedServiceInfoAtPersistentStorage(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 	if currentServiceInfo.Protocol == "tcp" {
 		if err := addApplicationServers.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 			return updatedServiceInfo, fmt.Errorf("can't update tunnel info")
 		}
 	}
-	logTryGenerateCommandsForApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
-	if err := addApplicationServers.commandGenerator.GenerateCommandsForApplicationServers(updatedServiceInfo, addApplicationServersUUID); err != nil {
+	logTryGenerateCommandsForApplicationServers(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
+	if err := addApplicationServers.commandGenerator.GenerateCommandsForApplicationServers(updatedServiceInfo, addApplicationServersID); err != nil {
 		return updatedServiceInfo, fmt.Errorf("can't generate commands :%v", err)
 	}
-	logGeneratedCommandsForApplicationServers(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	logGeneratedCommandsForApplicationServers(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 
-	logUpdateServiceAtHealtchecks(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	logUpdateServiceAtHealtchecks(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 	if err = addApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo); err != nil {
 		return updatedServiceInfo, fmt.Errorf("application server added, but not activated, an error occurred when adding to the healtchecks: %v", err)
 	}
-	logUpdatedServiceAtHealtchecks(addApplicationServersName, addApplicationServersUUID, addApplicationServers.logging)
+	logUpdatedServiceAtHealtchecks(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 	return updatedServiceInfo, nil
 }

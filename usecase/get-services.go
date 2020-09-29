@@ -31,7 +31,7 @@ func NewGetAllServices(locker *domain.Locker,
 }
 
 // GetAllServices ...
-func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID string) ([]*domain.ServiceInfo, error) {
+func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestID string) ([]*domain.ServiceInfo, error) {
 
 	// graceful shutdown part start
 	getAllServices.locker.Lock()
@@ -45,6 +45,6 @@ func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID s
 	getAllServices.gracefulShutdown.Unlock()
 	defer decreaseJobs(getAllServices.gracefulShutdown)
 	// graceful shutdown part end
-	logStartUsecase(getAllServicesName, "get all services", getAllServicesRequestUUID, nil, getAllServices.logging)
+	logStartUsecase(getAllServicesName, "get all services", getAllServicesRequestID, nil, getAllServices.logging)
 	return getAllServices.cacheStorage.LoadAllStorageDataToDomainModels()
 }

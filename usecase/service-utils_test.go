@@ -113,12 +113,12 @@ func TestFormTunnelsFilesInfo(t *testing.T) {
 
 	cacheDB, errCreateCacheDB := portadapter.NewStorageEntity(true, "", logging)
 	assert.Nil(errCreateCacheDB)
-	testUUID := "test uuid for TestFormTunnelsFilesInfo"
+	testID := "test id for TestFormTunnelsFilesInfo"
 
 	currentApplicattionServers, tmpApplicattionServers, appServer := createApplicationServersForTests()
 	currentServiceInfoOne, _, _ := createServicesInfoForTests(currentApplicattionServers, tmpApplicattionServers)
 
-	errPutToDb := cacheDB.NewServiceInfoToStorage(currentServiceInfoOne, testUUID)
+	errPutToDb := cacheDB.NewServiceInfoToStorage(currentServiceInfoOne, testID)
 	assert.Nil(errPutToDb)
 
 	FormTunnelsFilesInfo([]*domain.ApplicationServer{appServer}, cacheDB)

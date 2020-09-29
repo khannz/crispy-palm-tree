@@ -50,13 +50,13 @@ func NewCommandGenerator() *CommandGenerator {
 
 // GenerateCommandsForApplicationServers ...
 func (commandGenerator *CommandGenerator) GenerateCommandsForApplicationServers(serviceInfo *domain.ServiceInfo,
-	eventUUID string) error {
+	eventID string) error {
 	for _, applicationServer := range serviceInfo.ApplicationServers {
 		err := enrichApplicationServersByCommands(serviceInfo.ServiceIP,
 			serviceInfo.ServicePort,
 			serviceInfo.Healthcheck.Type,
 			applicationServer,
-			eventUUID)
+			eventID)
 		if err != nil {
 			return fmt.Errorf("can't generate command for application server %v, got error: %v",
 				err, applicationServer.ServerIP)
@@ -69,7 +69,7 @@ func enrichApplicationServersByCommands(serviceIP,
 	servicePort,
 	serviceHealthcheckType string,
 	applicationServer *domain.ApplicationServer,
-	eventUUID string) error {
+	eventID string) error {
 	switch serviceHealthcheckType {
 	case "tcp":
 		applicationServerIP := applicationServer.ServerIP

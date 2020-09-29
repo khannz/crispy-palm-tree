@@ -45,7 +45,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 // RemoveService ...
 // TODO: rollbacks need refactor
 func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domain.ServiceInfo,
-	removeServiceUUID string) error {
+	removeServiceID string) error {
 	var err error
 
 	// graceful shutdown part start
@@ -60,7 +60,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	removeServiceEntity.gracefulShutdown.Unlock()
 	defer decreaseJobs(removeServiceEntity.gracefulShutdown)
 	// graceful shutdown part end
-	logStartUsecase(removeServiceName, "remove service", removeServiceUUID, serviceInfo, removeServiceEntity.logging)
+	logStartUsecase(removeServiceName, "remove service", removeServiceID, serviceInfo, removeServiceEntity.logging)
 	allCurrentServices, err := removeServiceEntity.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return fmt.Errorf("fail when loading info about current services: %v", err)
@@ -70,34 +70,34 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return fmt.Errorf("service %v:%v not exist, can't remove it", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	}
 
-	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
-	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
+	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceID, removeServiceEntity.logging)
+	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceID)
 	if err != nil {
 		return fmt.Errorf("can't get current service info: %v", err)
 	}
-	logGotCurrentServiceInfo(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
-	logTryPreValidateRequest(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
+	logGotCurrentServiceInfo(removeServiceName, removeServiceID, currentServiceInfo, removeServiceEntity.logging)
+	logTryPreValidateRequest(removeServiceName, removeServiceID, removeServiceEntity.logging)
 
-	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
+	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
 	removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo) // will wait until removed
-	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceUUID, removeServiceEntity.logging)
+	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
 
 	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer
 	if currentServiceInfo.Protocol == "tcp" {
 		tunnelsFilesInfo = FormTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
-		logTryRemoveTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
-		oldTunnelsFilesInfo, err = removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceUUID)
+		logTryRemoveTunnels(removeServiceName, removeServiceID, tunnelsFilesInfo, removeServiceEntity.logging)
+		oldTunnelsFilesInfo, err = removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceID)
 		if err != nil {
 			return fmt.Errorf("can't remove tunnel files: %v", err)
 		}
-		logRemovedTunnels(removeServiceName, removeServiceUUID, tunnelsFilesInfo, removeServiceEntity.logging)
+		logRemovedTunnels(removeServiceName, removeServiceID, tunnelsFilesInfo, removeServiceEntity.logging)
 
 		if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 			return fmt.Errorf("can't update tunnel info")
 		}
 	}
 
-	logTryRemoveIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
+	logTryRemoveIpvsadmService(removeServiceName, removeServiceID, currentServiceInfo, removeServiceEntity.logging)
 	vip, port, _, _, protocol, _, err := domain.PrepareDataForIPVS(currentServiceInfo.ServiceIP,
 		currentServiceInfo.ServicePort,
 		currentServiceInfo.RoutingType,
@@ -107,25 +107,25 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	if err != nil {
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}
-	if err = removeServiceEntity.ipvsadm.RemoveService(vip, port, protocol, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.ipvsadm.RemoveService(vip, port, protocol, removeServiceID); err != nil {
 		removeServiceEntity.logging.WithFields(logrus.Fields{
-			"event uuid": removeServiceUUID,
+			"event id": removeServiceID,
 		}).Warnf("ipvsadm can't remove service: %v. got error: %v", serviceInfo, err)
 	} else {
-		logRemovedIpvsadmService(removeServiceName, removeServiceUUID, currentServiceInfo, removeServiceEntity.logging)
+		logRemovedIpvsadmService(removeServiceName, removeServiceID, currentServiceInfo, removeServiceEntity.logging)
 	}
 
 	removeServiceEntity.logging.WithFields(logrus.Fields{
-		"event uuid": removeServiceUUID,
+		"event id": removeServiceID,
 	}).Debugf("try remove from storages service %v", serviceInfo)
-	if err = removeServiceEntity.persistentStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.persistentStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceID); err != nil {
 		return err
 	}
-	if err = removeServiceEntity.cacheStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.cacheStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceID); err != nil {
 		return err
 	}
 	removeServiceEntity.logging.WithFields(logrus.Fields{
-		"event uuid": removeServiceUUID,
+		"event id": removeServiceID,
 	}).Debugf("removed from storages service %v", serviceInfo)
 
 	if currentServiceInfo.Protocol == "tcp" {
@@ -134,14 +134,14 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		}
 	}
 
-	logTryRemoveIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
+	logTryRemoveIPFromDummy(removeServiceName, removeServiceID, serviceInfo.ServiceIP, removeServiceEntity.logging)
 	if !removeServiceEntity.hc.IsMockMode() {
 		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
 			removeServiceEntity.logging.WithFields(logrus.Fields{
-				"event uuid": removeServiceUUID,
+				"event id": removeServiceID,
 			}).Warnf("remove service from dummy error: %v", err)
 		} else {
-			logRemovedIPFromDummy(removeServiceName, removeServiceUUID, serviceInfo.ServiceIP, removeServiceEntity.logging)
+			logRemovedIPFromDummy(removeServiceName, removeServiceID, serviceInfo.ServiceIP, removeServiceEntity.logging)
 		}
 	}
 	return nil

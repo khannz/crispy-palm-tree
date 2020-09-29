@@ -21,29 +21,29 @@ const removeServiceRequestName = "remove service"
 // @Router /service/{addr}/{port} [delete]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
-	removeServiceUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
+	removeServiceID := restAPI.balancerFacade.IDgenerator.NewID()
 	// TODO: log here. and all code below
-	logNewRequest(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
+	logNewRequest(removeServiceRequestName, removeServiceID, restAPI.balancerFacade.Logging)
 
 	ip := ginContext.Param("addr")
 	port := ginContext.Param("port")
 	// FIXME: validate ip and port
 	err := restAPI.balancerFacade.RemoveService(ip,
 		port,
-		removeServiceUUID)
+		removeServiceID)
 	if err != nil {
 		uscaseFail(removeServiceRequestName,
 			err.Error(),
-			removeServiceUUID,
+			removeServiceID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
-	logRequestIsDone(removeServiceRequestName, removeServiceUUID, restAPI.balancerFacade.Logging)
+	logRequestIsDone(removeServiceRequestName, removeServiceID, restAPI.balancerFacade.Logging)
 
 	serviceRemoved := UniversalResponse{
-		ID:                       removeServiceUUID,
+		ID:                       removeServiceID,
 		ServiceIP:                ip,
 		ServicePort:              port,
 		JobCompletedSuccessfully: true,

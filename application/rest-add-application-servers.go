@@ -23,39 +23,39 @@ const addApplicationServersRequestName = "add application servers"
 // @Router /service/add-application-servers [post]
 // // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
-	addApplicationServersRequestUUID := restAPI.balancerFacade.UUIDgenerator.NewUUID().UUID.String()
-	logNewRequest(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
+	addApplicationServersRequestID := restAPI.balancerFacade.IDgenerator.NewID()
+	logNewRequest(addApplicationServersRequestName, addApplicationServersRequestID, restAPI.balancerFacade.Logging)
 
 	addApplicationServersRequest := &AddApplicationServersRequest{}
 
 	if err := ginContext.ShouldBindJSON(addApplicationServersRequest); err != nil {
 		unmarshallIncomeError(err.Error(),
-			addApplicationServersRequestUUID,
+			addApplicationServersRequestID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
 	if validateError := addApplicationServersRequest.validateAddApplicationServersRequest(); validateError != nil {
-		validateIncomeError(validateError.Error(), addApplicationServersRequestUUID, ginContext, restAPI.balancerFacade.Logging)
+		validateIncomeError(validateError.Error(), addApplicationServersRequestID, ginContext, restAPI.balancerFacade.Logging)
 		return
 	}
 
-	logChangeUUID(addApplicationServersRequestUUID, addApplicationServersRequest.ID, restAPI.balancerFacade.Logging)
-	addApplicationServersRequestUUID = addApplicationServersRequest.ID
+	logChangeID(addApplicationServersRequestID, addApplicationServersRequest.ID, restAPI.balancerFacade.Logging)
+	addApplicationServersRequestID = addApplicationServersRequest.ID
 
 	updatedServiceInfo, err := restAPI.balancerFacade.AddApplicationServers(addApplicationServersRequest,
-		addApplicationServersRequestUUID)
+		addApplicationServersRequestID)
 	if err != nil {
 		uscaseFail(addApplicationServersRequestName,
 			err.Error(),
-			addApplicationServersRequestUUID,
+			addApplicationServersRequestID,
 			ginContext,
 			restAPI.balancerFacade.Logging)
 		return
 	}
 
-	logRequestIsDone(addApplicationServersRequestName, addApplicationServersRequestUUID, restAPI.balancerFacade.Logging)
+	logRequestIsDone(addApplicationServersRequestName, addApplicationServersRequestID, restAPI.balancerFacade.Logging)
 
 	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
 	ginContext.JSON(http.StatusOK, convertedServiceInfo)

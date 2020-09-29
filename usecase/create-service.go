@@ -47,7 +47,7 @@ func NewCreateServiceEntity(locker *domain.Locker,
 
 // CreateService ...
 func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.ServiceInfo,
-	createServiceUUID string) (*domain.ServiceInfo, error) {
+	createServiceID string) (*domain.ServiceInfo, error) {
 	// graceful shutdown part start
 	createService.locker.Lock()
 	defer createService.locker.Unlock()
@@ -60,9 +60,9 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 	createService.gracefulShutdown.Unlock()
 	defer decreaseJobs(createService.gracefulShutdown)
 	// graceful shutdown part end
-	logStartUsecase(createServiceName, "add new application servers to service", createServiceUUID, serviceInfo, createService.logging)
+	logStartUsecase(createServiceName, "add new application servers to service", createServiceID, serviceInfo, createService.logging)
 
-	logTryPreValidateRequest(createServiceName, createServiceUUID, createService.logging)
+	logTryPreValidateRequest(createServiceName, createServiceID, createService.logging)
 	allCurrentServices, err := createService.cacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
 		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
@@ -84,20 +84,20 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 		return serviceInfo, err
 	}
 
-	logPreValidateRequestIsOk(createServiceName, createServiceUUID, createService.logging)
+	logPreValidateRequestIsOk(createServiceName, createServiceID, createService.logging)
 
 	var tunnelsFilesInfo, newTunnelsFilesInfo []*domain.TunnelForApplicationServer
 	if serviceInfo.Protocol == "tcp" { // TODO: too many if's, that dirty
 		tunnelsFilesInfo = FormTunnelsFilesInfo(serviceInfo.ApplicationServers, createService.cacheStorage)
-		logTryCreateNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
-		newTunnelsFilesInfo, err = createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceUUID)
+		logTryCreateNewTunnels(createServiceName, createServiceID, tunnelsFilesInfo, createService.logging)
+		newTunnelsFilesInfo, err = createService.tunnelConfig.CreateTunnels(tunnelsFilesInfo, createServiceID)
 		if err != nil {
 			return serviceInfo, fmt.Errorf("can't create tunnel files: %v", err)
 		}
-		logCreatedNewTunnels(createServiceName, createServiceUUID, tunnelsFilesInfo, createService.logging)
+		logCreatedNewTunnels(createServiceName, createServiceID, tunnelsFilesInfo, createService.logging)
 	}
 
-	logTryCreateIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
+	logTryCreateIPVSService(createServiceName, createServiceID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
 	vip, port, routingType, balanceType, protocol, err := domain.PrepareServiceForIPVS(serviceInfo.ServiceIP,
 		serviceInfo.ServicePort,
 		serviceInfo.RoutingType,
@@ -112,17 +112,17 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 		balanceType,
 		protocol,
 		nil,
-		createServiceUUID); err != nil {
+		createServiceID); err != nil {
 		return serviceInfo, fmt.Errorf("Error when ipvsadm create service: %v", err)
 	}
-	logCreatedIPVSService(createServiceName, createServiceUUID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
+	logCreatedIPVSService(createServiceName, createServiceID, serviceInfo.ApplicationServers, serviceInfo.ServiceIP, serviceInfo.ServicePort, createService.logging)
 
 	// add to cache storage
-	logTryUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
-	if err := createService.cacheStorage.NewServiceInfoToStorage(serviceInfo, createServiceUUID); err != nil {
+	logTryUpdateServiceInfoAtCache(createServiceName, createServiceID, createService.logging)
+	if err := createService.cacheStorage.NewServiceInfoToStorage(serviceInfo, createServiceID); err != nil {
 		return serviceInfo, fmt.Errorf("can't add to cache storage :%v", err)
 	}
-	logUpdateServiceInfoAtCache(createServiceName, createServiceUUID, createService.logging)
+	logUpdateServiceInfoAtCache(createServiceName, createServiceID, createService.logging)
 
 	if serviceInfo.Protocol == "tcp" {
 		if err := createService.cacheStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
@@ -130,25 +130,25 @@ func (createService *CreateServiceEntity) CreateService(serviceInfo *domain.Serv
 		}
 	}
 
-	logTryUpdateServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)
-	if err = createService.persistentStorage.NewServiceInfoToStorage(serviceInfo, createServiceUUID); err != nil {
+	logTryUpdateServiceInfoAtPersistentStorage(createServiceName, createServiceID, createService.logging)
+	if err = createService.persistentStorage.NewServiceInfoToStorage(serviceInfo, createServiceID); err != nil {
 		return serviceInfo, fmt.Errorf("Error when save to persistent storage: %v", err)
 	}
-	logUpdatedServiceInfoAtPersistentStorage(createServiceName, createServiceUUID, createService.logging)
+	logUpdatedServiceInfoAtPersistentStorage(createServiceName, createServiceID, createService.logging)
 
 	if serviceInfo.Protocol == "tcp" {
 		if err := createService.persistentStorage.UpdateTunnelFilesInfoAtStorage(newTunnelsFilesInfo); err != nil {
 			return serviceInfo, fmt.Errorf("can't add to persistent storage :%v", err)
 		}
 	}
-	logTryGenerateCommandsForApplicationServers(createServiceName, createServiceUUID, createService.logging)
-	if err := createService.commandGenerator.GenerateCommandsForApplicationServers(serviceInfo, createServiceUUID); err != nil {
+	logTryGenerateCommandsForApplicationServers(createServiceName, createServiceID, createService.logging)
+	if err := createService.commandGenerator.GenerateCommandsForApplicationServers(serviceInfo, createServiceID); err != nil {
 		return serviceInfo, fmt.Errorf("can't generate commands :%v", err)
 	}
-	logGeneratedCommandsForApplicationServers(createServiceName, createServiceUUID, createService.logging)
+	logGeneratedCommandsForApplicationServers(createServiceName, createServiceID, createService.logging)
 
-	logUpdateServiceAtHealtchecks(createServiceName, createServiceUUID, createService.logging)
+	logUpdateServiceAtHealtchecks(createServiceName, createServiceID, createService.logging)
 	createService.hc.NewServiceToHealtchecks(serviceInfo)
-	logUpdatedServiceAtHealtchecks(createServiceName, createServiceUUID, createService.logging)
+	logUpdatedServiceAtHealtchecks(createServiceName, createServiceID, createService.logging)
 	return serviceInfo, nil
 }

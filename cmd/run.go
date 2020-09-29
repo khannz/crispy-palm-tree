@@ -22,13 +22,12 @@ var rootCmd = &cobra.Command{
 	Use:   "lb",
 	Short: "load balancer tier 1 😉",
 	Run: func(cmd *cobra.Command, args []string) {
-		// viperConfig, logging, uuidGenerator, uuidForRootProcess := prepareToStart()
-		uuidGenerator := portadapter.NewUUIDGenerator()
-		uuidForRootProcess := uuidGenerator.NewUUID().UUID.String()
+		idGenerator := chooseIDGenerator(viperConfig.GetString(idTypeName))
+		idForRootProcess := idGenerator.NewID()
 
 		// validate fields
 		logging.WithFields(logrus.Fields{
-			"event uuid":       uuidForRootProcess,
+			"event id":         idForRootProcess,
 			"config file path": viperConfig.GetString(configFilePathName),
 			"log format":       viperConfig.GetString(logFormatName),
 			"log level":        viperConfig.GetString(logLevelName),
@@ -49,14 +48,15 @@ var rootCmd = &cobra.Command{
 			"expire token time":         viperConfig.GetDuration(expireTokenTimeName),
 			"expire refresh token time": viperConfig.GetDuration(expireTokenForRefreshTimeName),
 			"number of users":           len(viperConfig.GetStringMapString(credentials)),
+			"id type":                   viperConfig.GetString(idTypeName),
 		}).Info("")
 
 		// FIXME: uncomment
 		// if isColdStart() && !viperConfig.GetBool(mockMode) {
-		// 	err := checkPrerequisites(uuidForRootProcess, logging)
+		// 	err := checkPrerequisites(idForRootProcess, logging)
 		// 	if err != nil {
 		// 		logging.WithFields(logrus.Fields{
-		// 			"event uuid": uuidForRootProcess,
+		// 			"event id": idForRootProcess,
 		// 		}).Fatalf("check prerequisites error: %v", err)
 		// 	}
 		// }
@@ -81,9 +81,9 @@ var rootCmd = &cobra.Command{
 		// tunnel maker end
 
 		// db and caches init
-		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), uuidForRootProcess, logging)
+		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), idForRootProcess, logging)
 		if err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("storage and cache init error: %v", err)
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("storage and cache init error: %v", err)
 		}
 		defer cacheDB.Db.Close()
 		defer persistentDB.Db.Close()
@@ -91,10 +91,10 @@ var rootCmd = &cobra.Command{
 		// ipvsadmConfigurator start
 		ipvsadmConfigurator, err := portadapter.NewIPVSADMEntity(logging)
 		if err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
 		if err := ipvsadmConfigurator.Flush(); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Fatalf("IPVSADM can't flush data at start: %v", err)
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't flush data at start: %v", err)
 		}
 		// ipvsadmConfigurator end
 
@@ -124,20 +124,20 @@ var rootCmd = &cobra.Command{
 			hc,
 			commandGenerator,
 			gracefulShutdown,
-			uuidGenerator,
+			idGenerator,
 			logging)
 
-		if err := facade.InitializeRuntimeSettings(uuidForRootProcess); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("initialize runtime settings fail: %v", err)
-			if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
-				logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Errorf("disable runtime settings fail: %v", err)
+		if err := facade.InitializeRuntimeSettings(idForRootProcess); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Errorf("initialize runtime settings fail: %v", err)
+			if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), idForRootProcess); err != nil {
+				logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Errorf("disable runtime settings fail: %v", err)
 			}
 			os.Exit(1)
 		}
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("initialize runtime settings successful")
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("initialize runtime settings successful")
 
 		go hc.StartGracefulShutdownControlForHealthchecks()
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Debug("healthchecks for current services started")
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Debug("healthchecks for current services started")
 
 		// up rest api
 		authorization := application.NewAuthorization(viperConfig.GetString(mainSecretName),
@@ -150,27 +150,27 @@ var rootCmd = &cobra.Command{
 		go restAPI.UpRestAPI()
 		go restAPI.GracefulShutdownRestAPI(gracefulShutdownCommandForRestAPI, restAPIisDone)
 
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("program running")
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("program running")
 
 		<-signalChan // shutdown signal
 
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("got shutdown signal")
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("got shutdown signal")
 
 		gracefulShutdownCommandForRestAPI <- struct{}{}
 		gracefulShutdownUsecases(gracefulShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
 		<-restAPIisDone
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("rest API is Done")
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("rest API is Done")
 
 		hc.StopAllHeatlthchecks <- struct{}{}
 		<-hc.AllHeatlthchecksDone
 		// gracefulShutdown.ShutdownNow = false // TODO: so dirty trick
-		if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), uuidForRootProcess); err != nil {
-			logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Warnf("disable runtime settings errors: %v", err)
+		if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), idForRootProcess); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Warnf("disable runtime settings errors: %v", err)
 		}
 
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("runtime settings disabled")
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("runtime settings disabled")
 
-		logging.WithFields(logrus.Fields{"event uuid": uuidForRootProcess}).Info("program stopped")
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("program stopped")
 	},
 }
 
@@ -216,31 +216,31 @@ func isColdStart() bool { // TODO: write logic?
 	return true
 }
 
-func checkPrerequisites(uuid string, logging *logrus.Logger) error {
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Info("start check prerequisites")
+func checkPrerequisites(id string, logging *logrus.Logger) error {
+	logging.WithFields(logrus.Fields{"event id": id}).Info("start check prerequisites")
 	var err error
 	dummyModprobeDPath := "/etc/modprobe.d/dummy.conf" // TODO: remove hardcode?
 	expectDummyModprobContains := "numdummies=1"       // TODO: remove hardcode?
 	if err = checkFileContains(dummyModprobeDPath, expectDummyModprobContains); err != nil {
 		return fmt.Errorf("error when check dummy file: %v", err)
 	}
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", dummyModprobeDPath)
+	logging.WithFields(logrus.Fields{"event id": id}).Debugf("check prerequisites in %v successful", dummyModprobeDPath)
 
 	dummyModuleFilePath := "/etc/modules-load.d/lbos.conf" // TODO: remove hardcode?
 	expectDummyModuleFileContains := "dummy"               // TODO: remove hardcode?
 	if err := checkFileContains(dummyModuleFilePath, expectDummyModuleFileContains); err != nil {
 		return fmt.Errorf("error when check dummy module file: %v", err)
 	}
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", dummyModuleFilePath)
+	logging.WithFields(logrus.Fields{"event id": id}).Debugf("check prerequisites in %v successful", dummyModuleFilePath)
 
 	tunnelModuleFilePath := "/etc/modules-load.d/lbos.conf" // TODO: remove hardcode?
 	expectTunnelModuleFileContains := "tunnel4"             // TODO: remove hardcode?
 	if err := checkFileContains(tunnelModuleFilePath, expectTunnelModuleFileContains); err != nil {
 		return fmt.Errorf("error when check tunnel module file: %v", err)
 	}
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debugf("check prerequisites in %v successful", tunnelModuleFilePath)
+	logging.WithFields(logrus.Fields{"event id": id}).Debugf("check prerequisites in %v successful", tunnelModuleFilePath)
 
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Info("check all prerequisites successful")
+	logging.WithFields(logrus.Fields{"event id": id}).Info("check all prerequisites successful")
 	// check all:
 	// ip_vs
 	// dummy
@@ -260,24 +260,35 @@ func checkFileContains(filePath, expectedData string) error {
 	return nil
 }
 
-func storageAndCacheInit(databasePath, uuid string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
+func storageAndCacheInit(databasePath, id string, logging *logrus.Logger) (*portadapter.StorageEntity, *portadapter.StorageEntity, error) {
 	cacheDB, err := portadapter.NewStorageEntity(true, "", logging)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init NewStorageEntity for cache error: %v", err)
 	}
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("init cacheDB successful")
+	logging.WithFields(logrus.Fields{"event id": id}).Debug("init cacheDB successful")
 
 	persistentDB, err := portadapter.NewStorageEntity(false, databasePath, logging)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init NewStorageEntity for persistent storage error: %v", err)
 	}
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("init persistentDB successful")
+	logging.WithFields(logrus.Fields{"event id": id}).Debug("init persistentDB successful")
 
 	err = cacheDB.LoadCacheFromStorage(persistentDB)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cant load cache from storage: %v", err)
 	}
-	logging.WithFields(logrus.Fields{"event uuid": uuid}).Debug("load cache from persistent storage successful")
+	logging.WithFields(logrus.Fields{"event id": id}).Debug("load cache from persistent storage successful")
 
 	return cacheDB, persistentDB, nil
+}
+
+func chooseIDGenerator(idType string) domain.IDgenerator {
+	switch viperConfig.GetString(idTypeName) {
+	case "nanoid":
+		return portadapter.NewIDGenerator()
+	case "uuid4":
+		return portadapter.NewUUIIDGenerator()
+	default:
+		return portadapter.NewIDGenerator()
+	}
 }

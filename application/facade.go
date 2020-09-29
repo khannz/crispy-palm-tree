@@ -19,7 +19,7 @@ type BalancerFacade struct {
 	HeathcheckEntity    *usecase.HeathcheckEntity
 	CommandGenerator    domain.CommandGenerator
 	GracefulShutdown    *domain.GracefulShutdown
-	UUIDgenerator       domain.UUIDgenerator
+	IDgenerator         domain.IDgenerator
 	Logging             *logrus.Logger
 }
 
@@ -32,7 +32,7 @@ func NewBalancerFacade(locker *domain.Locker,
 	hc *usecase.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
-	uuidGenerator domain.UUIDgenerator,
+	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
 
 	return &BalancerFacade{
@@ -44,14 +44,14 @@ func NewBalancerFacade(locker *domain.Locker,
 		HeathcheckEntity:    hc,
 		CommandGenerator:    commandGenerator,
 		GracefulShutdown:    gracefulShutdown,
-		UUIDgenerator:       uuidGenerator,
+		IDgenerator:         idGenerator,
 		Logging:             logging,
 	}
 }
 
 // CreateService ...
 func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInfo,
-	createServiceUUID string) (*domain.ServiceInfo, error) {
+	createServiceID string) (*domain.ServiceInfo, error) {
 	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -104,11 +104,11 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		Protocol:           createService.Protocol,
 		IsUp:               false,
 	}
-	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
+	return newCreateServiceEntity.CreateService(serviceInfo, createServiceID)
 }
 
 // RemoveService ...
-func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestID string) error {
 	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -118,16 +118,16 @@ func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestUUID 
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
 	serviceInfo := &domain.ServiceInfo{ServiceIP: ip, ServicePort: port}
-	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
+	return removeService.RemoveService(serviceInfo, newNWBRequestID)
 }
 
 // GetServices ...
-func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) GetServices(getNWBServicesID string) ([]*domain.ServiceInfo, error) {
 	getNWBServices := usecase.NewGetAllServices(balancerFacade.Locker,
 		balancerFacade.CacheStorage,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	nwbServices, err := getNWBServices.GetAllServices(getNWBServicesUUID)
+	nwbServices, err := getNWBServices.GetAllServices(getNWBServicesID)
 	if err != nil {
 		return nil, fmt.Errorf("can't get nwb services: %v", err)
 	}
@@ -136,7 +136,7 @@ func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]
 
 // AddApplicationServers ...
 func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *AddApplicationServersRequest,
-	addApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
+	addApplicationServersRequestID string) (*domain.ServiceInfo, error) {
 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -177,7 +177,7 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 		ServicePort:        addApplicationServersRequest.ServicePort,
 		ApplicationServers: appSvrs,
 	}
-	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestUUID)
+	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestID)
 	if err != nil {
 		return incomeServiceInfo, fmt.Errorf("can't add application servers to service: %v", err)
 	}
@@ -186,7 +186,7 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 
 // RemoveApplicationServers ...
 func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplicationServersRequest *RemoveApplicationServersRequest,
-	removeApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
+	removeApplicationServersRequestID string) (*domain.ServiceInfo, error) {
 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -225,7 +225,7 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 		ApplicationServers: appSvrs,
 	}
 
-	currentserviceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestUUID)
+	currentserviceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestID)
 	if err != nil {
 		return incomeServiceInfo, fmt.Errorf("can't remove application servers from service: %v", err)
 	}
@@ -233,7 +233,7 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 }
 
 // GetServiceState ...
-func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceRequestUUID string) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceRequestID string) (*domain.ServiceInfo, error) {
 	getServiceStateEntity := usecase.NewGetServiceStateEntity(balancerFacade.Locker,
 		balancerFacade.CacheStorage,
 		balancerFacade.GracefulShutdown,
@@ -242,12 +242,12 @@ func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceReques
 		ServiceIP:   ip,
 		ServicePort: port,
 	}
-	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceRequestUUID)
+	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceRequestID)
 }
 
 // ModifyService ...
 func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyServiceInfo,
-	modifyServiceUUID string) (*domain.ServiceInfo, error) {
+	modifyServiceID string) (*domain.ServiceInfo, error) {
 	newModifyServiceEntity := usecase.NewModifyServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -287,5 +287,5 @@ func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyService
 		IsUp:               false,
 		Protocol:           modifyService.Protocol,
 	}
-	return newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceUUID)
+	return newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceID)
 }

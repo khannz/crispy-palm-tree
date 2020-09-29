@@ -88,21 +88,21 @@ func transformSliceToString(slice []string) string {
 	return resultString
 }
 
-func logNewRequest(typeOfRequest, uuid string, logging *logrus.Logger) {
+func logNewRequest(typeOfRequest, id string, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": uuid,
+		"entity":   restAPIlogName,
+		"event id": id,
 	}).Infof("got new %v request", typeOfRequest)
 }
 
-func unmarshallIncomeError(errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
+func unmarshallIncomeError(errS, id string, ginContext *gin.Context, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": uuid,
+		"entity":   restAPIlogName,
+		"event id": id,
 	}).Errorf("can't unmarshal income request: %v", errS)
 
 	rError := UniversalResponse{
-		ID:                       uuid,
+		ID:                       id,
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "can't unmarshal income request: " + errS,
 	}
@@ -110,45 +110,45 @@ func unmarshallIncomeError(errS, uuid string, ginContext *gin.Context, logging *
 	ginContext.JSON(http.StatusBadRequest, rError)
 }
 
-func logChangeUUID(oldUUID, newUUID string, logging *logrus.Logger) {
+func logChangeID(oldID, newID string, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": newUUID,
-	}).Infof("change job uuid from %v to %v", oldUUID, newUUID)
+		"entity":   restAPIlogName,
+		"event id": newID,
+	}).Infof("change job id from %v to %v", oldID, newID)
 }
 
-func validateIncomeError(errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
+func validateIncomeError(errS, id string, ginContext *gin.Context, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": uuid,
+		"entity":   restAPIlogName,
+		"event id": id,
 	}).Errorf("validate fail for income nwb request: %v", errS)
 
 	rError := &UniversalResponse{
-		ID:                       uuid,
+		ID:                       id,
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "fail when validate income request: " + errS,
 	}
 	ginContext.JSON(http.StatusBadRequest, rError)
 }
 
-func uscaseFail(typeOfrequest, errS, uuid string, ginContext *gin.Context, logging *logrus.Logger) {
+func uscaseFail(typeOfrequest, errS, id string, ginContext *gin.Context, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": uuid,
+		"entity":   restAPIlogName,
+		"event id": id,
 	}).Errorf("can't %v, got error: %v", typeOfrequest, errS)
 
 	rError := &UniversalResponse{
-		ID:                       uuid,
+		ID:                       id,
 		JobCompletedSuccessfully: false,
 		ExtraInfo:                "can't %v, got internal error: " + errS,
 	}
 	ginContext.JSON(http.StatusInternalServerError, rError)
 }
 
-func logRequestIsDone(typeOfrequest, uuid string, logging *logrus.Logger) {
+func logRequestIsDone(typeOfrequest, id string, logging *logrus.Logger) {
 	logging.WithFields(logrus.Fields{
-		"entity":     restAPIlogName,
-		"event uuid": uuid,
+		"entity":   restAPIlogName,
+		"event id": id,
 	}).Infof("request %v done", typeOfrequest)
 }
 

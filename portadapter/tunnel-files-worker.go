@@ -40,15 +40,15 @@ func NewTunnelFileMaker(sysctlConfFilePath string,
 
 // CreateTunnels ...
 func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(tunnelsFilesInfo []*domain.TunnelForApplicationServer,
-	createTunnelUUID string) ([]*domain.TunnelForApplicationServer, error) {
+	createTunnelID string) ([]*domain.TunnelForApplicationServer, error) {
 	tunnelFileMaker.logging.WithFields(logrus.Fields{
-		"entity":     tunnelFileMakerEntityName,
-		"event uuid": createTunnelUUID,
+		"entity":   tunnelFileMakerEntityName,
+		"event id": createTunnelID,
 	}).Tracef("starting create tunnels: %v", tunnelsFilesInfo)
 	newTunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		if tunnelFilesInfo.ServicesToTunnelCount == 0 {
-			if err := tunnelFileMaker.CreateTunnel(tunnelFilesInfo, createTunnelUUID); err != nil {
+			if err := tunnelFileMaker.CreateTunnel(tunnelFilesInfo, createTunnelID); err != nil {
 				return nil, fmt.Errorf("can't create tunnel: %v", err)
 			}
 		}
@@ -65,10 +65,10 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(tunnelsFilesInfo []*domain
 
 // CreateTunnel ...
 func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.TunnelForApplicationServer,
-	createTunnelUUID string) error {
+	createTunnelID string) error {
 	tunnelFileMaker.logging.WithFields(logrus.Fields{
-		"entity":     tunnelFileMakerEntityName,
-		"event uuid": createTunnelUUID,
+		"entity":   tunnelFileMakerEntityName,
+		"event id": createTunnelID,
 	}).Tracef("starting create tunnel: %v", *tunnelFilesInfo)
 	newTunnelName, err := tunnelFileMaker.chooseNewTunnelName()
 	if err != nil {
@@ -76,8 +76,8 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 	}
 	sNewTunnelName := strconv.Itoa(newTunnelName)
 	tunnelFileMaker.logging.WithFields(logrus.Fields{
-		"entity":     tunnelFileMakerEntityName,
-		"event uuid": createTunnelUUID,
+		"entity":   tunnelFileMakerEntityName,
+		"event id": createTunnelID,
 	}).Tracef("new tunnel name: %v", sNewTunnelName)
 	newSysctlConfFileFullPath := tunnelFileMaker.sysctlConfFilePath + sNewTunnelName + "-sysctl.conf"
 
@@ -85,7 +85,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 	tunnelFilesInfo.SysctlConfFile = newSysctlConfFileFullPath
 
 	if err := tunnelFileMaker.writeNewTunnelFile(tunnelFilesInfo, // TODO: remove that
-		createTunnelUUID); err != nil {
+		createTunnelID); err != nil {
 		return fmt.Errorf("can't write new tunnel files: %v", err)
 	}
 
@@ -96,7 +96,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 		return fmt.Errorf("can't up tunnel: %v", err)
 	}
 
-	if err := tunnelFileMaker.addRoute(sNewTunnelName, tunnelFilesInfo.ApplicationServerIP, mask, table, createTunnelUUID); err != nil {
+	if err := tunnelFileMaker.addRoute(sNewTunnelName, tunnelFilesInfo.ApplicationServerIP, mask, table, createTunnelID); err != nil {
 		return fmt.Errorf("can't create route: %v", err)
 	}
 
@@ -136,13 +136,13 @@ func (tunnelFileMaker *TunnelFileMaker) chooseNewTunnelName() (int, error) {
 }
 
 func (tunnelFileMaker *TunnelFileMaker) writeNewTunnelFile(tunnelFilesInfo *domain.TunnelForApplicationServer,
-	createTunnelUUID string) error {
+	createTunnelID string) error {
 	newRowForSysctlConf := strings.ReplaceAll(rowForSysctlConf,
 		"TUNNEL_NAME",
 		"tun"+tunnelFilesInfo.TunnelName)
 	tunnelFileMaker.logging.WithFields(logrus.Fields{
-		"entity":     tunnelFileMakerEntityName,
-		"event uuid": createTunnelUUID,
+		"entity":   tunnelFileMakerEntityName,
+		"event id": createTunnelID,
 	}).Tracef("new sysctl config file name: %v", tunnelFilesInfo.SysctlConfFile)
 	if err := ioutil.WriteFile(tunnelFilesInfo.SysctlConfFile, []byte(newRowForSysctlConf+"\n"), 0644); err != nil {
 		return fmt.Errorf("can't write sysctl conf %v, got error: %v",
@@ -170,7 +170,7 @@ func (tunnelFileMaker *TunnelFileMaker) addAndUpNewLink(tunnelName, applicationS
 }
 
 // TODO: global refactor func argument call (like remove route and add, give ip+mask or only ip)
-func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServerIP, mask string, table int, uuid string) error {
+func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServerIP, mask string, table int, id string) error {
 
 	linkInfo, err := netlink.LinkByName("tun" + sNewTunnelName)
 	if err != nil {
@@ -190,8 +190,8 @@ func (tunnelFileMaker *TunnelFileMaker) addRoute(sNewTunnelName, applicationServ
 	if err = netlink.RouteAdd(route); err != nil {
 		// FIXME: maybe broken. temp dirty fix
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
-			"entity":     tunnelFileMakerEntityName,
-			"event uuid": uuid,
+			"entity":   tunnelFileMakerEntityName,
+			"event id": id,
 		}).Warnf("can't add route for tunnel %v; server %v, mask %v, table %v", sNewTunnelName, applicationServerIP, mask, table)
 	}
 	return nil
@@ -215,16 +215,16 @@ func (tunnelFileMaker *TunnelFileMaker) downAndRemoveOldLink(tunnelName string) 
 
 // RemoveTunnels ...
 func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(tunnelsFilesInfo []*domain.TunnelForApplicationServer,
-	removeTunnelUUID string) ([]*domain.TunnelForApplicationServer, error) {
+	removeTunnelID string) ([]*domain.TunnelForApplicationServer, error) {
 	newTunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
-			"entity":     tunnelFileMakerEntityName,
-			"event uuid": removeTunnelUUID,
+			"entity":   tunnelFileMakerEntityName,
+			"event id": removeTunnelID,
 		}).Debugf("remove tunnel %v; file: %v", tunnelFilesInfo.ApplicationServerIP, tunnelFilesInfo.SysctlConfFile)
 
 		if tunnelFilesInfo.ServicesToTunnelCount == 1 {
-			if err := tunnelFileMaker.RemoveTunnel(tunnelFilesInfo, removeTunnelUUID); err != nil {
+			if err := tunnelFileMaker.RemoveTunnel(tunnelFilesInfo, removeTunnelID); err != nil {
 				return nil, fmt.Errorf("can't remove tunnel files: %v", err)
 			}
 		}
@@ -237,15 +237,15 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(tunnelsFilesInfo []*domain
 
 // RemoveAllTunnels remove tunnels whithout any checks
 func (tunnelFileMaker *TunnelFileMaker) RemoveAllTunnels(tunnelsFilesInfo []*domain.TunnelForApplicationServer,
-	removeTunnelUUID string) error {
+	removeTunnelID string) error {
 	var errors []error
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
-			"entity":     tunnelFileMakerEntityName,
-			"event uuid": removeTunnelUUID,
+			"entity":   tunnelFileMakerEntityName,
+			"event id": removeTunnelID,
 		}).Debugf("remove tunnel %v; file: %v", tunnelFilesInfo.ApplicationServerIP, tunnelFilesInfo.SysctlConfFile)
 
-		if err := tunnelFileMaker.RemoveTunnel(tunnelFilesInfo, removeTunnelUUID); err != nil {
+		if err := tunnelFileMaker.RemoveTunnel(tunnelFilesInfo, removeTunnelID); err != nil {
 			errors = append(errors, err)
 		}
 	}
@@ -254,12 +254,12 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveAllTunnels(tunnelsFilesInfo []*dom
 
 // RemoveTunnel ...
 func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.TunnelForApplicationServer,
-	removeTunnelUUID string) error {
+	removeTunnelID string) error {
 	var err error
 
 	table := 10
 	mask := "/32" // TODO: remove hardcode
-	if err := tunnelFileMaker.removeRoute(tunnelFilesInfo.ApplicationServerIP, mask, table, tunnelFilesInfo.TunnelName, removeTunnelUUID); err != nil {
+	if err := tunnelFileMaker.removeRoute(tunnelFilesInfo.ApplicationServerIP, mask, table, tunnelFilesInfo.TunnelName, removeTunnelID); err != nil {
 		tunnelFileMaker.logging.Errorf("can't remove route: %v", err)
 	}
 
@@ -267,25 +267,25 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnel(tunnelFilesInfo *domain.Tun
 		tunnelFileMaker.logging.Errorf("can't remove tunnel: %v", err)
 	}
 
-	if err = tunnelFileMaker.removeFile(tunnelFilesInfo.SysctlConfFile, removeTunnelUUID); err != nil {
+	if err = tunnelFileMaker.removeFile(tunnelFilesInfo.SysctlConfFile, removeTunnelID); err != nil {
 		tunnelFileMaker.logging.Errorf("can't remove route: %v", err)
 	}
 
 	return nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) removeFile(filePath, requestUUID string) error {
+func (tunnelFileMaker *TunnelFileMaker) removeFile(filePath, requestID string) error {
 	if err := os.Remove(filePath); err != nil {
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
-			"entity":     tunnelFileMakerEntityName,
-			"event uuid": requestUUID,
+			"entity":   tunnelFileMakerEntityName,
+			"event id": requestID,
 		}).Errorf("can't remove tunnel file %v, got error: %v", filePath, err)
 		return err
 	}
 	return nil
 }
 
-func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string, table int, tunnelName string, uuid string) error {
+func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask string, table int, tunnelName string, id string) error {
 	linkInfo, err := netlink.LinkByName("tun" + tunnelName)
 	if err != nil {
 		return fmt.Errorf("can't get link onfo for remove route for application server %v:%v", applicationServerIP, err)
@@ -302,8 +302,8 @@ func (tunnelFileMaker *TunnelFileMaker) removeRoute(applicationServerIP, mask st
 	}
 	if err := netlink.RouteDel(route); err != nil {
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
-			"entity":     tunnelFileMakerEntityName,
-			"event uuid": uuid,
+			"entity":   tunnelFileMakerEntityName,
+			"event id": id,
 		}).Warnf("can't remove route for tunnel %v; server %v, mask %v, table %v", tunnelName, applicationServerIP, mask, table)
 	}
 	return nil
