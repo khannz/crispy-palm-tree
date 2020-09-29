@@ -3,6 +3,7 @@ package usecase
 // TODO: healthchecks != usecase!
 // TODO: featute: check routes tunnles and syscfg exist
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -575,12 +576,14 @@ func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.D
 }
 
 func (hc *HeathcheckEntity) httpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
+	// FIXME: https checks also here
 	roundTripper := &http.Transport{
 		Dial: (&net.Dialer{
 			LocalAddr: hc.techInterface,
 			Timeout:   timeout,
 		}).Dial,
-		TLSHandshakeTimeout: timeout / 2,
+		TLSHandshakeTimeout: timeout * 6 / 10, // hardcode
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 	}
 	client := http.Client{
 		Transport: roundTripper,
