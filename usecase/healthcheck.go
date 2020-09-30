@@ -136,10 +136,6 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(serviceInfo *domain.ServiceI
 // RemoveServiceFromHealtchecks will work until removed
 func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.ServiceInfo) {
 	hc.Lock()
-	if hc.gracefulShutdown.ShutdownNow {
-		hc.Unlock()
-		return
-	}
 	indexForRemove, isFinded := hc.findServiceInHealtcheckSlice(serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	hc.Unlock()
 	if isFinded {
@@ -147,19 +143,18 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 		hc.runningHeathchecks[indexForRemove].Healthcheck.StopChecks <- struct{}{}
 		<-hc.runningHeathchecks[indexForRemove].Healthcheck.ChecksStoped
 		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
-		hc.runningHeathchecks[indexForRemove].Lock()
 		hc.Lock()
 		hc.runningHeathchecks = append(hc.runningHeathchecks[:indexForRemove], hc.runningHeathchecks[indexForRemove+1:]...)
 		hc.Unlock()
-		hc.runningHeathchecks[indexForRemove].Unlock()
-	} else {
-		hc.logging.WithFields(logrus.Fields{
-			"entity":   healthcheckName,
-			"event id": healthcheckID,
-		}).Errorf("Heathcheck error: RemoveServiceFromHealtchecks error: service %v:%v not found",
-			serviceInfo.ServiceIP,
-			serviceInfo.ServicePort)
+		return
 	}
+
+	hc.logging.WithFields(logrus.Fields{
+		"entity":   healthcheckName,
+		"event id": healthcheckID,
+	}).Errorf("Heathcheck error: RemoveServiceFromHealtchecks error: service %v:%v not found",
+		serviceInfo.ServiceIP,
+		serviceInfo.ServicePort)
 }
 
 // UpdateServiceAtHealtchecks ...
@@ -180,14 +175,12 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.Servi
 		hc.logging.Tracef("send stop checks for service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		hc.runningHeathchecks[updateIndex].Healthcheck.StopChecks <- struct{}{}
 		<-hc.runningHeathchecks[updateIndex].Healthcheck.ChecksStoped
-		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+		hc.logging.Tracef("healthchecks stopped fr update from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		enrichApplicationServersHealthchecks(serviceInfo, currentApplicationServers) // locks inside
 		tmpHC := append(hc.runningHeathchecks[:updateIndex], serviceInfo)
-		hc.runningHeathchecks[updateIndex].Lock()
 		hc.Lock()
 		hc.runningHeathchecks = append(tmpHC, hc.runningHeathchecks[updateIndex+1:]...)
 		hc.Unlock()
-		hc.runningHeathchecks[updateIndex].Unlock()
 		go hc.startHealthchecksForCurrentService(serviceInfo)
 		return nil
 	}
