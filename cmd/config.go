@@ -70,11 +70,12 @@ const (
 )
 
 // // For builds with ldflags
-// var (
-// 	version = "TBD @ ldflags"
-// 	commit  = "TBD @ ldflags"
-// 	branch  = "TBD @ ldflags"
-// )
+var (
+	version   = "unknown"
+	buildTime = "unknown"
+	// 	commit  = "TBD @ ldflags"
+	// 	branch  = "TBD @ ldflags"
+)
 
 var (
 	viperConfig *viper.Viper

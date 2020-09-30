@@ -27,6 +27,8 @@ var rootCmd = &cobra.Command{
 
 		// validate fields
 		logging.WithFields(logrus.Fields{
+			"version":          version,
+			"build time":       buildTime,
 			"event id":         idForRootProcess,
 			"config file path": viperConfig.GetString(configFilePathName),
 			"log format":       viperConfig.GetString(logFormatName),
