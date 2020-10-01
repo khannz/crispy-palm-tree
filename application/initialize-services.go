@@ -20,7 +20,6 @@ func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(id string) error
 		return fmt.Errorf("fail to remove old tunnels data: %v", err)
 	}
 	for _, serviceConfigFromStorage := range servicesConfigsFromStorage {
-
 		if err := balancerFacade.InitializeCreateService(serviceConfigFromStorage, id); err != nil {
 			return err
 		}

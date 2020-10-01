@@ -16,19 +16,19 @@ func (balancerFacade *BalancerFacade) DisableRuntimeSettings(isMockMode bool, id
 	var errors []error
 	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
-		balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Errorf("fail to load  storage config when programm stop: %v", err)
+		balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("fail to load storage config when programm stop: %v", err)
 		return err
 	}
 	// task: removeTunnels for all services
 	for _, serviceConfigFromStorage := range servicesConfigsFromStorage {
 		if err := balancerFacade.DisableRemoveService(serviceConfigFromStorage, isMockMode, id); err != nil {
-			balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Errorf("can't remove service when programm stop: %v", err)
+			balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("can't remove service when programm stop: %v", err)
 			errors = append(errors, err)
 		}
 	}
 	// to make sure that the ipvs is cleared
 	if err := balancerFacade.IPVSADMConfigurator.Flush(); err != nil {
-		balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Errorf("IPVSADM can't flush data when programm stop: %v", err)
+		balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("IPVSADM can't flush data when programm stop: %v", err)
 		errors = append(errors, err)
 	}
 
@@ -43,13 +43,13 @@ func (balancerFacade *BalancerFacade) DisableRemoveService(serviceConfigFromStor
 	tunnelsFilesInfo := usecase.FormTunnelsFilesInfo(serviceConfigFromStorage.ApplicationServers, balancerFacade.CacheStorage)
 
 	if err := balancerFacade.TunnelConfig.RemoveAllTunnels(tunnelsFilesInfo, id); err != nil {
-		balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Errorf("can't remove tunnels: %v", err)
+		balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("can't remove tunnels: %v", err)
 		errors = append(errors, err)
 	}
 
 	if !isMockMode {
 		if err := usecase.RemoveFromDummy(serviceConfigFromStorage.ServiceIP); err != nil {
-			balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Errorf("can't remove from dummy: %v", err)
+			balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("can't remove from dummy: %v", err)
 			errors = append(errors, err)
 		}
 	}

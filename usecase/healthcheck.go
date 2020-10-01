@@ -48,6 +48,7 @@ type HeathcheckEntity struct {
 	dw                   *dummyWorker
 	isMockMode           bool
 	logging              *logrus.Logger
+	announcedServices    map[string]int
 }
 
 // NewHeathcheckEntity ...
@@ -74,6 +75,7 @@ func NewHeathcheckEntity(cacheStorage domain.StorageActions,
 		dw:                   new(dummyWorker),
 		isMockMode:           isMockMode,
 		logging:              logging,
+		announcedServices:    make(map[string]int),
 	}
 }
 
@@ -81,6 +83,13 @@ func NewHeathcheckEntity(cacheStorage domain.StorageActions,
 type UnknownDataStruct struct {
 	UnknowMap         map[string]interface{}
 	UnknowArrayOfMaps []map[string]interface{}
+}
+
+func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) {
+	if _, inMap := hc.announcedServices[serviceIP]; inMap {
+		return // already in map
+	}
+	hc.announcedServices[serviceIP] = 0 // add new service to annonced pool
 }
 
 // StartGracefulShutdownControlForHealthchecks ...
@@ -95,6 +104,7 @@ func (hc *HeathcheckEntity) StartGracefulShutdownControlForHealthchecks() {
 	}
 	for _, serviceInfo := range hc.runningHeathchecks {
 		<-serviceInfo.Healthcheck.ChecksStoped
+		hc.annonceLogic(serviceInfo.ServiceIP, serviceInfo.IsUp) // lock hc and dummy; may remove annonce
 		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 	}
 	hc.AllHeatlthchecksDone <- struct{}{}
@@ -114,8 +124,9 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	}
 
 	for _, serviceInfo := range servicesInfo {
-		enrichApplicationServersHealthchecks(serviceInfo, nil) // locks inside
+		enrichApplicationServersHealthchecks(serviceInfo, nil) // lock serviceInfo
 		hc.runningHeathchecks = append(hc.runningHeathchecks, serviceInfo)
+		hc.addNewServiceToMayAnnouncedServices(serviceInfo.ServiceIP) // hc must be locked
 		go hc.startHealthchecksForCurrentService(serviceInfo)
 	}
 	return nil
@@ -128,9 +139,19 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(serviceInfo *domain.ServiceI
 	if hc.gracefulShutdown.ShutdownNow {
 		return
 	}
-	enrichApplicationServersHealthchecks(serviceInfo, nil) // locks inside
+	enrichApplicationServersHealthchecks(serviceInfo, nil) // lock serviceInfo
 	hc.runningHeathchecks = append(hc.runningHeathchecks, serviceInfo)
+	hc.addNewServiceToMayAnnouncedServices(serviceInfo.ServiceIP) // hc must be locked
 	go hc.startHealthchecksForCurrentService(serviceInfo)
+}
+
+func (hc *HeathcheckEntity) removeServiceFromMayAnnouncedServices(serviceIP string) {
+	_, isFinded := hc.announcedServices[serviceIP]
+	if isFinded {
+		if hc.announcedServices[serviceIP] == 0 {
+			delete(hc.announcedServices, serviceIP)
+		}
+	}
 }
 
 // RemoveServiceFromHealtchecks will work until removed
@@ -142,10 +163,12 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 		hc.logging.Tracef("send stop checks for service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		hc.runningHeathchecks[indexForRemove].Healthcheck.StopChecks <- struct{}{}
 		<-hc.runningHeathchecks[indexForRemove].Healthcheck.ChecksStoped
-		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+		hc.annonceLogic(serviceInfo.ServiceIP, false) // lock hc and dummy; may remove annonce
 		hc.Lock()
+		hc.removeServiceFromMayAnnouncedServices(serviceInfo.ServiceIP) // hc must be locked
 		hc.runningHeathchecks = append(hc.runningHeathchecks[:indexForRemove], hc.runningHeathchecks[indexForRemove+1:]...)
 		hc.Unlock()
+		hc.logging.Tracef("get checks stopped from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		return
 	}
 
@@ -174,9 +197,10 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.Servi
 		hc.runningHeathchecks[updateIndex].Unlock()
 		hc.logging.Tracef("send stop checks for service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		hc.runningHeathchecks[updateIndex].Healthcheck.StopChecks <- struct{}{}
+		// TODO: annonce is ok?
 		<-hc.runningHeathchecks[updateIndex].Healthcheck.ChecksStoped
 		hc.logging.Tracef("healthchecks stopped fr update from service %v:%v", serviceInfo.ServiceIP, serviceInfo.ServicePort)
-		enrichApplicationServersHealthchecks(serviceInfo, currentApplicationServers) // locks inside
+		enrichApplicationServersHealthchecks(serviceInfo, currentApplicationServers) // lock serviceInfo
 		tmpHC := append(hc.runningHeathchecks[:updateIndex], serviceInfo)
 		hc.Lock()
 		hc.runningHeathchecks = append(tmpHC, hc.runningHeathchecks[updateIndex+1:]...)
@@ -241,7 +265,7 @@ func (hc *HeathcheckEntity) findServiceInHealtcheckSlice(serviceIP, servicePort 
 
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(serviceInfo *domain.ServiceInfo) {
 	// first run hc at create entity
-	hc.CheckApplicationServersInService(serviceInfo) // locks inside
+	hc.CheckApplicationServersInService(serviceInfo) // lock hc, serviceInfo, dummy
 
 	ticker := time.NewTicker(serviceInfo.Healthcheck.RepeatHealthcheck)
 	for {
@@ -251,7 +275,7 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(serviceInfo *doma
 			serviceInfo.Healthcheck.ChecksStoped <- struct{}{}
 			return
 		case <-ticker.C:
-			hc.CheckApplicationServersInService(serviceInfo)
+			hc.CheckApplicationServersInService(serviceInfo) // lock hc, serviceInfo, dummy
 		}
 	}
 }
@@ -264,7 +288,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 		fs.wg.Add(1)
 		go hc.checkApplicationServerInService(serviceInfo,
 			fs,
-			i) // locks inside
+			i) // lock serviceInfo
 	}
 	fs.wg.Wait()
 	percentageUp := percentageOfUp(len(serviceInfo.ApplicationServers), fs.count)
@@ -287,18 +311,59 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(serviceInfo *domain
 			"event id": healthcheckID,
 		}).Warnf("service %v:%v is up now", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		serviceInfo.IsUp = true
-		hc.addToDummyWrapper(serviceInfo.ServiceIP)
+		hc.annonceLogic(serviceInfo.ServiceIP, serviceInfo.IsUp) // lock hc and dummy
 	} else if serviceInfo.IsUp && !isServiceUp {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
 			"event id": healthcheckID,
 		}).Warnf("service %v:%v is down now", serviceInfo.ServiceIP, serviceInfo.ServicePort)
 		serviceInfo.IsUp = false
-		hc.removeFromDummyWrapper(serviceInfo.ServiceIP)
+		hc.annonceLogic(serviceInfo.ServiceIP, serviceInfo.IsUp) // lock hc and dummy
 	} else {
 		hc.logging.Debugf("service state not changed")
 	}
 	hc.updateInStorages(serviceInfo)
+}
+
+// annonceLogic - used when service change state
+func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState bool) {
+	hc.Lock()
+	defer hc.Unlock()
+	isServiceAnoncedNow := hc.announcedServices[serviceIP] > 0
+	//
+	if isServiceAnoncedNow {
+		if newIsUpServiceState {
+			if i, inMap := hc.announcedServices[serviceIP]; inMap {
+				hc.announcedServices[serviceIP] = i + 1
+				return
+			}
+			// log error
+			return
+		}
+		// isServiceAnoncedNow && !newIsUpServiceState
+		if i, inMap := hc.announcedServices[serviceIP]; inMap {
+			hc.announcedServices[serviceIP] = i - 1
+			if hc.announcedServices[serviceIP] == 0 {
+				hc.removeFromDummyWrapper(serviceIP)
+				return
+			}
+		}
+		// log error
+		return
+	}
+	// !isServiceAnoncedNow
+	if newIsUpServiceState {
+		if i, inMap := hc.announcedServices[serviceIP]; inMap {
+			hc.announcedServices[serviceIP] = i + 1 // set 1, i=0 here
+			hc.addToDummyWrapper(serviceIP)
+			return
+		}
+		// log error
+		return
+	}
+
+	// !isServiceAnoncedNow && !newIsUpServiceState return
+
 }
 
 func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
@@ -322,7 +387,7 @@ func (hc *HeathcheckEntity) updateInStorages(serviceInfo *domain.ServiceInfo) {
 func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.ServiceInfo,
 	fs *failedApplicationServers,
 	applicationServerInfoIndex int) {
-	// FIXME: to many code here.. Refactor to funcs
+	// TODO: to many code here.. Refactor to funcs
 	defer fs.wg.Done()
 	var isApplicationServerUp, isApplicationServerChangeState bool
 	switch serviceInfo.Healthcheck.Type {
@@ -330,9 +395,9 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		isCheckOk := hc.tcpCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
 
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // lock serviceInfo
 		if !isCheckOk {
-			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 			hc.logging.Debugf("one hc for application server %v:%v fail: %v; is change state: %v",
 				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
 				serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort,
@@ -354,7 +419,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			return
 		}
 
-		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 		hc.logging.Debugf("one hc for application server %v:%v ok: %v; is change state: %v",
 			serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerIP,
 			serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerPort,
@@ -369,8 +434,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		isCheckOk := hc.httpCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
-			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk)                                                // lock serviceInfo
+			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 			if !isApplicationServerUp {
 				fs.Lock()
 				fs.count++
@@ -386,8 +451,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
-		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk)                                                // lock serviceInfo
+		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 		if !isApplicationServerUp {
 			fs.Lock()
 			fs.count++
@@ -397,8 +462,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		isCheckOk := hc.httpAdvancedCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
-			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk)                                                // lock serviceInfo
+			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 			if !isApplicationServerUp {
 				fs.Lock()
 				fs.count++
@@ -414,8 +479,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
-		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk)                                                // lock serviceInfo
+		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 		if !isApplicationServerUp {
 			fs.Lock()
 			fs.count++
@@ -425,8 +490,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		isCheckOk := hc.icmpCheckOk(serviceInfo.ApplicationServers[applicationServerInfoIndex].ServerHealthcheck.HealthcheckAddress,
 			serviceInfo.Healthcheck.Timeout)
 		if !isCheckOk {
-			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
-			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+			hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk)                                                // lock serviceInfo
+			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 			if !isApplicationServerUp {
 				fs.Lock()
 				fs.count++
@@ -442,8 +507,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 			}
 			return
 		}
-		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk) // locks inside
-		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex)
+		hc.moveApplicationServerStateIndexes(serviceInfo, applicationServerInfoIndex, isCheckOk)                                                // lock serviceInfo
+		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(serviceInfo, applicationServerInfoIndex) // lock serviceInfo
 		if !isApplicationServerUp {
 			fs.Lock()
 			fs.count++
@@ -467,8 +532,6 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(serviceInfo *domain.
 		return
 	}
 }
-
-// func isCheckOk
 
 func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(serviceInfo *domain.ServiceInfo,
 	applicationServerInfoIndex int) (bool, bool) {

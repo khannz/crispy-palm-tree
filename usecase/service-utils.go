@@ -574,26 +574,6 @@ func logRemovedServiceAtHealtchecks(usecaseName,
 	}).Info("removed service from healtchecks")
 }
 
-func logTryRemoveIPFromDummy(usecaseName,
-	id,
-	serviceIP string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("try remove service ip %v from dummy", serviceIP)
-}
-
-func logRemovedIPFromDummy(usecaseName,
-	id,
-	serviceIP string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("removed service ip %v from dummy", serviceIP)
-}
-
 func logServicesIPAndPortNotEqual(serviceOneIP,
 	serviceOnePort,
 	serviceTwoIP,

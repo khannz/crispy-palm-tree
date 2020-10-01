@@ -134,15 +134,5 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		}
 	}
 
-	logTryRemoveIPFromDummy(removeServiceName, removeServiceID, serviceInfo.ServiceIP, removeServiceEntity.logging)
-	if !removeServiceEntity.hc.IsMockMode() {
-		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
-			removeServiceEntity.logging.WithFields(logrus.Fields{
-				"event id": removeServiceID,
-			}).Warnf("remove service from dummy error: %v", err)
-		} else {
-			logRemovedIPFromDummy(removeServiceName, removeServiceID, serviceInfo.ServiceIP, removeServiceEntity.logging)
-		}
-	}
 	return nil
 }
