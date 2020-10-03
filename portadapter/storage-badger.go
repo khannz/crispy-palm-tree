@@ -100,7 +100,7 @@ func (storageEntity *StorageEntity) NewServiceInfoToStorage(serviceData *domain.
 func transformServiceDataForStorageData(serviceData *domain.ServiceInfo) ([]byte,
 	[]byte,
 	error) {
-	serviceDataKey := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
+	serviceDataKey := []byte(serviceData.IP + ":" + serviceData.Port)
 
 	renewApplicationServers := []domain.ApplicationServer{}
 	for _, applicationServer := range serviceData.ApplicationServers {
@@ -147,7 +147,7 @@ func (storageEntity *StorageEntity) updateDatabaseServiceInfo(serviceDataKey,
 
 // RemoveServiceInfoFromStorage ...
 func (storageEntity *StorageEntity) RemoveServiceInfoFromStorage(serviceData *domain.ServiceInfo, eventID string) error {
-	keyData := []byte(serviceData.ServiceIP + ":" + serviceData.ServicePort)
+	keyData := []byte(serviceData.IP + ":" + serviceData.Port)
 	storageEntity.Lock()
 	defer storageEntity.Unlock()
 
@@ -186,7 +186,7 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 	storageEntity.Lock()
 	defer storageEntity.Unlock()
 	if err := storageEntity.Db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(incomeServiceData.ServiceIP + ":" + incomeServiceData.ServicePort))
+		item, err := txn.Get([]byte(incomeServiceData.IP + ":" + incomeServiceData.Port))
 		if err != nil {
 			return fmt.Errorf("txn.Get fail: %v", err)
 		}
@@ -230,11 +230,11 @@ func (storageEntity *StorageEntity) GetServiceInfo(incomeServiceData *domain.Ser
 		return currentServiceInfo, err
 	}
 
-	tmpIncomeServiceIP := incomeServiceData.ServiceIP
-	tmpIncomeServicePort := incomeServiceData.ServicePort
+	tmpIncomeServiceIP := incomeServiceData.IP
+	tmpIncomeServicePort := incomeServiceData.Port
 
-	currentServiceInfo.ServiceIP = tmpIncomeServiceIP
-	currentServiceInfo.ServicePort = tmpIncomeServicePort
+	currentServiceInfo.IP = tmpIncomeServiceIP
+	currentServiceInfo.Port = tmpIncomeServicePort
 	currentServiceInfo.ApplicationServers = currentApplicationServers
 
 	return currentServiceInfo, nil

@@ -13,18 +13,18 @@ func SortServicesInfoAndApplicationServers(unsortedServicesInfo []*domain.Servic
 	newServicesInfo := sortedOnlyServices(unsortedServicesInfo)
 	for _, sortedOnlyServiceInfo := range newServicesInfo { // terrible second 'for' loop..
 		for _, unsortedServiceInfo := range unsortedServicesInfo {
-			if sortedOnlyServiceInfo.ServiceIP == unsortedServiceInfo.ServiceIP &&
-				sortedOnlyServiceInfo.ServicePort == unsortedServiceInfo.ServicePort {
+			if sortedOnlyServiceInfo.IP == unsortedServiceInfo.IP &&
+				sortedOnlyServiceInfo.Port == unsortedServiceInfo.Port {
 				sortedApplicationServers := sortApplicationServers(unsortedServiceInfo.ApplicationServers)
 				sortedServiceInfo := &domain.ServiceInfo{
-					ServiceIP:          sortedOnlyServiceInfo.ServiceIP,
-					ServicePort:        sortedOnlyServiceInfo.ServicePort,
+					IP:                 sortedOnlyServiceInfo.IP,
+					Port:               sortedOnlyServiceInfo.Port,
 					ApplicationServers: sortedApplicationServers,
-					Healthcheck:        unsortedServiceInfo.Healthcheck,
-					BalanceType:        unsortedServiceInfo.BalanceType,
-					RoutingType:        unsortedServiceInfo.RoutingType,
-					ExtraInfo:          unsortedServiceInfo.ExtraInfo,
-					Protocol:           unsortedServiceInfo.Protocol,
+					// Healthcheck:        unsortedServiceInfo.Healthcheck,
+					BalanceType: unsortedServiceInfo.BalanceType,
+					RoutingType: unsortedServiceInfo.RoutingType,
+					// ExtraInfo:          unsortedServiceInfo.ExtraInfo,
+					Protocol: unsortedServiceInfo.Protocol,
 				}
 				sortedServicesInfo = append(sortedServicesInfo, sortedServiceInfo)
 			}
@@ -43,7 +43,7 @@ func sortedOnlyServices(unsortedServicesInfo []*domain.ServiceInfo) []*domain.Se
 func formServicesInfoFromDomainModel(servicesInfo []*domain.ServiceInfo) []string {
 	servicesInfoSlice := []string{}
 	for _, serviceInfo := range servicesInfo {
-		servicesInfoSlice = append(servicesInfoSlice, serviceInfo.ServiceIP+":"+serviceInfo.ServicePort)
+		servicesInfoSlice = append(servicesInfoSlice, serviceInfo.IP+":"+serviceInfo.Port)
 	}
 	return servicesInfoSlice
 }
@@ -57,8 +57,8 @@ func formServicesInfoDomainModelFromSlice(servicesInfoSlice []string) []*domain.
 			servicePort = serviceInfoSlice[1]
 		}
 		serviceInfo := &domain.ServiceInfo{
-			ServiceIP:   serviceInfoSlice[0],
-			ServicePort: servicePort,
+			IP:   serviceInfoSlice[0],
+			Port: servicePort,
 		}
 		servicesInfo = append(servicesInfo, serviceInfo)
 	}
@@ -80,8 +80,8 @@ func formApplicationServersDomainModelFromSlice(applicationServersSlice []string
 			serverPort = applicationServerSlice[1]
 		}
 		applicationServer := &domain.ApplicationServer{
-			ServerIP:   applicationServerSlice[0],
-			ServerPort: serverPort,
+			IP:   applicationServerSlice[0],
+			Port: serverPort,
 		}
 		applicationServers = append(applicationServers, applicationServer)
 	}
@@ -91,7 +91,7 @@ func formApplicationServersDomainModelFromSlice(applicationServersSlice []string
 func formApplicationServersSliceFromDomainModel(applicationServers []*domain.ApplicationServer) []string {
 	applicationServersSlice := []string{}
 	for _, applicationServer := range applicationServers {
-		applicationServersSlice = append(applicationServersSlice, applicationServer.ServerIP+":"+applicationServer.ServerPort)
+		applicationServersSlice = append(applicationServersSlice, applicationServer.IP+":"+applicationServer.Port)
 	}
 	return applicationServersSlice
 }

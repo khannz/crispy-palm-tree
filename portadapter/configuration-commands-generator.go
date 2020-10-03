@@ -51,15 +51,16 @@ func NewCommandGenerator() *CommandGenerator {
 // GenerateCommandsForApplicationServers ...
 func (commandGenerator *CommandGenerator) GenerateCommandsForApplicationServers(serviceInfo *domain.ServiceInfo,
 	eventID string) error {
+	serviceInfo.RWMutex.RLock()
+	defer serviceInfo.RWMutex.RUnlock()
 	for _, applicationServer := range serviceInfo.ApplicationServers {
-		err := enrichApplicationServersByCommands(serviceInfo.ServiceIP,
-			serviceInfo.ServicePort,
-			serviceInfo.Healthcheck.Type,
+		if err := enrichApplicationServersByCommands(serviceInfo.IP,
+			serviceInfo.Port,
+			serviceInfo.HCType,
 			applicationServer,
-			eventID)
-		if err != nil {
+			eventID); err != nil {
 			return fmt.Errorf("can't generate command for application server %v, got error: %v",
-				err, applicationServer.ServerIP)
+				err, applicationServer.IP)
 		}
 	}
 	return nil
@@ -72,8 +73,8 @@ func enrichApplicationServersByCommands(serviceIP,
 	eventID string) error {
 	switch serviceHealthcheckType {
 	case "tcp":
-		applicationServerIP := applicationServer.ServerIP
-		healthcheckAddress := strings.Split(applicationServer.ServerHealthcheck.HealthcheckAddress, ":")
+		applicationServerIP := applicationServer.IP
+		healthcheckAddress := strings.Split(applicationServer.HCAddress, ":")
 		applicationServerPort := ""
 		if len(healthcheckAddress) > 1 {
 			applicationServerPort = healthcheckAddress[1]
@@ -87,9 +88,10 @@ func enrichApplicationServersByCommands(serviceIP,
 		tcpCommands = strings.ReplaceAll(tcpCommands,
 			"APPLICATION_SERVER_HEALTHCHECK_PORT", applicationServerPort)
 
-		applicationServer.ServerСonfigurationCommands = tcpCommands
+		applicationServer.ExampleBashCommands = tcpCommands
+		return nil
 	case "icmp":
-		applicationServerIP := applicationServer.ServerIP
+		applicationServerIP := applicationServer.IP
 		icmpCommands := strings.ReplaceAll(rawCommandsForICMPHealthchecks,
 			"SERVICE_IP", serviceIP)
 		icmpCommands = strings.ReplaceAll(icmpCommands,
@@ -97,9 +99,10 @@ func enrichApplicationServersByCommands(serviceIP,
 		icmpCommands = strings.ReplaceAll(icmpCommands,
 			"APPLICATION_SERVER_IP", applicationServerIP)
 
-		applicationServer.ServerСonfigurationCommands = icmpCommands
+		applicationServer.ExampleBashCommands = icmpCommands
+		return nil
 	case "http", "httpAdvanced":
-		applicationServerIP := applicationServer.ServerIP
+		applicationServerIP := applicationServer.IP
 		httpCommands := strings.ReplaceAll(rawCommandsForHTTPHealthchecks,
 			"SERVICE_IP", serviceIP)
 		httpCommands = strings.ReplaceAll(httpCommands,
@@ -107,9 +110,9 @@ func enrichApplicationServersByCommands(serviceIP,
 		httpCommands = strings.ReplaceAll(httpCommands,
 			"APPLICATION_SERVER_IP", applicationServerIP)
 
-		applicationServer.ServerСonfigurationCommands = httpCommands
+		applicationServer.ExampleBashCommands = httpCommands
+		return nil
 	default:
 		return fmt.Errorf("unknown type for generate command: %v", serviceHealthcheckType)
 	}
-	return nil
 }

@@ -8,7 +8,7 @@ import (
 
 // IPVSWorker ...
 type IPVSWorker interface {
-	CreateService(string, uint16, uint32, string, uint16, map[string]uint16, string) error
+	NewService(string, uint16, uint32, string, uint16, map[string]uint16, string) error
 	RemoveService(string, uint16, uint16, string) error
 	AddApplicationServersForService(string, uint16, uint32, string, uint16, map[string]uint16, string) error
 	RemoveApplicationServersFromService(string, uint16, uint32, string, uint16, map[string]uint16, string) error
@@ -104,11 +104,11 @@ func convertRawApplicationServers(rawApplicationServers []*ApplicationServer) (m
 	applicationServers := map[string]uint16{}
 
 	for _, applicationServer := range rawApplicationServers {
-		port, err := stringToUINT16(applicationServer.ServerPort)
+		port, err := stringToUINT16(applicationServer.Port)
 		if err != nil {
-			return applicationServers, fmt.Errorf("can't convert port %v to type uint16: %v", applicationServer.ServerPort, err)
+			return applicationServers, fmt.Errorf("can't convert port %v to type uint16: %v", applicationServer.Port, err)
 		}
-		applicationServers[applicationServer.ServerIP] = port
+		applicationServers[applicationServer.IP] = port
 	}
 	return applicationServers, nil
 }

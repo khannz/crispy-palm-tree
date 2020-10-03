@@ -49,10 +49,10 @@ func NewBalancerFacade(locker *domain.Locker,
 	}
 }
 
-// CreateService ...
-func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInfo,
-	createServiceID string) (*domain.ServiceInfo, error) {
-	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
+// NewService ...
+func (balancerFacade *BalancerFacade) NewService(newService *Service,
+	newServiceID string) (*Service, error) {
+	newNewServiceEntity := usecase.NewNewServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
@@ -61,50 +61,13 @@ func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInf
 		balancerFacade.CommandGenerator,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	appSvrs := []*domain.ApplicationServer{}
-	for _, appSrvr := range createService.ApplicationServers {
-		arrayOfAdvancedHealthcheckParameters := []domain.AdvancedHealthcheckParameters{}
-		for _, aHP := range appSrvr.ServerHealthcheck.AdvancedHealthcheckParameters {
-			advancedHealthcheckParameter := domain.AdvancedHealthcheckParameters{
-				NearFieldsMode:  aHP.NearFieldsMode,
-				UserDefinedData: aHP.UserDefinedData,
-			}
-			arrayOfAdvancedHealthcheckParameters = append(arrayOfAdvancedHealthcheckParameters, advancedHealthcheckParameter)
-		}
+	serviceInfo := convertRestServiceToDomainServiceInfo(newService)
 
-		hcA := domain.ServerHealthcheck{
-			TypeOfCheck:                   appSrvr.ServerHealthcheck.TypeOfCheck,
-			HealthcheckAddress:            appSrvr.ServerHealthcheck.HealthcheckAddress,
-			AdvancedHealthcheckParameters: arrayOfAdvancedHealthcheckParameters,
-		}
-		as := &domain.ApplicationServer{
-			ServerIP:          appSrvr.ServerIP,
-			ServerPort:        appSrvr.ServerPort,
-			ServerHealthcheck: hcA,
-			IsUp:              false,
-		}
-		appSvrs = append(appSvrs, as)
+	resultNewServiceInfo, err := newNewServiceEntity.NewService(serviceInfo, newServiceID)
+	if err != nil {
+		return newService, err
 	}
-	hcS := domain.ServiceHealthcheck{
-		Type:                            createService.Healtcheck.Type,
-		Timeout:                         createService.Healtcheck.Timeout,
-		RepeatHealthcheck:               createService.Healtcheck.RepeatHealthcheck,
-		PercentOfAlivedForUp:            createService.Healtcheck.PercentOfAlivedForUp,
-		RetriesForUpApplicationServer:   createService.Healtcheck.RetriesForUpApplicationServer,
-		RetriesForDownApplicationServer: createService.Healtcheck.RetriesForDownApplicationServer,
-	}
-
-	serviceInfo := &domain.ServiceInfo{
-		ServiceIP:          createService.ServiceIP,
-		ServicePort:        createService.ServicePort,
-		ApplicationServers: appSvrs,
-		Healthcheck:        hcS,
-		BalanceType:        createService.BalanceType,
-		RoutingType:        createService.RoutingType,
-		Protocol:           createService.Protocol,
-		IsUp:               false,
-	}
-	return newCreateServiceEntity.CreateService(serviceInfo, createServiceID)
+	return convertDomainServiceInfoToRestService(resultNewServiceInfo), nil
 }
 
 // RemoveService ...
@@ -117,7 +80,7 @@ func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestID st
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	serviceInfo := &domain.ServiceInfo{ServiceIP: ip, ServicePort: port}
+	serviceInfo := &domain.ServiceInfo{IP: ip, Port: port}
 	return removeService.RemoveService(serviceInfo, newNWBRequestID)
 }
 
@@ -135,8 +98,8 @@ func (balancerFacade *BalancerFacade) GetServices(getNWBServicesID string) ([]*d
 }
 
 // AddApplicationServers ...
-func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *AddApplicationServersRequest,
-	addApplicationServersRequestID string) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *Service,
+	addApplicationServersRequestID string) (*Service, error) {
 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -147,46 +110,17 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
 
-	appSvrs := []*domain.ApplicationServer{}
-	for _, appSrvr := range addApplicationServersRequest.ApplicationServers {
-		arrayOfAdvancedHealthcheckParameters := []domain.AdvancedHealthcheckParameters{}
-		for _, aHP := range appSrvr.ServerHealthcheck.AdvancedHealthcheckParameters {
-			advancedHealthcheckParameter := domain.AdvancedHealthcheckParameters{
-				NearFieldsMode:  aHP.NearFieldsMode,
-				UserDefinedData: aHP.UserDefinedData,
-			}
-			arrayOfAdvancedHealthcheckParameters = append(arrayOfAdvancedHealthcheckParameters, advancedHealthcheckParameter)
-		}
-
-		hcA := domain.ServerHealthcheck{
-			TypeOfCheck:                   appSrvr.ServerHealthcheck.TypeOfCheck,
-			HealthcheckAddress:            appSrvr.ServerHealthcheck.HealthcheckAddress,
-			AdvancedHealthcheckParameters: arrayOfAdvancedHealthcheckParameters,
-		}
-		as := &domain.ApplicationServer{
-			ServerIP:          appSrvr.ServerIP,
-			ServerPort:        appSrvr.ServerPort,
-			ServerHealthcheck: hcA,
-			IsUp:              false,
-		}
-		appSvrs = append(appSvrs, as)
-	}
-
-	incomeServiceInfo := &domain.ServiceInfo{
-		ServiceIP:          addApplicationServersRequest.ServiceIP,
-		ServicePort:        addApplicationServersRequest.ServicePort,
-		ApplicationServers: appSvrs,
-	}
+	incomeServiceInfo := convertRestServiceToDomainServiceInfo(addApplicationServersRequest)
 	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestID)
 	if err != nil {
-		return incomeServiceInfo, fmt.Errorf("can't add application servers to service: %v", err)
+		return addApplicationServersRequest, fmt.Errorf("can't add application servers to service: %v", err)
 	}
-	return currentserviceInfo, nil
+	return convertDomainServiceInfoToRestService(currentserviceInfo), nil
 }
 
 // RemoveApplicationServers ...
-func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplicationServersRequest *RemoveApplicationServersRequest,
-	removeApplicationServersRequestID string) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplicationServersRequest *Service,
+	removeApplicationServersRequestID string) (*Service, error) {
 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -195,59 +129,36 @@ func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplication
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	appSvrs := []*domain.ApplicationServer{}
-	for _, appSrvr := range removeApplicationServersRequest.ApplicationServers {
-		arrayOfAdvancedHealthcheckParameters := []domain.AdvancedHealthcheckParameters{}
-		for _, aHP := range appSrvr.ServerHealthcheck.AdvancedHealthcheckParameters {
-			advancedHealthcheckParameter := domain.AdvancedHealthcheckParameters{
-				NearFieldsMode:  aHP.NearFieldsMode,
-				UserDefinedData: aHP.UserDefinedData,
-			}
-			arrayOfAdvancedHealthcheckParameters = append(arrayOfAdvancedHealthcheckParameters, advancedHealthcheckParameter)
-		}
 
-		hcA := domain.ServerHealthcheck{
-			TypeOfCheck:                   appSrvr.ServerHealthcheck.TypeOfCheck,
-			HealthcheckAddress:            appSrvr.ServerHealthcheck.HealthcheckAddress,
-			AdvancedHealthcheckParameters: arrayOfAdvancedHealthcheckParameters,
-		}
-		as := &domain.ApplicationServer{
-			ServerIP:          appSrvr.ServerIP,
-			ServerPort:        appSrvr.ServerPort,
-			ServerHealthcheck: hcA,
-		}
-		appSvrs = append(appSvrs, as)
-	}
+	incomeServiceInfo := convertRestServiceToDomainServiceInfo(removeApplicationServersRequest)
 
-	incomeServiceInfo := &domain.ServiceInfo{
-		ServiceIP:          removeApplicationServersRequest.ServiceIP,
-		ServicePort:        removeApplicationServersRequest.ServicePort,
-		ApplicationServers: appSvrs,
-	}
-
-	currentserviceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestID)
+	resultCurrentServiceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestID)
 	if err != nil {
-		return incomeServiceInfo, fmt.Errorf("can't remove application servers from service: %v", err)
+		return removeApplicationServersRequest, fmt.Errorf("can't remove application servers from service: %v", err)
 	}
-	return currentserviceInfo, nil
+	return convertDomainServiceInfoToRestService(resultCurrentServiceInfo), nil
 }
 
 // GetServiceState ...
-func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceRequestID string) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceRequestID string) (*Service, error) {
 	getServiceStateEntity := usecase.NewGetServiceStateEntity(balancerFacade.Locker,
 		balancerFacade.CacheStorage,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
 	incomeServiceInfo := &domain.ServiceInfo{
-		ServiceIP:   ip,
-		ServicePort: port,
+		IP:   ip,
+		Port: port,
 	}
-	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceRequestID)
+	serviceInfo, err := getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceRequestID)
+	if err != nil {
+		return convertDomainServiceInfoToRestService(incomeServiceInfo), err
+	}
+	return convertDomainServiceInfoToRestService(serviceInfo), nil
 }
 
 // ModifyService ...
-func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyServiceInfo,
-	modifyServiceID string) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) ModifyService(modifyService *Service,
+	modifyServiceID string) (*Service, error) {
 	newModifyServiceEntity := usecase.NewModifyServiceEntity(balancerFacade.Locker,
 		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
@@ -257,35 +168,11 @@ func (balancerFacade *BalancerFacade) ModifyService(modifyService *ModifyService
 		balancerFacade.CommandGenerator,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	appSvrs := []*domain.ApplicationServer{}
-	for _, appSrvr := range modifyService.ApplicationServers {
-		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
-		as := &domain.ApplicationServer{
-			ServerIP:          appSrvr.ServerIP,
-			ServerPort:        appSrvr.ServerPort,
-			ServerHealthcheck: hcA,
-			IsUp:              false,
-		}
-		appSvrs = append(appSvrs, as)
-	}
-	hcS := domain.ServiceHealthcheck{
-		Type:                            modifyService.Healtcheck.Type,
-		Timeout:                         modifyService.Healtcheck.Timeout,
-		RepeatHealthcheck:               modifyService.Healtcheck.RepeatHealthcheck,
-		PercentOfAlivedForUp:            modifyService.Healtcheck.PercentOfAlivedForUp,
-		RetriesForUpApplicationServer:   modifyService.Healtcheck.RetriesForUpApplicationServer,
-		RetriesForDownApplicationServer: modifyService.Healtcheck.RetriesForDownApplicationServer,
-	}
 
-	serviceInfo := &domain.ServiceInfo{
-		ServiceIP:          modifyService.ServiceIP,
-		ServicePort:        modifyService.ServicePort,
-		ApplicationServers: appSvrs,
-		Healthcheck:        hcS,
-		BalanceType:        modifyService.BalanceType,
-		RoutingType:        modifyService.RoutingType,
-		IsUp:               false,
-		Protocol:           modifyService.Protocol,
+	serviceInfo := convertRestServiceToDomainServiceInfo(modifyService)
+	updatedServiceInfo, err := newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceID)
+	if err != nil {
+		return modifyService, err
 	}
-	return newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceID)
+	return convertDomainServiceInfoToRestService(updatedServiceInfo), nil
 }

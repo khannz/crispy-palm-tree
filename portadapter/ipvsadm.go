@@ -26,8 +26,8 @@ func NewIPVSADMEntity(logging *logrus.Logger) (*IPVSADMEntity, error) {
 	return &IPVSADMEntity{logging: logging}, nil
 }
 
-// CreateService ...
-func (ipvsadmEntity *IPVSADMEntity) CreateService(vip string,
+// NewService ...
+func (ipvsadmEntity *IPVSADMEntity) NewService(vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,

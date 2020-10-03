@@ -37,8 +37,8 @@ func TestRemoveApplicationServers(t *testing.T) {
 	currentServiceInfoOne, _, _ := createServicesInfoForTests(currentApplicattionServers, tmpApplicattionServers)
 
 	serviceInfoForRemoveAppSrvrs := &domain.ServiceInfo{
-		ServiceIP:          "111.111.111.111",
-		ServicePort:        "111",
+		IP:                 "111.111.111.111",
+		Port:               "111",
 		ApplicationServers: []*domain.ApplicationServer{appSrv},
 		BalanceType:        "rr",
 		RoutingType:        "tunneling",

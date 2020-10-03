@@ -47,8 +47,8 @@ func TestGetServiceState(t *testing.T) {
 		gracefulShutdown,
 		logging)
 	serviceMiniInfo := &domain.ServiceInfo{
-		ServiceIP:   "111.111.111.111",
-		ServicePort: "111",
+		IP:   "111.111.111.111",
+		Port: "111",
 	}
 	_, errNilOne := getServiceStateOk.GetServiceState(serviceMiniInfo, "")
 	assert.NotNil(errNilOne)

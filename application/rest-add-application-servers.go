@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
 )
 
 const addApplicationServersRequestName = "add application servers"
@@ -13,59 +14,71 @@ const addApplicationServersRequestName = "add application servers"
 // addApplicationServers godoc
 // @tags load balancer
 // @Summary Add application servers
-// @Description Больше, чем балансировщик
+// @Description Beyond the network balance
+// @Param addr path string true "IP"
+// @Param port path uint true "Port"
 // @Param incomeJSON body application.AddApplicationServersRequest true "Expected json"
 // @Accept json
 // @Produce json
-// @Success 200 {object} application.UniversalResponse "If all okay"
-// @Failure 400 {object} application.UniversalResponse "Bad request"
-// @Failure 500 {object} application.UniversalResponse "Internal error"
-// @Router /service/add-application-servers [post]
+// @Success 200 {object} application.Service "If all okay"
+// @Failure 400 {string} error "Bad request"
+// @Failure 500 {string} error "Internal error"
+// @Router /service/{addr}/{port}/add-application-servers [post]
 // // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) addApplicationServers(ginContext *gin.Context) {
 	addApplicationServersRequestID := restAPI.balancerFacade.IDgenerator.NewID()
-	logNewRequest(addApplicationServersRequestName, addApplicationServersRequestID, restAPI.balancerFacade.Logging)
-
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event id": addApplicationServersRequestID}).Infof("got new %v request", addApplicationServersRequestName)
 	addApplicationServersRequest := &AddApplicationServersRequest{}
 
 	if err := ginContext.ShouldBindJSON(addApplicationServersRequest); err != nil {
-		unmarshallIncomeError(err.Error(),
-			addApplicationServersRequestID,
-			ginContext,
-			restAPI.balancerFacade.Logging)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"event id": addApplicationServersRequestID,
+		}).Errorf("can't %v, got error: %v", addApplicationServersRequestName, err)
+		ginContext.String(http.StatusInternalServerError, "got internal error: %b"+err.Error())
 		return
 	}
+	addApplicationServersRequest.IP = ginContext.Param("addr")
+	addApplicationServersRequest.Port = ginContext.Param("port")
 
 	if validateError := addApplicationServersRequest.validateAddApplicationServersRequest(); validateError != nil {
-		validateIncomeError(validateError.Error(), addApplicationServersRequestID, ginContext, restAPI.balancerFacade.Logging)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"entity":   addApplicationServersRequestName,
+			"event id": addApplicationServersRequestID,
+		}).Errorf("invalide income request: %v", validateError.Error())
+
+		ginContext.String(http.StatusBadRequest, "invalide income request: "+validateError.Error())
 		return
 	}
 
-	logChangeID(addApplicationServersRequestID, addApplicationServersRequest.ID, restAPI.balancerFacade.Logging)
-	addApplicationServersRequestID = addApplicationServersRequest.ID
+	preparedAddApplicationServersRequest := &Service{
+		IP:                 addApplicationServersRequest.IP,
+		Port:               addApplicationServersRequest.Port,
+		ApplicationServers: addApplicationServersRequest.ApplicationServers,
+	}
 
-	updatedServiceInfo, err := restAPI.balancerFacade.AddApplicationServers(addApplicationServersRequest,
+	updatedServiceInfo, err := restAPI.balancerFacade.AddApplicationServers(preparedAddApplicationServersRequest,
 		addApplicationServersRequestID)
 	if err != nil {
-		uscaseFail(addApplicationServersRequestName,
-			err.Error(),
-			addApplicationServersRequestID,
-			ginContext,
-			restAPI.balancerFacade.Logging)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"event id": addApplicationServersRequestID,
+		}).Errorf("can't %v, got error: %v", addApplicationServersRequestName, err.Error())
+
+		ginContext.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	logRequestIsDone(addApplicationServersRequestName, addApplicationServersRequestID, restAPI.balancerFacade.Logging)
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"event id": addApplicationServersRequestID,
+	}).Infof("request %v done", addApplicationServersRequestName)
 
-	convertedServiceInfo := convertDomainServiceInfoToRestUniversalResponse(updatedServiceInfo, true)
-	ginContext.JSON(http.StatusOK, convertedServiceInfo)
+	ginContext.JSON(http.StatusOK, updatedServiceInfo)
 }
 
 func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApplicationServersRequest() error {
 	validate := validator.New()
 	validate.RegisterStructValidation(customPortAddApplicationServersRequestValidation, AddApplicationServersRequest{})
-	validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
-	validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealthcheck{})
+	// validate.RegisterStructValidation(customPortServerApplicationValidation, ServerApplication{})
+	// validate.RegisterStructValidation(customServiceHealthcheckValidation, ServiceHealthcheck{})
 	if err := validate.Struct(addApplicationServersRequest); err != nil {
 		return modifyValidateError(err)
 	}
@@ -74,11 +87,11 @@ func (addApplicationServersRequest *AddApplicationServersRequest) validateAddApp
 
 func customPortAddApplicationServersRequestValidation(sl validator.StructLevel) {
 	nbi := sl.Current().Interface().(AddApplicationServersRequest)
-	port, err := strconv.Atoi(nbi.ServicePort)
+	port, err := strconv.Atoi(nbi.Port)
 	if err != nil {
-		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must be number", "")
+		sl.ReportError(nbi.Port, "servicePort", "Port", "port must be number", "")
 	}
 	if !(port > 0) || !(port < 20000) {
-		sl.ReportError(nbi.ServicePort, "servicePort", "ServicePort", "port must gt=0 and lt=20000", "")
+		sl.ReportError(nbi.Port, "servicePort", "Port", "port must gt=0 and lt=20000", "")
 	}
 }

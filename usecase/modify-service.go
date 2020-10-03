@@ -66,8 +66,8 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 		return serviceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}
 
-	if !isServiceExist(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices) {
-		return serviceInfo, fmt.Errorf("service %v:%v does not exist, can't modify", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	if !isServiceExist(serviceInfo.IP, serviceInfo.Port, allCurrentServices) {
+		return serviceInfo, fmt.Errorf("service %v:%v does not exist, can't modify", serviceInfo.IP, serviceInfo.Port)
 	}
 
 	logTryToGetCurrentServiceInfo(modifyServiceName, modifyServiceID, modifyService.logging)
@@ -121,32 +121,32 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 
 func (modifyService *ModifyServiceEntity) isServicesIPsAndPortsEqual(serviceOne,
 	serviceTwo *domain.ServiceInfo, id string) bool {
-	if serviceOne.ServiceIP != serviceTwo.ServiceIP ||
-		serviceOne.ServicePort != serviceTwo.ServicePort {
-		logServicesIPAndPortNotEqual(serviceOne.ServiceIP,
-			serviceOne.ServicePort,
-			serviceTwo.ServiceIP,
-			serviceTwo.ServicePort,
+	if serviceOne.IP != serviceTwo.IP ||
+		serviceOne.Port != serviceTwo.Port {
+		logServicesIPAndPortNotEqual(serviceOne.IP,
+			serviceOne.Port,
+			serviceTwo.IP,
+			serviceTwo.Port,
 			modifyServiceName,
 			id,
 			modifyService.logging)
 		return false
 	}
 	if len(serviceOne.ApplicationServers) != len(serviceTwo.ApplicationServers) {
-		logServicesHaveDifferentNumberOfApplicationServers(serviceOne.ServiceIP, serviceOne.ServicePort, serviceTwo.ServiceIP, serviceTwo.ServicePort, len(serviceOne.ApplicationServers), len(serviceTwo.ServiceIP), modifyServiceName, id, modifyService.logging)
+		logServicesHaveDifferentNumberOfApplicationServers(serviceOne.IP, serviceOne.Port, serviceTwo.IP, serviceTwo.Port, len(serviceOne.ApplicationServers), len(serviceTwo.IP), modifyServiceName, id, modifyService.logging)
 		return false
 	}
 
 	for _, applicationServerFromServiceOne := range serviceOne.ApplicationServers {
 		var isFunded bool
 		for _, applicationServerFromServiceTwo := range serviceTwo.ApplicationServers {
-			if applicationServerFromServiceOne.ServerIP == applicationServerFromServiceTwo.ServerIP &&
-				applicationServerFromServiceOne.ServerPort == applicationServerFromServiceTwo.ServerPort {
+			if applicationServerFromServiceOne.IP == applicationServerFromServiceTwo.IP &&
+				applicationServerFromServiceOne.Port == applicationServerFromServiceTwo.Port {
 				isFunded = true
 			}
 		}
 		if !isFunded {
-			logApplicationServerNotFound(serviceOne.ServiceIP, serviceOne.ServicePort, applicationServerFromServiceOne.ServerIP, applicationServerFromServiceOne.ServerPort, modifyServiceName, id, modifyService.logging)
+			logApplicationServerNotFound(serviceOne.IP, serviceOne.Port, applicationServerFromServiceOne.IP, applicationServerFromServiceOne.Port, modifyServiceName, id, modifyService.logging)
 			return false
 		}
 	}

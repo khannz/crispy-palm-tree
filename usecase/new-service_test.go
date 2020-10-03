@@ -9,8 +9,8 @@ import (
 	logger "github.com/thevan4/logrus-wrapper"
 )
 
-// TestCreateService ...
-func TestCreateService(t *testing.T) {
+// TestNewService ...
+func TestNewService(t *testing.T) {
 	assert := assert.New(t)
 	locker := &domain.Locker{}
 	mockIPVSWorker := &MockIPVSWorker{}
@@ -37,7 +37,7 @@ func TestCreateService(t *testing.T) {
 	currentApplicattionServers, tmpApplicattionServers, _ := createApplicationServersForTests()
 	currentServiceInfoOne, _, _ := createServicesInfoForTests(currentApplicattionServers, tmpApplicattionServers)
 
-	createServiceEntityGracefulEnd := NewCreateServiceEntity(locker,
+	createServiceEntityGracefulEnd := NewNewServiceEntity(locker,
 		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
@@ -46,11 +46,11 @@ func TestCreateService(t *testing.T) {
 		mockCommandGenerator,
 		gracefulShutdown,
 		logging)
-	_, errNotNilOne := createServiceEntityGracefulEnd.CreateService(currentServiceInfoOne, "")
+	_, errNotNilOne := createServiceEntityGracefulEnd.NewService(currentServiceInfoOne, "")
 	assert.NotNil(errNotNilOne)
 
 	gracefulShutdown.ShutdownNow = false
-	createServiceEntityOk := NewCreateServiceEntity(locker,
+	createServiceEntityOk := NewNewServiceEntity(locker,
 		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
@@ -59,6 +59,6 @@ func TestCreateService(t *testing.T) {
 		mockCommandGenerator,
 		gracefulShutdown,
 		logging)
-	_, errNilOne := createServiceEntityOk.CreateService(currentServiceInfoOne, "")
+	_, errNilOne := createServiceEntityOk.NewService(currentServiceInfoOne, "")
 	assert.Nil(errNilOne)
 }

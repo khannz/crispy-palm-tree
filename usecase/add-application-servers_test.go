@@ -65,8 +65,8 @@ func TestAddNewApplicationServers(t *testing.T) {
 	errNilPastOne := mockCacheDB.NewServiceInfoToStorage(currentServiceInfoOne, "")
 	assert.Nil(errNilPastOne)
 	newAppserversInService := &domain.ServiceInfo{
-		ServiceIP:          "111.111.111.111",
-		ServicePort:        "111",
+		IP:                 "111.111.111.111",
+		Port:               "111",
 		ApplicationServers: tmpApplicattionServers,
 	}
 	_, errNilOne := addApplicationServersOk.AddNewApplicationServers(newAppserversInService, "")

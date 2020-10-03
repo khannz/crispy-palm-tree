@@ -81,14 +81,14 @@ func TestModifyService(t *testing.T) {
 	tmpAppSrvrs = append(tmpAppSrvrs, currentServiceInfoOne.ApplicationServers...)
 
 	serviceForModify := &domain.ServiceInfo{
-		ServiceIP:          currentServiceInfoOne.ServiceIP,
-		ServicePort:        currentServiceInfoOne.ServicePort,
+		IP:                 currentServiceInfoOne.IP,
+		Port:               currentServiceInfoOne.Port,
 		ApplicationServers: tmpAppSrvrs,
-		Healthcheck:        currentServiceInfoOne.Healthcheck,
-		IsUp:               currentServiceInfoOne.IsUp,
-		BalanceType:        currentServiceInfoOne.BalanceType,
-		RoutingType:        currentServiceInfoOne.RoutingType,
-		Protocol:           currentServiceInfoOne.Protocol,
+		// Healthcheck:        currentServiceInfoOne.Healthcheck,
+		IsUp:        currentServiceInfoOne.IsUp,
+		BalanceType: currentServiceInfoOne.BalanceType,
+		RoutingType: currentServiceInfoOne.RoutingType,
+		Protocol:    currentServiceInfoOne.Protocol,
 	}
 	serviceForModify.ApplicationServers[0] = tmpApplicattionServers[0]
 	notTrueOne := modifyServiceOk.isServicesIPsAndPortsEqual(serviceForModify, currentServiceInfoOne, "")
@@ -98,7 +98,7 @@ func TestModifyService(t *testing.T) {
 	notTrueTwo := modifyServiceOk.isServicesIPsAndPortsEqual(serviceForModify, currentServiceInfoOne, "")
 	assert.False(notTrueTwo)
 
-	serviceForModify.ServicePort = "9888"
+	serviceForModify.Port = "9888"
 	notTrueThree := modifyServiceOk.isServicesIPsAndPortsEqual(serviceForModify, currentServiceInfoOne, "")
 	assert.False(notTrueThree)
 }

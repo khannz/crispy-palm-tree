@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 const removeServiceRequestName = "remove service"
@@ -11,20 +12,18 @@ const removeServiceRequestName = "remove service"
 // removeService godoc
 // @tags load balancer
 // @Summary Remove nlb service
-// @Description Больше, чем балансировщик
+// @Description Beyond the network balance
 // @Param addr path string true "IP"
 // @Param port path uint true "Port"
 // @Produce json
-// @Success 200 {object} application.UniversalResponse "If all okay"
-// @Failure 400 {object} application.UniversalResponse "Bad request"
-// @Failure 500 {object} application.UniversalResponse "Internal error"
+// @Success 200 {object} application.Service "If all okay"
+// @Failure 400 {string} error "Bad request"
+// @Failure 500 {string} error "Internal error"
 // @Router /service/{addr}/{port} [delete]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 	removeServiceID := restAPI.balancerFacade.IDgenerator.NewID()
-	// TODO: log here. and all code below
-	logNewRequest(removeServiceRequestName, removeServiceID, restAPI.balancerFacade.Logging)
-
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{"event id": removeServiceID}).Infof("got new %v request", removeServiceRequestName)
 	ip := ginContext.Param("addr")
 	port := ginContext.Param("port")
 	// FIXME: validate ip and port
@@ -32,22 +31,21 @@ func (restAPI *RestAPIstruct) removeService(ginContext *gin.Context) {
 		port,
 		removeServiceID)
 	if err != nil {
-		uscaseFail(removeServiceRequestName,
-			err.Error(),
-			removeServiceID,
-			ginContext,
-			restAPI.balancerFacade.Logging)
+		restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+			"event id": removeServiceID,
+		}).Errorf("can't %v, got error: %v", removeServiceID, err)
+
+		ginContext.String(http.StatusInternalServerError, "got internal error: %b"+err.Error())
 		return
 	}
 
-	logRequestIsDone(removeServiceRequestName, removeServiceID, restAPI.balancerFacade.Logging)
+	restAPI.balancerFacade.Logging.WithFields(logrus.Fields{
+		"event id": removeServiceID,
+	}).Infof("request %v done", removeServiceRequestName)
 
-	serviceRemoved := UniversalResponse{
-		ID:                       removeServiceID,
-		ServiceIP:                ip,
-		ServicePort:              port,
-		JobCompletedSuccessfully: true,
-		ExtraInfo:                "service removed",
+	serviceRemoved := &Service{
+		IP:   ip,
+		Port: port,
 	}
 	ginContext.JSON(http.StatusOK, serviceRemoved)
 }

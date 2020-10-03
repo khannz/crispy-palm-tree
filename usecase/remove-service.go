@@ -66,8 +66,8 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		return fmt.Errorf("fail when loading info about current services: %v", err)
 	}
 
-	if !isServiceExist(serviceInfo.ServiceIP, serviceInfo.ServicePort, allCurrentServices) {
-		return fmt.Errorf("service %v:%v not exist, can't remove it", serviceInfo.ServiceIP, serviceInfo.ServicePort)
+	if !isServiceExist(serviceInfo.IP, serviceInfo.Port, allCurrentServices) {
+		return fmt.Errorf("service %v:%v not exist, can't remove it", serviceInfo.IP, serviceInfo.Port)
 	}
 
 	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceID, removeServiceEntity.logging)
@@ -98,8 +98,8 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	}
 
 	logTryRemoveIpvsadmService(removeServiceName, removeServiceID, currentServiceInfo, removeServiceEntity.logging)
-	vip, port, _, _, protocol, _, err := domain.PrepareDataForIPVS(currentServiceInfo.ServiceIP,
-		currentServiceInfo.ServicePort,
+	vip, port, _, _, protocol, _, err := domain.PrepareDataForIPVS(currentServiceInfo.IP,
+		currentServiceInfo.Port,
 		currentServiceInfo.RoutingType,
 		currentServiceInfo.BalanceType,
 		currentServiceInfo.Protocol,

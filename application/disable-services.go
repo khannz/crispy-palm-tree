@@ -48,7 +48,7 @@ func (balancerFacade *BalancerFacade) DisableRemoveService(serviceConfigFromStor
 	}
 
 	if !isMockMode {
-		if err := usecase.RemoveFromDummy(serviceConfigFromStorage.ServiceIP); err != nil {
+		if err := usecase.RemoveFromDummy(serviceConfigFromStorage.IP); err != nil {
 			balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("can't remove from dummy: %v", err)
 			errors = append(errors, err)
 		}

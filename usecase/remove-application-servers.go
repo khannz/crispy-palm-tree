@@ -69,8 +69,8 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		return removeServiceInfo, fmt.Errorf("fail when loading info about current services: %v", err)
 	}
 
-	if !isServiceExist(removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, allCurrentServices) {
-		return removeServiceInfo, fmt.Errorf("service %v:%v not exist, can't remove application servers", removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort)
+	if !isServiceExist(removeServiceInfo.IP, removeServiceInfo.Port, allCurrentServices) {
+		return removeServiceInfo, fmt.Errorf("service %v:%v not exist, can't remove application servers", removeServiceInfo.IP, removeServiceInfo.Port)
 	}
 
 	logTryToGetCurrentServiceInfo(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
@@ -117,9 +117,9 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		}
 	}
 
-	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.ServiceIP,
-		currentServiceInfo.ServicePort,
+	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.IP, removeServiceInfo.Port, removeApplicationServers.logging)
+	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.IP,
+		currentServiceInfo.Port,
 		currentServiceInfo.RoutingType,
 		currentServiceInfo.BalanceType,
 		currentServiceInfo.Protocol,
@@ -136,7 +136,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		removeApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when ipvsadm remove application servers from service: %v", err)
 	}
-	logRemovedIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.ServiceIP, removeServiceInfo.ServicePort, removeApplicationServers.logging)
+	logRemovedIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.IP, removeServiceInfo.Port, removeApplicationServers.logging)
 
 	logTryUpdateServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 	if err = removeApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersID); err != nil {

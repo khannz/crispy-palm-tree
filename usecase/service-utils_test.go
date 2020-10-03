@@ -38,8 +38,8 @@ func TestFormNewApplicationServersSlice(t *testing.T) {
 
 	reNewApplicattionServers := formNewApplicationServersSlice(currentApplicattionServers, []*domain.ApplicationServer{appServer})
 	for _, reNewApplicattionServer := range reNewApplicattionServers {
-		if reNewApplicattionServer.ServerIP == appServer.ServerIP && reNewApplicattionServer.ServerPort == appServer.ServerPort {
-			t.Errorf("application server was not excluded from slice: %v:%v", reNewApplicattionServer.ServerIP, reNewApplicattionServer.ServerPort)
+		if reNewApplicattionServer.IP == appServer.IP && reNewApplicattionServer.Port == appServer.Port {
+			t.Errorf("application server was not excluded from slice: %v:%v", reNewApplicattionServer.IP, reNewApplicattionServer.Port)
 		}
 	}
 }
@@ -80,13 +80,13 @@ func TestCheckServiceIPAndPortUnique(t *testing.T) {
 	currentApplicattionServers, tmpApplicattionServers, _ := createApplicationServersForTests()
 	currentServiceInfoOne, _, _ := createServicesInfoForTests(currentApplicattionServers, tmpApplicattionServers)
 
-	notNilErrOne := checkServiceIPAndPortUnique("111.111.111.111", "111", []*domain.ServiceInfo{currentServiceInfoOne})
+	notNilErrOne := checkIPAndPortUnique("111.111.111.111", "111", []*domain.ServiceInfo{currentServiceInfoOne})
 	assert.NotNil(notNilErrOne)
 
-	notNilErrTwo := checkServiceIPAndPortUnique("1.1.1.1", "1111", []*domain.ServiceInfo{currentServiceInfoOne})
+	notNilErrTwo := checkIPAndPortUnique("1.1.1.1", "1111", []*domain.ServiceInfo{currentServiceInfoOne})
 	assert.NotNil(notNilErrTwo)
 
-	nilErr := checkServiceIPAndPortUnique("9.1.1.1", "9111", []*domain.ServiceInfo{currentServiceInfoOne})
+	nilErr := checkIPAndPortUnique("9.1.1.1", "9111", []*domain.ServiceInfo{currentServiceInfoOne})
 	assert.Nil(nilErr)
 }
 
@@ -133,13 +133,13 @@ func TestCheckApplicationServersIPAndPortUnique(t *testing.T) {
 	errNotNilOne := checkApplicationServersIPAndPortUnique([]*domain.ApplicationServer{appServer}, []*domain.ServiceInfo{currentServiceInfoOne})
 	assert.NotNil(errNotNilOne)
 
-	appServer.ServerIP = "111.111.111.111"
-	appServer.ServerPort = "111"
+	appServer.IP = "111.111.111.111"
+	appServer.Port = "111"
 	errNotNilTwo := checkApplicationServersIPAndPortUnique([]*domain.ApplicationServer{appServer}, []*domain.ServiceInfo{currentServiceInfoOne})
 	assert.NotNil(errNotNilTwo)
 
-	appServer.ServerIP = "91.1.1.1"
-	appServer.ServerPort = "911"
+	appServer.IP = "91.1.1.1"
+	appServer.Port = "911"
 	errNil := checkApplicationServersIPAndPortUnique([]*domain.ApplicationServer{appServer}, []*domain.ServiceInfo{currentServiceInfoOne})
 	assert.Nil(errNil)
 }
@@ -166,8 +166,8 @@ func TestCheckApplicationServersExistInService(t *testing.T) {
 	errNil := checkApplicationServersExistInService([]*domain.ApplicationServer{appServer}, currentServiceInfoOne)
 	assert.Nil(errNil)
 
-	appServer.ServerIP = "91.1.1.1"
-	appServer.ServerPort = "911"
+	appServer.IP = "91.1.1.1"
+	appServer.Port = "911"
 	errNotNil := checkApplicationServersExistInService([]*domain.ApplicationServer{appServer}, currentServiceInfoOne)
 	assert.NotNil(errNotNil)
 }

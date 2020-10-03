@@ -18,8 +18,8 @@ func validateRemoveApplicationServers(currentApplicattionServers,
 	var i []int
 	for j, applicattionServerForRemove := range applicattionServersForRemove {
 		for _, currentApplicattionServer := range currentApplicattionServers {
-			if applicattionServerForRemove.ServerIP == currentApplicattionServer.ServerIP &&
-				applicattionServerForRemove.ServerPort == currentApplicattionServer.ServerPort {
+			if applicattionServerForRemove.IP == currentApplicattionServer.IP &&
+				applicattionServerForRemove.Port == currentApplicattionServer.Port {
 				i = append(i, j)
 			}
 		}
@@ -28,13 +28,13 @@ func validateRemoveApplicationServers(currentApplicattionServers,
 		var formError string
 		if len(i) >= 1 {
 			for _, k := range i {
-				formError += applicattionServersForRemove[k].ServerIP + ":" + applicattionServersForRemove[k].ServerPort + ";"
+				formError += applicattionServersForRemove[k].IP + ":" + applicattionServersForRemove[k].Port + ";"
 			}
 			return fmt.Errorf("current config don't have application servers: %v", formError)
 		}
 
 		for _, k := range applicattionServersForRemove {
-			formError += k.ServerIP + ":" + k.ServerPort + ";"
+			formError += k.IP + ":" + k.Port + ";"
 		}
 		return fmt.Errorf("current config don't have application servers: %v", formError)
 	}
@@ -46,7 +46,7 @@ loop:
 	for i := 0; i < len(currentApplicattionServers); i++ {
 		url := currentApplicattionServers[i]
 		for _, rem := range applicattionServersForRemove {
-			if url.ServerIP == rem.ServerIP && url.ServerPort == rem.ServerPort { // TODO: check that logic not broken from advanced healthcheck feature
+			if url.IP == rem.IP && url.Port == rem.Port { // TODO: check that logic not broken from advanced healthcheck feature
 				currentApplicattionServers = append(currentApplicattionServers[:i], currentApplicattionServers[i+1:]...)
 				i--           // decrease index
 				continue loop // TODO: labels are bad, refactor that
@@ -69,14 +69,14 @@ func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServic
 	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
 
 	updatedServiceInfo = &domain.ServiceInfo{
-		ServiceIP:          newServiceInfo.ServiceIP,
-		ServicePort:        newServiceInfo.ServicePort,
+		IP:                 newServiceInfo.IP,
+		Port:               newServiceInfo.Port,
 		ApplicationServers: resultApplicationServers,
-		Healthcheck:        currentServiceInfo.Healthcheck,
-		BalanceType:        currentServiceInfo.BalanceType,
-		RoutingType:        currentServiceInfo.RoutingType,
-		IsUp:               currentServiceInfo.IsUp,
-		Protocol:           currentServiceInfo.Protocol,
+		// FIXME: // Healthcheck:        currentServiceInfo.Healthcheck,
+		BalanceType: currentServiceInfo.BalanceType,
+		RoutingType: currentServiceInfo.RoutingType,
+		IsUp:        currentServiceInfo.IsUp,
+		Protocol:    currentServiceInfo.Protocol,
 	}
 	return updatedServiceInfo, nil
 }
@@ -90,14 +90,14 @@ func forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, remove
 		}
 	}
 	return &domain.ServiceInfo{
-		ServiceIP:          currentServiceInfo.ServiceIP,
-		ServicePort:        currentServiceInfo.ServicePort,
+		IP:                 currentServiceInfo.IP,
+		Port:               currentServiceInfo.Port,
 		ApplicationServers: copyOfCurrentApplicationServers,
-		Healthcheck:        currentServiceInfo.Healthcheck,
-		BalanceType:        currentServiceInfo.BalanceType,
-		RoutingType:        currentServiceInfo.RoutingType,
-		IsUp:               currentServiceInfo.IsUp,
-		Protocol:           currentServiceInfo.Protocol,
+		// // Healthcheck:        currentServiceInfo.Healthcheck,
+		BalanceType: currentServiceInfo.BalanceType,
+		RoutingType: currentServiceInfo.RoutingType,
+		IsUp:        currentServiceInfo.IsUp,
+		Protocol:    currentServiceInfo.Protocol,
 	}
 }
 
@@ -112,8 +112,8 @@ func copyApplicationServers(applicationServers []*domain.ApplicationServer) []*d
 
 func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.ApplicationServer) bool {
 	for _, tr := range toRemASs {
-		if tsIn.ServerIP == tr.ServerIP &&
-			tsIn.ServerPort == tr.ServerPort {
+		if tsIn.IP == tr.IP &&
+			tsIn.Port == tr.Port {
 			return true
 		}
 	}
@@ -124,10 +124,10 @@ func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.Applica
 func FormTunnelsFilesInfo(applicationServers []*domain.ApplicationServer, cacheStorage domain.StorageActions) []*domain.TunnelForApplicationServer {
 	tunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
 	for _, applicationServer := range applicationServers {
-		tunnelFilesInfo := cacheStorage.ReadTunnelInfoForApplicationServer(applicationServer.ServerIP)
+		tunnelFilesInfo := cacheStorage.ReadTunnelInfoForApplicationServer(applicationServer.IP)
 		if tunnelFilesInfo == nil {
 			tunnelFilesInfo = &domain.TunnelForApplicationServer{
-				ApplicationServerIP:   applicationServer.ServerIP,
+				ApplicationServerIP:   applicationServer.IP,
 				ServicesToTunnelCount: 0,
 			}
 		}
@@ -140,15 +140,15 @@ func checkRoutingTypeForApplicationServersValid(newServiceInfo *domain.ServiceIn
 	for _, currentService := range allCurrentServices {
 		for _, newApplicationServer := range newServiceInfo.ApplicationServers {
 			for _, currentApplicationServer := range currentService.ApplicationServers {
-				if newApplicationServer.ServerIP == currentApplicationServer.ServerIP {
+				if newApplicationServer.IP == currentApplicationServer.IP {
 					if newServiceInfo.RoutingType != currentService.RoutingType {
 						return fmt.Errorf("routing type %v for service %v for application server %v the type of routing is different from the previous routing type %v at service %v for application server %v",
 							newServiceInfo.RoutingType,
-							newServiceInfo.ServiceIP+":"+newServiceInfo.ServicePort,
-							newApplicationServer.ServerIP+":"+newApplicationServer.ServerPort,
+							newServiceInfo.IP+":"+newServiceInfo.Port,
+							newApplicationServer.IP+":"+newApplicationServer.Port,
 							currentService.RoutingType,
-							currentService.ServiceIP+":"+currentService.ServicePort,
-							currentApplicationServer.ServerIP+":"+currentApplicationServer.ServerPort)
+							currentService.IP+":"+currentService.Port,
+							currentApplicationServer.IP+":"+currentApplicationServer.Port)
 					}
 					continue
 				}
@@ -158,19 +158,19 @@ func checkRoutingTypeForApplicationServersValid(newServiceInfo *domain.ServiceIn
 	return nil
 }
 
-func checkServiceIPAndPortUnique(incomeServiceIP, incomeServicePort string,
+func checkIPAndPortUnique(incomeServiceIP, incomeServicePort string,
 	allCurrentServices []*domain.ServiceInfo) error {
 	for _, currentService := range allCurrentServices {
-		if incomeServiceIP == currentService.ServiceIP && incomeServicePort == currentService.ServicePort {
+		if incomeServiceIP == currentService.IP && incomeServicePort == currentService.Port {
 			return fmt.Errorf("service %v:%v not unique: it is already in services", incomeServiceIP, incomeServicePort)
 		}
 		for _, currentApplicationServer := range currentService.ApplicationServers {
-			if incomeServiceIP == currentApplicationServer.ServerIP && incomeServicePort == currentApplicationServer.ServerPort {
+			if incomeServiceIP == currentApplicationServer.IP && incomeServicePort == currentApplicationServer.Port {
 				return fmt.Errorf("service %v:%v not unique: it is already in service %v:%v as application server",
 					incomeServiceIP,
 					incomeServicePort,
-					currentService.ServiceIP,
-					currentService.ServicePort)
+					currentService.IP,
+					currentService.Port)
 			}
 		}
 	}
@@ -181,18 +181,18 @@ func checkApplicationServersIPAndPortUnique(incomeApplicationServers []*domain.A
 	allCurrentServices []*domain.ServiceInfo) error {
 	for _, incomeApplicationServer := range incomeApplicationServers {
 		for _, currentService := range allCurrentServices {
-			if incomeApplicationServer.ServerIP == currentService.ServiceIP && incomeApplicationServer.ServerPort == currentService.ServicePort {
+			if incomeApplicationServer.IP == currentService.IP && incomeApplicationServer.Port == currentService.Port {
 				return fmt.Errorf("application server %v:%v not unique: the same combination of ip and port is already in services",
-					incomeApplicationServer.ServerIP,
-					incomeApplicationServer.ServerPort)
+					incomeApplicationServer.IP,
+					incomeApplicationServer.Port)
 			}
 			for _, currentApplicationServer := range currentService.ApplicationServers {
-				if incomeApplicationServer.ServerIP == currentApplicationServer.ServerIP && incomeApplicationServer.ServerPort == currentApplicationServer.ServerPort {
+				if incomeApplicationServer.IP == currentApplicationServer.IP && incomeApplicationServer.Port == currentApplicationServer.Port {
 					return fmt.Errorf("application server %v:%v not unique: the same combination of ip and port at application server in service %v:%v",
-						incomeApplicationServer.ServerIP,
-						incomeApplicationServer.ServerPort,
-						currentService.ServiceIP,
-						currentService.ServicePort)
+						incomeApplicationServer.IP,
+						incomeApplicationServer.Port,
+						currentService.IP,
+						currentService.Port)
 				}
 			}
 		}
@@ -203,7 +203,7 @@ func checkApplicationServersIPAndPortUnique(incomeApplicationServers []*domain.A
 func isServiceExist(incomeServiceIP, incomeServicePort string,
 	allCurrentServices []*domain.ServiceInfo) bool {
 	for _, currentService := range allCurrentServices {
-		if incomeServiceIP == currentService.ServiceIP && incomeServicePort == currentService.ServicePort {
+		if incomeServiceIP == currentService.IP && incomeServicePort == currentService.Port {
 			return true
 		}
 	}
@@ -223,15 +223,15 @@ func checkApplicationServersExistInService(incomeApplicationServers []*domain.Ap
 func checkApplicationServerExistInService(incomeApplicationServer *domain.ApplicationServer,
 	currentService *domain.ServiceInfo) error {
 	for _, currentApplicationServer := range currentService.ApplicationServers {
-		if incomeApplicationServer.ServerIP == currentApplicationServer.ServerIP && incomeApplicationServer.ServerPort == currentApplicationServer.ServerPort {
+		if incomeApplicationServer.IP == currentApplicationServer.IP && incomeApplicationServer.Port == currentApplicationServer.Port {
 			return nil
 		}
 	}
 	return fmt.Errorf("application server %v:%v not finded in service %v:%v",
-		incomeApplicationServer.ServerIP,
-		incomeApplicationServer.ServerPort,
-		currentService.ServiceIP,
-		currentService.ServicePort)
+		incomeApplicationServer.IP,
+		incomeApplicationServer.Port,
+		currentService.IP,
+		currentService.Port)
 }
 
 // logging utils start TODO: move to other file log logic
