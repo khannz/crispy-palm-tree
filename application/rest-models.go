@@ -2,13 +2,6 @@ package application
 
 import "time"
 
-// ServiceHealthcheck ...
-type ServiceHealthcheck struct {
-	PercentOfAlivedForUp            int `json:"percentOfAlivedForUp" validate:"required"`
-	RetriesForUpApplicationServer   int `json:"retriesForUpApplicationServer" validate:"required"`
-	RetriesForDownApplicationServer int `json:"retriesForDownApplicationServer" validate:"required,gt=0" example:"10"`
-}
-
 type Service struct {
 	IP                    string                 `json:"ip" validate:"ipv4" example:"1.1.1.1"`
 	Port                  string                 `json:"port" validate:"required" example:"1111"`
