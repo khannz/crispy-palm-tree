@@ -9,24 +9,24 @@ import (
 // ServiceInfo ...
 type ServiceInfo struct {
 	sync.RWMutex          `json:"-"`
-	Address               string                 `json:"address"`
-	IP                    string                 `json:"ip"`
-	Port                  string                 `json:"port"`
-	IsUp                  bool                   `json:"isUp"`
-	BalanceType           string                 `json:"balanceType"`
-	RoutingType           string                 `json:"routingType"`
-	Protocol              string                 `json:"protocol"`
-	AlivedAppServersForUp int                    `json:"alivedAppServersForUp"`
-	HCType                string                 `json:"hcType"`
-	HCRepeat              time.Duration          `json:"hcRepeat"`
-	HCTimeout             time.Duration          `json:"hcTimeout"`
-	HCNearFieldsMode      bool                   `json:"hcNearFieldsMode,omitempty"`
-	HCUserDefinedData     map[string]interface{} `json:"hcUserDefinedData,omitempty"`
-	HCRetriesForUP        int                    `json:"hcRetriesForUP"`
-	HCRetriesForDown      int                    `json:"hcRetriesForDown"`
-	ApplicationServers    []*ApplicationServer   `json:"ApplicationServers"`
-	HCStop                chan struct{}          `json:"-"`
-	HCStopped             chan struct{}          `json:"-"`
+	Address               string               `json:"address"`
+	IP                    string               `json:"ip"`
+	Port                  string               `json:"port"`
+	IsUp                  bool                 `json:"isUp"`
+	BalanceType           string               `json:"balanceType"`
+	RoutingType           string               `json:"routingType"`
+	Protocol              string               `json:"protocol"`
+	AlivedAppServersForUp int                  `json:"alivedAppServersForUp"`
+	HCType                string               `json:"hcType"`
+	HCRepeat              time.Duration        `json:"hcRepeat"`
+	HCTimeout             time.Duration        `json:"hcTimeout"`
+	HCNearFieldsMode      bool                 `json:"hcNearFieldsMode,omitempty"`
+	HCUserDefinedData     map[string]string    `json:"hcUserDefinedData,omitempty"`
+	HCRetriesForUP        int                  `json:"hcRetriesForUP"`
+	HCRetriesForDown      int                  `json:"hcRetriesForDown"`
+	ApplicationServers    []*ApplicationServer `json:"ApplicationServers"`
+	HCStop                chan struct{}        `json:"-"`
+	HCStopped             chan struct{}        `json:"-"`
 }
 
 type ApplicationServer struct {

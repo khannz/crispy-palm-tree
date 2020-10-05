@@ -37,6 +37,7 @@ func TestRemoveApplicationServers(t *testing.T) {
 	currentServiceInfoOne, _, _ := createServicesInfoForTests(currentApplicattionServers, tmpApplicattionServers)
 
 	serviceInfoForRemoveAppSrvrs := &domain.ServiceInfo{
+		Address:            "111.111.111.111:111",
 		IP:                 "111.111.111.111",
 		Port:               "111",
 		ApplicationServers: []*domain.ApplicationServer{appSrv},

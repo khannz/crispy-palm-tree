@@ -75,13 +75,13 @@ func modifyValidateError(validateError error) error {
 	return fmt.Errorf("validate fail: %v", errorsString)
 }
 
-func transformSliceToString(slice []string) string {
-	var resultString string
-	for _, el := range slice {
-		resultString += "\n" + el
-	}
-	return resultString
-}
+// func transformSliceToString(slice []string) string {
+// 	var resultString string
+// 	for _, el := range slice {
+// 		resultString += "\n" + el
+// 	}
+// 	return resultString
+// }
 
 func validateServiceBalanceType(balanceType string) error {
 	switch balanceType { // maybe range by array is better?

@@ -21,8 +21,8 @@ const removeApplicationServersRequestName = "remove application servers"
 // @Accept json
 // @Produce json
 // @Success 200 {object} application.Service "If all okay"
-// @Failure 400 {string} error "Bad request"
-// @Failure 500 {string} error "Internal error"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal error"
 // @Router /service/{addr}/{port}/remove-application-servers [post]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) removeApplicationServers(ginContext *gin.Context) {

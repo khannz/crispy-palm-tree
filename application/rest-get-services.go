@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/khannz/crispy-palm-tree/domain"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,8 +15,8 @@ const getServicesName = "get services"
 // @Summary Get services
 // @Description Beyond the network balance
 // @Produce json
-// @Success 200 {object} []application.Service "If all okay"
-// @Failure 500 {string} error "Internal error"
+// @Success 200 {object} application.AllServices "If all okay"
+// @Failure 500 {string} string "Internal error"
 // @Router /services [get]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
@@ -35,5 +36,16 @@ func (restAPI *RestAPIstruct) getServices(ginContext *gin.Context) {
 		"event id": getServicesRequestID,
 	}).Infof("request %v done", getServicesName)
 
-	ginContext.JSON(http.StatusOK, nwbServices)
+	allServices := formAllServices(nwbServices)
+	restAllServices := AllServices{Services: allServices}
+	ginContext.JSON(http.StatusOK, restAllServices)
+}
+
+func formAllServices(domainServices []*domain.ServiceInfo) []*Service {
+	allServices := make([]*Service, len(domainServices))
+	for i, domainService := range domainServices {
+		restService := convertDomainServiceInfoToRestService(domainService)
+		allServices[i] = restService
+	}
+	return allServices
 }

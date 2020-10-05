@@ -57,6 +57,8 @@ func optionsForDbPersistent(dbPath string, logger *logrus.Logger) badger.Options
 // NewServiceInfoToStorage add new service to storage
 func (storageEntity *StorageEntity) NewServiceInfoToStorage(serviceData *domain.ServiceInfo,
 	eventID string) error {
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
 	serviceDataKey := []byte(serviceData.Address)
 	serviceDataValue, err := json.Marshal(serviceData)
 	if err != nil {
@@ -72,8 +74,6 @@ func (storageEntity *StorageEntity) NewServiceInfoToStorage(serviceData *domain.
 }
 
 func updateDb(db *badger.DB, key, value []byte) error {
-	db.Lock()
-	defer db.Unlock()
 	return db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(key, value)
 		return err
@@ -194,6 +194,9 @@ func (storageEntity *StorageEntity) LoadCacheFromStorage(oldStorageEntity *Stora
 
 // UpdateServiceInfo validate and update service
 func (storageEntity *StorageEntity) UpdateServiceInfo(serviceData *domain.ServiceInfo, eventID string) error {
+	storageEntity.Lock()
+	defer storageEntity.Unlock()
+
 	serviceDataKey := []byte(serviceData.Address)
 	serviceDataValue, err := json.Marshal(serviceData)
 	if err != nil {

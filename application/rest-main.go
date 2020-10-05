@@ -80,8 +80,8 @@ func (restAPI *RestAPIstruct) UpRestAPI() {
 	restAPI.router.POST("/service/:addr/:port", restAPI.newService)
 	restAPI.router.PUT("/service/:addr/:port", restAPI.modifyService)
 	restAPI.router.DELETE("/service/:addr/:port", restAPI.removeService)
-	restAPI.router.POST("/:addr/:port/remove-application-servers", restAPI.removeApplicationServers)
-	restAPI.router.POST("/:addr/:port/add-application-servers", restAPI.addApplicationServers)
+	restAPI.router.POST("/service/:addr/:port/remove-application-servers", restAPI.removeApplicationServers)
+	restAPI.router.POST("/service/:addr/:port/add-application-servers", restAPI.addApplicationServers)
 
 	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
 	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))

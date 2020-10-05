@@ -3,21 +3,21 @@ package application
 import "time"
 
 type Service struct {
-	IP                    string                 `json:"ip" validate:"ipv4" example:"1.1.1.1"`
-	Port                  string                 `json:"port" validate:"required" example:"1111"`
-	IsUp                  bool                   `json:"isUp,omitempty"`
-	BalanceType           string                 `json:"balanceType" validate:"required" example:"rr"`
-	RoutingType           string                 `json:"routingType" validate:"required" example:"masquerading,tunneling"`
-	Protocol              string                 `json:"protocol" validate:"required" example:"tcp,udp"`
-	AlivedAppServersForUp int                    `json:"alivedAppServersForUp" validate:"required,gt=0,lte=100"`
-	HCType                string                 `json:"hcType" validate:"required" example:"tcp"`
-	HCRepeat              time.Duration          `json:"hcRepeat" validate:"required" example:"3000000000"`
-	HCTimeout             time.Duration          `json:"hcTimeout" validate:"required" example:"1000000000"`
-	HCNearFieldsMode      bool                   `json:"hcNearFieldsMode,omitempty"`
-	HCUserDefinedData     map[string]interface{} `json:"hcUserDefinedData,omitempty"`
-	HCRetriesForUP        int                    `json:"hcRetriesForUP" validate:"required,gt=0" example:"3"`
-	HCRetriesForDown      int                    `json:"hcRetriesForDown" validate:"required,gt=0" example:"10"`
-	ApplicationServers    []*ApplicationServer   `json:"applicationServers" validate:"required,dive,required"`
+	IP                    string               `json:"ip" validate:"ipv4" example:"1.1.1.1"`
+	Port                  string               `json:"port" validate:"required" example:"1111"`
+	IsUp                  bool                 `json:"isUp,omitempty"`
+	BalanceType           string               `json:"balanceType" validate:"required" example:"rr"`
+	RoutingType           string               `json:"routingType" validate:"required" example:"masquerading,tunneling"`
+	Protocol              string               `json:"protocol" validate:"required" example:"tcp,udp"`
+	AlivedAppServersForUp int                  `json:"alivedAppServersForUp" validate:"required,gt=0,lte=100"`
+	HCType                string               `json:"hcType" validate:"required" example:"tcp"`
+	HCRepeat              time.Duration        `json:"hcRepeat" validate:"required" example:"3000000000"`
+	HCTimeout             time.Duration        `json:"hcTimeout" validate:"required" example:"1000000000"`
+	HCNearFieldsMode      bool                 `json:"hcNearFieldsMode,omitempty"`
+	HCUserDefinedData     map[string]string    `json:"hcUserDefinedData,omitempty"`
+	HCRetriesForUP        int                  `json:"hcRetriesForUP" validate:"required,gt=0" example:"3"`
+	HCRetriesForDown      int                  `json:"hcRetriesForDown" validate:"required,gt=0" example:"10"`
+	ApplicationServers    []*ApplicationServer `json:"applicationServers" validate:"required,dive,required"`
 }
 
 type ApplicationServer struct {
@@ -56,4 +56,8 @@ type LoginResponseOkay struct {
 // LoginResponseError ...
 type LoginResponseError struct {
 	Error string `json:"error"`
+}
+
+type AllServices struct {
+	Services []*Service `json:"services"`
 }

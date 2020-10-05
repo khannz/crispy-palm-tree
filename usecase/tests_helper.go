@@ -1,34 +1,55 @@
 package usecase
 
 import (
+	"time"
+
 	"github.com/khannz/crispy-palm-tree/domain"
 )
 
 func createServicesInfoForTests(applicattionServersOne []*domain.ApplicationServer, applicattionServersTwo []*domain.ApplicationServer) (*domain.ServiceInfo, *domain.ServiceInfo, *domain.ServiceInfo) {
 	// serviceHealthcheckOne, serviceHealthcheckTwo, _ := createServicesHealthchecksForTests()
 	serviceInfoOne := &domain.ServiceInfo{
-		IP:                 "111.111.111.111",
-		Port:               "111",
-		ApplicationServers: applicattionServersOne,
-		// Healthcheck:        serviceHealthcheckOne,
-		// ExtraInfo          []string             `json:"extraInfo"`
-		IsUp:        true,
-		BalanceType: "rr",
-		RoutingType: "tunneling",
-		Protocol:    "tcp",
+		Address:               "111.111.111.111:111",
+		IP:                    "111.111.111.111",
+		Port:                  "111",
+		IsUp:                  true,
+		BalanceType:           "rr",
+		RoutingType:           "tunneling",
+		Protocol:              "tcp",
+		AlivedAppServersForUp: 2,
+		HCType:                "icmp",
+		HCRepeat:              5 * time.Second,
+		HCTimeout:             1 * time.Second,
+		HCNearFieldsMode:      false,
+		HCUserDefinedData:     make(map[string]string, 1),
+		HCRetriesForUP:        5,
+		HCRetriesForDown:      2,
+		ApplicationServers:    applicattionServersOne,
+		HCStop:                make(chan struct{}, 1),
+		HCStopped:             make(chan struct{}, 1),
 	}
 	serviceInfoTwo := &domain.ServiceInfo{
-		IP:                 "222.222.222.222",
-		Port:               "222",
-		ApplicationServers: applicattionServersOne,
-		// Healthcheck:        serviceHealthcheckTwo,
-		// ExtraInfo          []string             `json:"extraInfo"`
-		IsUp:        true,
-		BalanceType: "rr",
-		RoutingType: "tunneling",
-		Protocol:    "tcp",
+		Address:               "222.222.222.222:222",
+		IP:                    "222.222.222.222",
+		Port:                  "222",
+		IsUp:                  true,
+		BalanceType:           "rr",
+		RoutingType:           "tunneling",
+		Protocol:              "tcp",
+		AlivedAppServersForUp: 2,
+		HCType:                "tcp",
+		HCRepeat:              5 * time.Second,
+		HCTimeout:             1 * time.Second,
+		HCNearFieldsMode:      false,
+		HCUserDefinedData:     make(map[string]string, 1),
+		HCRetriesForUP:        5,
+		HCRetriesForDown:      2,
+		ApplicationServers:    applicattionServersTwo,
+		HCStop:                make(chan struct{}, 1),
+		HCStopped:             make(chan struct{}, 1),
 	}
 	serviceInfoThree := &domain.ServiceInfo{
+		Address:     "111.111.111.111:111",
 		IP:          "111.111.111.111",
 		Port:        "111",
 		BalanceType: "rr",
@@ -140,20 +161,20 @@ func createApplicationServersForTests() ([]*domain.ApplicationServer, []*domain.
 // func createAdvancedHealthcheckParametersForTests() (domain.AdvancedHealthcheckParameters, domain.AdvancedHealthcheckParameters, domain.AdvancedHealthcheckParameters, domain.AdvancedHealthcheckParameters) {
 // 	advancedHealthcheckParametersOne := domain.AdvancedHealthcheckParameters{
 // 		NearFieldsMode:  true,
-// 		UserDefinedData: map[string]interface{}{"one": "oneValue", "two": 2},
+// 		UserDefinedData: map[string]string{"one": "oneValue", "two": 2},
 // 	}
 // 	advancedHealthcheckParametersTwo := domain.AdvancedHealthcheckParameters{
 // 		NearFieldsMode:  false,
-// 		UserDefinedData: map[string]interface{}{"three": "threeValue", "four": 4},
+// 		UserDefinedData: map[string]string{"three": "threeValue", "four": 4},
 // 	}
 
 // 	advancedHealthcheckParametersThree := domain.AdvancedHealthcheckParameters{
 // 		NearFieldsMode:  true,
-// 		UserDefinedData: map[string]interface{}{"five": "fiveValue", "six": 6},
+// 		UserDefinedData: map[string]string{"five": "fiveValue", "six": 6},
 // 	}
 // 	advancedHealthcheckParametersFour := domain.AdvancedHealthcheckParameters{
 // 		NearFieldsMode:  false,
-// 		UserDefinedData: map[string]interface{}{"seven": "sevenValue", "eight": 8},
+// 		UserDefinedData: map[string]string{"seven": "sevenValue", "eight": 8},
 // 	}
 // 	return advancedHealthcheckParametersOne, advancedHealthcheckParametersTwo, advancedHealthcheckParametersThree, advancedHealthcheckParametersFour
 // }

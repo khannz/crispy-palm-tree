@@ -66,17 +66,30 @@ func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServic
 	var updatedServiceInfo *domain.ServiceInfo
 
 	// concatenate two slices
-	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
+	resultApplicationServers := make([]*domain.ApplicationServer, len(newServiceInfo.ApplicationServers)) // append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
+	for i, currentApplicationServer := range newServiceInfo.ApplicationServers {
+		resultApplicationServers[i] = currentApplicationServer
+	}
 
 	updatedServiceInfo = &domain.ServiceInfo{
-		IP:                 newServiceInfo.IP,
-		Port:               newServiceInfo.Port,
-		ApplicationServers: resultApplicationServers,
-		// FIXME: // Healthcheck:        currentServiceInfo.Healthcheck,
-		BalanceType: currentServiceInfo.BalanceType,
-		RoutingType: currentServiceInfo.RoutingType,
-		IsUp:        currentServiceInfo.IsUp,
-		Protocol:    currentServiceInfo.Protocol,
+		Address:               newServiceInfo.Address,
+		IP:                    newServiceInfo.IP,
+		Port:                  newServiceInfo.Port,
+		IsUp:                  currentServiceInfo.IsUp,
+		BalanceType:           currentServiceInfo.BalanceType,
+		RoutingType:           currentServiceInfo.RoutingType,
+		Protocol:              currentServiceInfo.Protocol,
+		AlivedAppServersForUp: currentServiceInfo.AlivedAppServersForUp,
+		HCType:                currentServiceInfo.HCType,
+		HCRepeat:              currentServiceInfo.HCRepeat,
+		HCTimeout:             currentServiceInfo.HCTimeout,
+		HCNearFieldsMode:      currentServiceInfo.HCNearFieldsMode,
+		HCUserDefinedData:     currentServiceInfo.HCUserDefinedData,
+		HCRetriesForUP:        currentServiceInfo.HCRetriesForUP,
+		HCRetriesForDown:      currentServiceInfo.HCRetriesForDown,
+		ApplicationServers:    resultApplicationServers,
+		HCStop:                make(chan struct{}, 1),
+		HCStopped:             make(chan struct{}, 1),
 	}
 	return updatedServiceInfo, nil
 }
@@ -90,24 +103,40 @@ func forRemoveApplicationServersFormUpdateServiceInfo(currentServiceInfo, remove
 		}
 	}
 	return &domain.ServiceInfo{
-		IP:                 currentServiceInfo.IP,
-		Port:               currentServiceInfo.Port,
-		ApplicationServers: copyOfCurrentApplicationServers,
-		// // Healthcheck:        currentServiceInfo.Healthcheck,
-		BalanceType: currentServiceInfo.BalanceType,
-		RoutingType: currentServiceInfo.RoutingType,
-		IsUp:        currentServiceInfo.IsUp,
-		Protocol:    currentServiceInfo.Protocol,
+		Address:               currentServiceInfo.Address,
+		IP:                    currentServiceInfo.IP,
+		Port:                  currentServiceInfo.Port,
+		IsUp:                  currentServiceInfo.IsUp,
+		BalanceType:           currentServiceInfo.BalanceType,
+		RoutingType:           currentServiceInfo.RoutingType,
+		Protocol:              currentServiceInfo.Protocol,
+		AlivedAppServersForUp: currentServiceInfo.AlivedAppServersForUp,
+		HCType:                currentServiceInfo.HCType,
+		HCRepeat:              currentServiceInfo.HCRepeat,
+		HCTimeout:             currentServiceInfo.HCTimeout,
+		HCNearFieldsMode:      currentServiceInfo.HCNearFieldsMode,
+		HCUserDefinedData:     currentServiceInfo.HCUserDefinedData,
+		HCRetriesForUP:        currentServiceInfo.HCRetriesForUP,
+		HCRetriesForDown:      currentServiceInfo.HCRetriesForDown,
+		ApplicationServers:    copyOfCurrentApplicationServers,
+		HCStop:                make(chan struct{}, 1),
+		HCStopped:             make(chan struct{}, 1),
 	}
 }
 
 func copyApplicationServers(applicationServers []*domain.ApplicationServer) []*domain.ApplicationServer {
-	newASs := []*domain.ApplicationServer{}
-	for _, as := range applicationServers {
-		copyAs := *as
-		newASs = append(newASs, &copyAs)
+	newApplicationServers := make([]*domain.ApplicationServer, len(applicationServers))
+	for i, applicationServer := range applicationServers {
+		newApplicationServers[i] = &domain.ApplicationServer{
+			Address:             applicationServer.Address,
+			IP:                  applicationServer.IP,
+			Port:                applicationServer.Port,
+			IsUp:                applicationServer.IsUp,
+			HCAddress:           applicationServer.HCAddress,
+			ExampleBashCommands: applicationServer.ExampleBashCommands,
+		}
 	}
-	return newASs
+	return newApplicationServers
 }
 
 func containForRemove(tsIn *domain.ApplicationServer, toRemASs []*domain.ApplicationServer) bool {

@@ -17,8 +17,8 @@ const getServiceRequestName = "get service state"
 // @Param port path uint true "Port"
 // @Produce json
 // @Success 200 {object} application.Service "If all okay"
-// @Failure 400 {string} error "Bad request"
-// @Failure 500 {string} error "Internal error"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal error"
 // @Router /service/{addr}/{port} [get]
 // // @Security ApiKeyAuth
 func (restAPI *RestAPIstruct) getService(ginContext *gin.Context) {

@@ -81,6 +81,7 @@ func TestModifyService(t *testing.T) {
 	tmpAppSrvrs = append(tmpAppSrvrs, currentServiceInfoOne.ApplicationServers...)
 
 	serviceForModify := &domain.ServiceInfo{
+		Address:            currentServiceInfoOne.Address,
 		IP:                 currentServiceInfoOne.IP,
 		Port:               currentServiceInfoOne.Port,
 		ApplicationServers: tmpAppSrvrs,

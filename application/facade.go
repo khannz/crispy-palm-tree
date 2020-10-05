@@ -146,8 +146,9 @@ func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceReques
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
 	incomeServiceInfo := &domain.ServiceInfo{
-		IP:   ip,
-		Port: port,
+		Address: ip + ":" + port,
+		IP:      ip,
+		Port:    port,
 	}
 	serviceInfo, err := getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceRequestID)
 	if err != nil {
