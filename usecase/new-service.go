@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,11 +13,10 @@ const newServiceName = "new service"
 // NewServiceEntity ...
 type NewServiceEntity struct {
 	locker            *domain.Locker
-	ipvsadm           domain.IPVSWorker
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *healthchecks.HeathcheckEntity
+	hc                *healthcheck.HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
@@ -25,17 +24,15 @@ type NewServiceEntity struct {
 
 // NewNewServiceEntity ... // TODO: naming
 func NewNewServiceEntity(locker *domain.Locker,
-	ipvsadm domain.IPVSWorker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *healthchecks.HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *NewServiceEntity {
 	return &NewServiceEntity{
 		locker:            locker,
-		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -98,26 +95,6 @@ func (createService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInf
 		logCreatedNewTunnels(newServiceName, createServiceID, tunnelsFilesInfo, createService.logging)
 	}
 
-	logTryCreateIPVSService(newServiceName, createServiceID, serviceInfo.ApplicationServers, serviceInfo.IP, serviceInfo.Port, createService.logging)
-	vip, port, routingType, balanceType, protocol, err := domain.PrepareServiceForIPVS(serviceInfo.IP,
-		serviceInfo.Port,
-		serviceInfo.RoutingType,
-		serviceInfo.BalanceType,
-		serviceInfo.Protocol)
-	if err != nil {
-		return serviceInfo, fmt.Errorf("error prepare data for IPVS: %v", err)
-	}
-	if err := createService.ipvsadm.NewService(vip,
-		port,
-		routingType,
-		balanceType,
-		protocol,
-		nil,
-		createServiceID); err != nil {
-		return serviceInfo, fmt.Errorf("Error when ipvsadm create service: %v", err)
-	}
-	logCreatedIPVSService(newServiceName, createServiceID, serviceInfo.ApplicationServers, serviceInfo.IP, serviceInfo.Port, createService.logging)
-
 	// add to cache storage
 	logTryUpdateServiceInfoAtCache(newServiceName, createServiceID, createService.logging)
 	if err := createService.cacheStorage.NewServiceInfoToStorage(serviceInfo, createServiceID); err != nil {
@@ -149,7 +126,7 @@ func (createService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInf
 	logGeneratedCommandsForApplicationServers(newServiceName, createServiceID, createService.logging)
 
 	logUpdateServiceAtHealtchecks(newServiceName, createServiceID, createService.logging)
-	hcService := healthchecks.ConvertDomainServiceToHCService(serviceInfo)
+	hcService := healthcheck.ConvertDomainServiceToHCService(serviceInfo)
 	createService.hc.NewServiceToHealtchecks(hcService)
 	logUpdatedServiceAtHealtchecks(newServiceName, createServiceID, createService.logging)
 	return serviceInfo, nil

@@ -371,36 +371,6 @@ func logUpdateServiceInfoAtCache(usecaseName,
 	}).Info("service info at cache has been updated")
 }
 
-func logTryIpvsadmApplicationServers(usecaseName,
-	id string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("try ipvsadm add application servers %v to service %v:%v",
-		applicationServers,
-		serviceIP,
-		servicePort)
-}
-
-func logAddedIpvsadmApplicationServers(usecaseName,
-	id string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("ipvsadm added application servers %v for service %v:%v",
-		applicationServers,
-		serviceIP,
-		servicePort)
-}
-
 func logTryUpdateServiceInfoAtPersistentStorage(usecaseName,
 	id string,
 	logging *logrus.Logger) {
@@ -455,36 +425,6 @@ func logUpdatedServiceAtHealtchecks(usecaseName,
 	}).Info("service updated at healtchecks")
 }
 
-// func logTryCreateIPVSService(usecaseName,
-// 	id string,
-// 	applicationServers []*domain.ApplicationServer,
-// 	serviceIP,
-// 	servicePort string,
-// 	logging *logrus.Logger) {
-// 	logging.WithFields(logrus.Fields{
-// 		"entity":     usecaseName,
-// 		"event id": id,
-// 	}).Infof("try ipvsadm create service %v:%v include application servers %v",
-// 		serviceIP,
-// 		servicePort,
-// 		applicationServers)
-// }
-
-// func logCreatedIPVSService(usecaseName,
-// 	id string,
-// 	applicationServers []*domain.ApplicationServer,
-// 	serviceIP,
-// 	servicePort string,
-// 	logging *logrus.Logger) {
-// 	logging.WithFields(logrus.Fields{
-// 		"entity":     usecaseName,
-// 		"event id": id,
-// 	}).Infof("ipvsadm created service %v:%v include application servers %v",
-// 		serviceIP,
-// 		servicePort,
-// 		applicationServers)
-// }
-
 func logTryValidateRemoveApplicationServers(usecaseName,
 	id string,
 	applicationServers []*domain.ApplicationServer,
@@ -503,86 +443,6 @@ func logValidateRemoveApplicationServers(usecaseName,
 		"entity":   usecaseName,
 		"event id": id,
 	}).Infof("successfully validate remove application servers %v", applicationServers)
-}
-
-func logTryRemoveIpvsadmApplicationServers(usecaseName,
-	id string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("try ipvsadm remove application servers %v for service %v:%v",
-		applicationServers,
-		serviceIP,
-		servicePort)
-}
-
-func logRemovedIpvsadmApplicationServers(usecaseName,
-	id string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("ipvsadm removed application servers %v for service %v:%v",
-		applicationServers,
-		serviceIP,
-		servicePort)
-}
-
-func logTryCreateIPVSService(usecaseName,
-	id string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("try ipvsadm create service %v:%v include application servers %v",
-		serviceIP,
-		servicePort,
-		applicationServers)
-}
-
-func logCreatedIPVSService(usecaseName,
-	id string,
-	applicationServers []*domain.ApplicationServer,
-	serviceIP,
-	servicePort string,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("ipvsadm created service %v:%v include application servers %v",
-		serviceIP,
-		servicePort,
-		applicationServers)
-}
-
-func logTryRemoveIpvsadmService(usecaseName,
-	id string,
-	serviceInfo *domain.ServiceInfo,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("try ipvsadm remove service %v", serviceInfo)
-}
-
-func logRemovedIpvsadmService(usecaseName,
-	id string,
-	serviceInfo *domain.ServiceInfo,
-	logging *logrus.Logger) {
-	logging.WithFields(logrus.Fields{
-		"entity":   usecaseName,
-		"event id": id,
-	}).Infof("ipvsadm removed service %v", serviceInfo)
 }
 
 func logTryRemoveServiceAtHealtchecks(usecaseName,

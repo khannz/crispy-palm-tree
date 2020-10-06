@@ -1,4 +1,4 @@
-package portadapter
+package healthcheck
 
 import (
 	"fmt"

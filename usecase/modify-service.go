@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,11 +13,10 @@ const modifyServiceName = "modify service"
 // ModifyServiceEntity ...
 type ModifyServiceEntity struct {
 	locker            *domain.Locker
-	ipvsadm           domain.IPVSWorker
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *healthchecks.HeathcheckEntity
+	hc                *healthcheck.HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
@@ -25,17 +24,15 @@ type ModifyServiceEntity struct {
 
 // NewModifyServiceEntity ...
 func NewModifyServiceEntity(locker *domain.Locker,
-	ipvsadm domain.IPVSWorker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *healthchecks.HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *ModifyServiceEntity {
 	return &ModifyServiceEntity{
 		locker:            locker,
-		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -112,7 +109,7 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	logUpdatedServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceID, modifyService.logging)
 
 	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceID, modifyService.logging)
-	hcService := healthchecks.ConvertDomainServiceToHCService(serviceInfo)
+	hcService := healthcheck.ConvertDomainServiceToHCService(serviceInfo)
 	if err = modifyService.hc.UpdateServiceAtHealtchecks(hcService); err != nil {
 		return serviceInfo, fmt.Errorf("service modify for healtchecks not activated, an error occurred when changing healtchecks: %v", err)
 	}

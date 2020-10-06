@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,27 +13,24 @@ const removeServiceName = "remove-service"
 // RemoveServiceEntity ...
 type RemoveServiceEntity struct {
 	locker            *domain.Locker
-	ipvsadm           domain.IPVSWorker
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *healthchecks.HeathcheckEntity
+	hc                *healthcheck.HeathcheckEntity
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
 }
 
 // NewRemoveServiceEntity ...
 func NewRemoveServiceEntity(locker *domain.Locker,
-	ipvsadm domain.IPVSWorker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *healthchecks.HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *RemoveServiceEntity {
 	return &RemoveServiceEntity{
 		locker:            locker,
-		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -80,7 +77,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	logTryPreValidateRequest(removeServiceName, removeServiceID, removeServiceEntity.logging)
 
 	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
-	hcService := healthchecks.ConvertDomainServiceToHCService(serviceInfo)
+	hcService := healthcheck.ConvertDomainServiceToHCService(serviceInfo)
 	removeServiceEntity.hc.RemoveServiceFromHealtchecks(hcService) // will wait until removed
 	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
 
@@ -97,24 +94,6 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 		if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
 			return fmt.Errorf("can't update tunnel info")
 		}
-	}
-
-	logTryRemoveIpvsadmService(removeServiceName, removeServiceID, currentServiceInfo, removeServiceEntity.logging)
-	vip, port, _, _, protocol, _, err := domain.PrepareDataForIPVS(currentServiceInfo.IP,
-		currentServiceInfo.Port,
-		currentServiceInfo.RoutingType,
-		currentServiceInfo.BalanceType,
-		currentServiceInfo.Protocol,
-		currentServiceInfo.ApplicationServers)
-	if err != nil {
-		return fmt.Errorf("Error prepare data for IPVS: %v", err)
-	}
-	if err = removeServiceEntity.ipvsadm.RemoveService(vip, port, protocol, removeServiceID); err != nil {
-		removeServiceEntity.logging.WithFields(logrus.Fields{
-			"event id": removeServiceID,
-		}).Warnf("ipvsadm can't remove service: %v. got error: %v", serviceInfo, err)
-	} else {
-		logRemovedIpvsadmService(removeServiceName, removeServiceID, currentServiceInfo, removeServiceEntity.logging)
 	}
 
 	removeServiceEntity.logging.WithFields(logrus.Fields{

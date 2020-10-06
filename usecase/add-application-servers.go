@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,11 +13,10 @@ const addApplicationServersName = "add-application-servers"
 // AddApplicationServers ...
 type AddApplicationServers struct {
 	locker            *domain.Locker
-	ipvsadm           domain.IPVSWorker
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *healthchecks.HeathcheckEntity
+	hc                *healthcheck.HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
@@ -25,17 +24,15 @@ type AddApplicationServers struct {
 
 // NewAddApplicationServers ...
 func NewAddApplicationServers(locker *domain.Locker,
-	ipvsadm domain.IPVSWorker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *healthchecks.HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *AddApplicationServers {
 	return &AddApplicationServers{
 		locker:            locker,
-		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -115,27 +112,6 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	}
 	logGenerateUpdatedServiceInfo(addApplicationServersName, addApplicationServersID, updatedServiceInfo, addApplicationServers.logging)
 
-	logTryIpvsadmApplicationServers(addApplicationServersName, addApplicationServersID, newServiceInfo.ApplicationServers, newServiceInfo.IP, newServiceInfo.Port, addApplicationServers.logging)
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.IP,
-		currentServiceInfo.Port,
-		currentServiceInfo.RoutingType,
-		currentServiceInfo.BalanceType,
-		currentServiceInfo.Protocol,
-		newServiceInfo.ApplicationServers)
-	if err != nil {
-		return newServiceInfo, fmt.Errorf("Error prepare data for IPVS: %v", err)
-	}
-	if err = addApplicationServers.ipvsadm.AddApplicationServersForService(vip,
-		port,
-		routingType,
-		balanceType,
-		protocol,
-		applicationServers,
-		addApplicationServersID); err != nil {
-		return newServiceInfo, fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
-	}
-	logAddedIpvsadmApplicationServers(addApplicationServersName, addApplicationServersID, newServiceInfo.ApplicationServers, newServiceInfo.IP, newServiceInfo.Port, addApplicationServers.logging)
-
 	// add to cache storage
 	logTryUpdateServiceInfoAtCache(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 	if err = addApplicationServers.cacheStorage.UpdateServiceInfo(updatedServiceInfo, addApplicationServersID); err != nil {
@@ -160,7 +136,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	logGeneratedCommandsForApplicationServers(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 
 	logUpdateServiceAtHealtchecks(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
-	hcService := healthchecks.ConvertDomainServiceToHCService(updatedServiceInfo)
+	hcService := healthcheck.ConvertDomainServiceToHCService(updatedServiceInfo)
 	if err = addApplicationServers.hc.UpdateServiceAtHealtchecks(hcService); err != nil {
 		return newServiceInfo, fmt.Errorf("application server added, but not activated, an error occurred when adding to the healtchecks: %v", err)
 	}

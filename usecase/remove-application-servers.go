@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,27 +13,24 @@ const removeApplicationServersName = "remove-application-servers"
 // RemoveApplicationServers ...
 type RemoveApplicationServers struct {
 	locker            *domain.Locker
-	ipvsadm           domain.IPVSWorker
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                *healthchecks.HeathcheckEntity
+	hc                *healthcheck.HeathcheckEntity
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
 }
 
 // NewRemoveApplicationServers ...
 func NewRemoveApplicationServers(locker *domain.Locker,
-	ipvsadm domain.IPVSWorker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc *healthchecks.HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *RemoveApplicationServers {
 	return &RemoveApplicationServers{
 		locker:            locker,
-		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
@@ -118,27 +115,6 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		}
 	}
 
-	logTryRemoveIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.IP, removeServiceInfo.Port, removeApplicationServers.logging)
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(currentServiceInfo.IP,
-		currentServiceInfo.Port,
-		currentServiceInfo.RoutingType,
-		currentServiceInfo.BalanceType,
-		currentServiceInfo.Protocol,
-		removeServiceInfo.ApplicationServers)
-	if err != nil {
-		return currentServiceInfo, fmt.Errorf("Error prepare data for IPVS: %v", err)
-	}
-	if err = removeApplicationServers.ipvsadm.RemoveApplicationServersFromService(vip,
-		port,
-		routingType,
-		balanceType,
-		protocol,
-		applicationServers,
-		removeApplicationServersID); err != nil {
-		return currentServiceInfo, fmt.Errorf("Error when ipvsadm remove application servers from service: %v", err)
-	}
-	logRemovedIpvsadmApplicationServers(removeApplicationServersName, removeApplicationServersID, removeServiceInfo.ApplicationServers, removeServiceInfo.IP, removeServiceInfo.Port, removeApplicationServers.logging)
-
 	logTryUpdateServiceInfoAtPersistentStorage(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 	if err = removeApplicationServers.persistentStorage.UpdateServiceInfo(updatedServiceInfo, removeApplicationServersID); err != nil {
 		return currentServiceInfo, fmt.Errorf("Error when update persistent storage: %v", err)
@@ -152,7 +128,7 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	}
 
 	logUpdateServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
-	hcService := healthchecks.ConvertDomainServiceToHCService(updatedServiceInfo)
+	hcService := healthcheck.ConvertDomainServiceToHCService(updatedServiceInfo)
 	if err = removeApplicationServers.hc.UpdateServiceAtHealtchecks(hcService); err != nil {
 		return updatedServiceInfo, fmt.Errorf("application server removed, butan error occurred when removing it from the healtchecks: %v", err)
 	}

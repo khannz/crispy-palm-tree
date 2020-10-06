@@ -1,4 +1,4 @@
-package healthchecks
+package healthcheck
 
 // TODO: healthchecks != usecase!
 // TODO: featute: check routes tunnles and syscfg exist
@@ -20,6 +20,9 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
+// FIXME: add app servers
+// FIXME: remove app servers
+// FIXME: remove service
 const healthcheckName = "healthcheck"
 const healthcheckID = "00000000-0000-0000-0000-000000000004"
 const protocolICMP = 1
@@ -86,11 +89,12 @@ type UnknownDataStruct struct {
 	UnknowArrayOfMaps []map[string]string
 }
 
-func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) {
+func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) bool {
 	if _, inMap := hc.announcedServices[serviceIP]; inMap {
-		return // already in map
+		return true // already in map
 	}
 	hc.announcedServices[serviceIP] = 0 // add new service to annonced pool
+	return false
 }
 
 // StartGracefulShutdownControlForHealthchecks ...
@@ -105,9 +109,10 @@ func (hc *HeathcheckEntity) StartGracefulShutdownControlForHealthchecks() {
 	}
 	for _, hcService := range hc.runningHeathchecks {
 		<-hcService.HCStopped
-		hc.annonceLogic(hcService.IP, hcService.IsUp) // lock hc and dummy; may remove annonce
+		hc.annonceLogic(hcService.IP, false) // lock hc and dummy; may remove annonce
 		hc.logging.Tracef("get checks stopped from service %v", hcService.Address)
 	}
+	hc.ipvsadm.Flush()
 	hc.AllHeatlthchecksDone <- struct{}{}
 }
 
@@ -132,8 +137,34 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	for _, hcService := range hcServices {
 		enrichApplicationServersHealthchecks(hcService, nil) // lock hcService
 		hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
-		hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
+		alreadyAnnounced := hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
+		if !alreadyAnnounced {
+			if err := hc.addServiceToIPVS(hcService); err != nil {
+				return fmt.Errorf("can't add srvice to IPVS: %v", err)
+			}
+		}
 		go hc.startHealthchecksForCurrentService(hcService)
+	}
+	return nil
+}
+
+func (hc *HeathcheckEntity) addServiceToIPVS(hcService *HCService) error {
+	vip, port, routingType, balanceType, protocol, err := PrepareServiceForIPVS(hcService.IP,
+		hcService.Port,
+		hcService.RoutingType,
+		hcService.BalanceType,
+		hcService.Protocol)
+	if err != nil {
+		return fmt.Errorf("error prepare data for IPVS: %v", err)
+	}
+	if err := hc.ipvsadm.NewService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		nil,
+		healthcheckID); err != nil {
+		return fmt.Errorf("error when ipvsadm create service: %v", err)
 	}
 	return nil
 }
@@ -147,7 +178,13 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *HCService) {
 	}
 	enrichApplicationServersHealthchecks(hcService, nil) // lock hcService
 	hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
-	hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
+	alreadyAnnounced := hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
+	if !alreadyAnnounced {
+		if err := hc.addServiceToIPVS(hcService); err != nil {
+			hc.logging.Errorf("can't add srvice to IPVS: %v", err)
+			return
+		}
+	}
 	go hc.startHealthchecksForCurrentService(hcService)
 }
 
@@ -804,13 +841,12 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 
 func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *HCService,
 	applicationServer *HCApplicationServer) error {
-	tmpAppSs := convertHCApplicationServersToDomainApplicationServers([]*HCApplicationServer{applicationServer})
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(hcService.IP,
+	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
 		hcService.IP,
 		hcService.RoutingType,
 		hcService.BalanceType,
 		hcService.Protocol,
-		tmpAppSs)
+		[]*HCApplicationServer{applicationServer})
 	if err != nil {
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}
@@ -828,13 +864,12 @@ func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *HCServic
 
 func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *HCService,
 	applicationServer *HCApplicationServer) error {
-	tmpAppSs := convertHCApplicationServersToDomainApplicationServers([]*HCApplicationServer{applicationServer})
-	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(hcService.IP,
+	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
 		hcService.BalanceType,
 		hcService.Protocol,
-		tmpAppSs)
+		[]*HCApplicationServer{applicationServer})
 	if err != nil {
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/stretchr/testify/assert"
 	logger "github.com/thevan4/logrus-wrapper"
@@ -14,9 +14,8 @@ import (
 func TestRemoveApplicationServers(t *testing.T) {
 	assert := assert.New(t)
 	locker := &domain.Locker{}
-	mockIPVSWorker := &MockIPVSWorker{}
 	mockTunnelMaker := &MockTunnelMaker{}
-	mockHeathcheckEntity := &healthchecks.HeathcheckEntity{}
+	mockHeathcheckEntity := &healthcheck.HeathcheckEntity{}
 	gracefulShutdown := &domain.GracefulShutdown{
 		ShutdownNow:  true,
 		UsecasesJobs: 0,
@@ -48,7 +47,6 @@ func TestRemoveApplicationServers(t *testing.T) {
 	}
 
 	removeApplicationServersEntityGracefulEnd := NewRemoveApplicationServers(locker,
-		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
@@ -60,7 +58,6 @@ func TestRemoveApplicationServers(t *testing.T) {
 
 	gracefulShutdown.ShutdownNow = false
 	removeApplicationServersEntityOk := NewRemoveApplicationServers(locker,
-		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,

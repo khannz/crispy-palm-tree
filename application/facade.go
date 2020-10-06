@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
@@ -12,41 +12,38 @@ import (
 
 // BalancerFacade struct
 type BalancerFacade struct {
-	Locker              *domain.Locker
-	IPVSADMConfigurator *portadapter.IPVSADMEntity
-	CacheStorage        *portadapter.StorageEntity // so dirty
-	PersistentStorage   *portadapter.StorageEntity // so dirty
-	TunnelConfig        domain.TunnelMaker
-	HeathcheckEntity    *healthchecks.HeathcheckEntity
-	CommandGenerator    domain.CommandGenerator
-	GracefulShutdown    *domain.GracefulShutdown
-	IDgenerator         domain.IDgenerator
-	Logging             *logrus.Logger
+	Locker            *domain.Locker
+	CacheStorage      *portadapter.StorageEntity // so dirty
+	PersistentStorage *portadapter.StorageEntity // so dirty
+	TunnelConfig      domain.TunnelMaker
+	HeathcheckEntity  *healthcheck.HeathcheckEntity
+	CommandGenerator  domain.CommandGenerator
+	GracefulShutdown  *domain.GracefulShutdown
+	IDgenerator       domain.IDgenerator
+	Logging           *logrus.Logger
 }
 
 // NewBalancerFacade ...
 func NewBalancerFacade(locker *domain.Locker,
-	ipvsadmConfigurator *portadapter.IPVSADMEntity,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
-	hc *healthchecks.HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
 
 	return &BalancerFacade{
-		Locker:              locker,
-		IPVSADMConfigurator: ipvsadmConfigurator,
-		CacheStorage:        cacheStorage,
-		PersistentStorage:   persistentStorage,
-		TunnelConfig:        tunnelConfig,
-		HeathcheckEntity:    hc,
-		CommandGenerator:    commandGenerator,
-		GracefulShutdown:    gracefulShutdown,
-		IDgenerator:         idGenerator,
-		Logging:             logging,
+		Locker:            locker,
+		CacheStorage:      cacheStorage,
+		PersistentStorage: persistentStorage,
+		TunnelConfig:      tunnelConfig,
+		HeathcheckEntity:  hc,
+		CommandGenerator:  commandGenerator,
+		GracefulShutdown:  gracefulShutdown,
+		IDgenerator:       idGenerator,
+		Logging:           logging,
 	}
 }
 
@@ -54,7 +51,6 @@ func NewBalancerFacade(locker *domain.Locker,
 func (balancerFacade *BalancerFacade) NewService(newService *Service,
 	newServiceID string) (*Service, error) {
 	newNewServiceEntity := usecase.NewNewServiceEntity(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
@@ -74,7 +70,6 @@ func (balancerFacade *BalancerFacade) NewService(newService *Service,
 // RemoveService ...
 func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestID string) error {
 	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
@@ -102,7 +97,6 @@ func (balancerFacade *BalancerFacade) GetServices(getNWBServicesID string) ([]*d
 func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *Service,
 	addApplicationServersRequestID string) (*Service, error) {
 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
@@ -123,7 +117,6 @@ func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServer
 func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplicationServersRequest *Service,
 	removeApplicationServersRequestID string) (*Service, error) {
 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
@@ -162,7 +155,6 @@ func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceReques
 func (balancerFacade *BalancerFacade) ModifyService(modifyService *Service,
 	modifyServiceID string) (*Service, error) {
 	newModifyServiceEntity := usecase.NewModifyServiceEntity(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,

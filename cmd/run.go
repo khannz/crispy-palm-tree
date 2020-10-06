@@ -12,7 +12,7 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/application"
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -91,7 +91,7 @@ var rootCmd = &cobra.Command{
 		defer persistentDB.Db.Close()
 
 		// ipvsadmConfigurator start
-		ipvsadmConfigurator, err := portadapter.NewIPVSADMEntity(logging)
+		ipvsadmConfigurator, err := healthcheck.NewIPVSADMEntity(logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
@@ -105,7 +105,7 @@ var rootCmd = &cobra.Command{
 		// CommandGenerator end
 
 		//  healthchecks start
-		hc := healthchecks.NewHeathcheckEntity(cacheDB,
+		hc := healthcheck.NewHeathcheckEntity(cacheDB,
 			persistentDB,
 			ipvsadmConfigurator,
 			viperConfig.GetString(techInterfaceName),
@@ -119,7 +119,6 @@ var rootCmd = &cobra.Command{
 		// init config end
 
 		facade := application.NewBalancerFacade(locker,
-			ipvsadmConfigurator,
 			cacheDB,
 			persistentDB,
 			tunnelMaker,

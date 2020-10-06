@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/stretchr/testify/assert"
 	logger "github.com/thevan4/logrus-wrapper"
@@ -14,9 +14,8 @@ import (
 func TestModifyService(t *testing.T) {
 	assert := assert.New(t)
 	locker := &domain.Locker{}
-	mockIPVSWorker := &MockIPVSWorker{}
 	mockTunnelMaker := &MockTunnelMaker{}
-	mockHeathcheckEntity := &healthchecks.HeathcheckEntity{}
+	mockHeathcheckEntity := &healthcheck.HeathcheckEntity{}
 	mockCommandGenerator := &MockCommandGenerator{}
 	gracefulShutdown := &domain.GracefulShutdown{
 		ShutdownNow:  true,
@@ -39,7 +38,6 @@ func TestModifyService(t *testing.T) {
 	currentServiceInfoOne, _, _ := createServicesInfoForTests(currentApplicattionServers, tmpApplicattionServers)
 
 	modifyServiceGracefulEnd := NewModifyServiceEntity(locker,
-		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
@@ -52,7 +50,6 @@ func TestModifyService(t *testing.T) {
 
 	gracefulShutdown.ShutdownNow = false
 	modifyServiceFail := NewModifyServiceEntity(locker,
-		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
@@ -67,7 +64,6 @@ func TestModifyService(t *testing.T) {
 	assert.Nil(errNilPastOne)
 	currentServiceInfoOne.BalanceType = "wrr"
 	modifyServiceOk := NewModifyServiceEntity(locker,
-		mockIPVSWorker,
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,

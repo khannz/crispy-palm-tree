@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
 )
@@ -28,11 +27,6 @@ func (balancerFacade *BalancerFacade) DisableRuntimeSettings(isMockMode bool, id
 		}
 	}
 	// to make sure that the ipvs is cleared
-	if err := balancerFacade.IPVSADMConfigurator.Flush(); err != nil {
-		balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("IPVSADM can't flush data when programm stop: %v", err)
-		errors = append(errors, err)
-	}
-
 	return combineErrors(errors)
 }
 
@@ -48,12 +42,6 @@ func (balancerFacade *BalancerFacade) DisableRemoveService(serviceConfigFromStor
 		errors = append(errors, err)
 	}
 
-	if !isMockMode {
-		if err := healthchecks.RemoveFromDummy(serviceConfigFromStorage.IP); err != nil {
-			balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("can't remove from dummy: %v", err)
-			errors = append(errors, err)
-		}
-	}
 	return combineErrors(errors)
 }
 
