@@ -46,7 +46,7 @@ type CommandGenerator interface {
 
 // Release stringer interface for print/log data in []*ApplicationServer
 func (applicationServer *ApplicationServer) String() string {
-	return fmt.Sprintf("applicationServer{Address:%s, IsUp:%v, HCAddress:%v}",
+	return fmt.Sprintf("applicationServer{Address:%v, IsUp:%v, HCAddress:%v}",
 		applicationServer.Address,
 		applicationServer.IsUp,
 		applicationServer.HCAddress)

@@ -134,9 +134,17 @@ func convertHCApplicationServersToDomainApplicationServers(restApplicationServer
 
 // Release stringer interface for print/log data in []*ApplicationServer
 func (hcApplicationServer *HCApplicationServer) String() string {
-	return fmt.Sprintf("applicationServer{Address:%s, IsUp:%v, HCAddress:%v, InternalHC:%v}",
+	return fmt.Sprintf("applicationServer{Address:%s, IsUp:%v, HCAddress:%v, HCType:%v, HCTimeout:%v, RetriesForUP:%v, RetriesForDown:%v, LastIndexForUp:%v, LastIndexForDown:%v, NearFieldsMode:%v, UserDefinedData:%v}",
 		hcApplicationServer.Address,
 		hcApplicationServer.IsUp,
 		hcApplicationServer.HCAddress,
-		hcApplicationServer.InternalHC)
+		hcApplicationServer.InternalHC.HCType,
+		hcApplicationServer.InternalHC.HCTimeout,
+		hcApplicationServer.InternalHC.RetriesForUP,
+		hcApplicationServer.InternalHC.RetriesForDown,
+		hcApplicationServer.InternalHC.LastIndexForUp,
+		hcApplicationServer.InternalHC.LastIndexForDown,
+		hcApplicationServer.InternalHC.NearFieldsMode,
+		hcApplicationServer.InternalHC.UserDefinedData,
+	)
 }

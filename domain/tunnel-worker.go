@@ -23,7 +23,7 @@ type TunnelMaker interface {
 
 // Release stringer interface for print/log data in []*TunnelForApplicationServer
 func (tunnelForApplicationServer *TunnelForApplicationServer) String() string {
-	return fmt.Sprintf("applicationServer{ApplicationServerIP:%s, SysctlConfFile:%s, TunnelName:%s,  ServicesToTunnelCount:%v}",
+	return fmt.Sprintf("applicationServer{ApplicationServerIP:%v, SysctlConfFile:%v, TunnelName:%v,  ServicesToTunnelCount:%v}",
 		tunnelForApplicationServer.ApplicationServerIP,
 		tunnelForApplicationServer.SysctlConfFile,
 		tunnelForApplicationServer.TunnelName,
