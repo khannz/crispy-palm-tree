@@ -81,7 +81,7 @@ func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestID st
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	serviceInfo := &domain.ServiceInfo{IP: ip, Port: port}
+	serviceInfo := &domain.ServiceInfo{Address: ip + ":" + port, IP: ip, Port: port}
 	return removeService.RemoveService(serviceInfo, newNWBRequestID)
 }
 
