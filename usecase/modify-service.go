@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ type ModifyServiceEntity struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                domain.HeathcheckWorker
+	hc                *healthchecks.HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
@@ -28,7 +29,7 @@ func NewModifyServiceEntity(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc domain.HeathcheckWorker,
+	hc *healthchecks.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *ModifyServiceEntity {
@@ -111,7 +112,8 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	logUpdatedServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceID, modifyService.logging)
 
 	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceID, modifyService.logging)
-	if err = modifyService.hc.UpdateServiceAtHealtchecks(serviceInfo); err != nil {
+	hcService := healthchecks.ConvertDomainServiceToHCService(serviceInfo)
+	if err = modifyService.hc.UpdateServiceAtHealtchecks(hcService); err != nil {
 		return serviceInfo, fmt.Errorf("service modify for healtchecks not activated, an error occurred when changing healtchecks: %v", err)
 	}
 	logUpdatedServiceAtHealtchecks(modifyServiceName, modifyServiceID, modifyService.logging)

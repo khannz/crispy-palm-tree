@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ type RemoveServiceEntity struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                domain.HeathcheckWorker
+	hc                *healthchecks.HeathcheckEntity
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
 }
@@ -27,7 +28,7 @@ func NewRemoveServiceEntity(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc domain.HeathcheckWorker,
+	hc *healthchecks.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *RemoveServiceEntity {
 	return &RemoveServiceEntity{
@@ -79,7 +80,8 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	logTryPreValidateRequest(removeServiceName, removeServiceID, removeServiceEntity.logging)
 
 	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
-	removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo) // will wait until removed
+	hcService := healthchecks.ConvertDomainServiceToHCService(serviceInfo)
+	removeServiceEntity.hc.RemoveServiceFromHealtchecks(hcService) // will wait until removed
 	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
 
 	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer

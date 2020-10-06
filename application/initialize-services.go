@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/khannz/crispy-palm-tree/usecase"
 )
 
@@ -99,6 +100,7 @@ func (balancerFacade *BalancerFacade) InitializeCreateService(serviceConfigFromS
 		id); err != nil {
 		return fmt.Errorf("Error when ipvsadm create service: %v", err)
 	}
-	balancerFacade.HeathcheckEntity.NewServiceToHealtchecks(serviceConfigFromStorage)
+	hcService := healthchecks.ConvertDomainServiceToHCService(serviceConfigFromStorage)
+	balancerFacade.HeathcheckEntity.NewServiceToHealtchecks(hcService)
 	return nil
 }

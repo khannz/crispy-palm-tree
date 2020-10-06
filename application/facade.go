@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
@@ -16,7 +17,7 @@ type BalancerFacade struct {
 	CacheStorage        *portadapter.StorageEntity // so dirty
 	PersistentStorage   *portadapter.StorageEntity // so dirty
 	TunnelConfig        domain.TunnelMaker
-	HeathcheckEntity    *usecase.HeathcheckEntity
+	HeathcheckEntity    *healthchecks.HeathcheckEntity
 	CommandGenerator    domain.CommandGenerator
 	GracefulShutdown    *domain.GracefulShutdown
 	IDgenerator         domain.IDgenerator
@@ -29,7 +30,7 @@ func NewBalancerFacade(locker *domain.Locker,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
-	hc *usecase.HeathcheckEntity,
+	hc *healthchecks.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	idGenerator domain.IDgenerator,

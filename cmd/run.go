@@ -12,8 +12,8 @@ import (
 
 	"github.com/khannz/crispy-palm-tree/application"
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/khannz/crispy-palm-tree/portadapter"
-	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -105,7 +105,7 @@ var rootCmd = &cobra.Command{
 		// CommandGenerator end
 
 		//  healthchecks start
-		hc := usecase.NewHeathcheckEntity(cacheDB,
+		hc := healthchecks.NewHeathcheckEntity(cacheDB,
 			persistentDB,
 			ipvsadmConfigurator,
 			viperConfig.GetString(techInterfaceName),

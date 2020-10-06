@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ type NewServiceEntity struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                domain.HeathcheckWorker
+	hc                *healthchecks.HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
@@ -28,7 +29,7 @@ func NewNewServiceEntity(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc domain.HeathcheckWorker,
+	hc *healthchecks.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *NewServiceEntity {
@@ -148,7 +149,8 @@ func (createService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInf
 	logGeneratedCommandsForApplicationServers(newServiceName, createServiceID, createService.logging)
 
 	logUpdateServiceAtHealtchecks(newServiceName, createServiceID, createService.logging)
-	createService.hc.NewServiceToHealtchecks(serviceInfo)
+	hcService := healthchecks.ConvertDomainServiceToHCService(serviceInfo)
+	createService.hc.NewServiceToHealtchecks(hcService)
 	logUpdatedServiceAtHealtchecks(newServiceName, createServiceID, createService.logging)
 	return serviceInfo, nil
 }

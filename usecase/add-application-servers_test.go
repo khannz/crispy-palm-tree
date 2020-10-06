@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/stretchr/testify/assert"
 	logger "github.com/thevan4/logrus-wrapper"
@@ -15,7 +16,7 @@ func TestAddNewApplicationServers(t *testing.T) {
 	locker := &domain.Locker{}
 	mockIPVSWorker := &MockIPVSWorker{}
 	mockTunnelMaker := &MockTunnelMaker{}
-	mockHeathcheckWorker := &MockHeathcheckWorker{}
+	mockHeathcheckEntity := &healthchecks.HeathcheckEntity{}
 	mockCommandGenerator := &MockCommandGenerator{}
 	gracefulShutdown := &domain.GracefulShutdown{
 		ShutdownNow:  true,
@@ -42,7 +43,7 @@ func TestAddNewApplicationServers(t *testing.T) {
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
-		mockHeathcheckWorker,
+		mockHeathcheckEntity,
 		mockCommandGenerator,
 		gracefulShutdown,
 		logging)
@@ -55,7 +56,7 @@ func TestAddNewApplicationServers(t *testing.T) {
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
-		mockHeathcheckWorker,
+		mockHeathcheckEntity,
 		mockCommandGenerator,
 		gracefulShutdown,
 		logging)

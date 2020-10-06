@@ -1,4 +1,4 @@
-package usecase
+package healthchecks
 
 // TODO: healthchecks != usecase!
 // TODO: featute: check routes tunnles and syscfg exist
@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -52,8 +53,8 @@ type HeathcheckEntity struct {
 }
 
 // NewHeathcheckEntity ...
-func NewHeathcheckEntity(cacheStorage domain.StorageActions,
-	persistentStorage domain.StorageActions,
+func NewHeathcheckEntity(cacheStorage *portadapter.StorageEntity,
+	persistentStorage *portadapter.StorageEntity,
 	ipvsadm domain.IPVSWorker,
 	rawTechInterface string,
 	locker *domain.Locker,
@@ -125,7 +126,7 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	hcServices := make([]*HCService, len(domainServicesInfo))
 
 	for i, domainServiceInfo := range domainServicesInfo {
-		hcServices[i] = convertDomainServiceToHCService(domainServiceInfo)
+		hcServices[i] = ConvertDomainServiceToHCService(domainServiceInfo)
 	}
 
 	for _, hcService := range hcServices {
@@ -138,8 +139,7 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 }
 
 // NewServiceToHealtchecks - add service for healthchecks
-func (hc *HeathcheckEntity) NewServiceToHealtchecks(domainService *domain.ServiceInfo) {
-	hcService := convertDomainServiceToHCService(domainService)
+func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *HCService) {
 	hc.Lock()
 	defer hc.Unlock()
 	if hc.gracefulShutdown.ShutdownNow {
@@ -161,8 +161,7 @@ func (hc *HeathcheckEntity) removeServiceFromMayAnnouncedServices(serviceIP stri
 }
 
 // RemoveServiceFromHealtchecks will work until removed
-func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(domainService *domain.ServiceInfo) {
-	hcService := convertDomainServiceToHCService(domainService)
+func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *HCService) {
 	hc.Lock()
 	indexForRemove, isFinded := hc.findServiceInHealtcheckSlice(hcService.Address)
 	hc.Unlock()
@@ -187,8 +186,7 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(domainService *domain.S
 }
 
 // UpdateServiceAtHealtchecks ...
-func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(domainService *domain.ServiceInfo) error {
-	hcService := convertDomainServiceToHCService(domainService)
+func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *HCService) error {
 	hc.Lock()
 	if hc.gracefulShutdown.ShutdownNow {
 		hc.Unlock()
@@ -219,67 +217,67 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(domainService *domain.Ser
 		hcService.Address)
 }
 
-func getCopyOfApplicationServersFromService(serviceInfo *HCService) []*ApplicationServer {
-	applicationServers := make([]*ApplicationServer, len(serviceInfo.ApplicationServers))
-	for i, applicationServer := range serviceInfo.ApplicationServers {
-		tmpHCApplicationServer := HCApplicationServer{
-			HCType:           applicationServer.HCApplicationServer.HCType,
-			HCAddress:        applicationServer.HCApplicationServer.HCAddress,
-			HCTimeout:        applicationServer.HCApplicationServer.HCTimeout,
-			RetriesForUP:     applicationServer.HCApplicationServer.RetriesForUP,
-			RetriesForDown:   applicationServer.HCApplicationServer.RetriesForDown,
-			LastIndexForUp:   applicationServer.HCApplicationServer.LastIndexForUp,
-			LastIndexForDown: applicationServer.HCApplicationServer.LastIndexForDown,
-			NearFieldsMode:   applicationServer.HCApplicationServer.NearFieldsMode,
-			UserDefinedData:  applicationServer.HCApplicationServer.UserDefinedData,
+func getCopyOfApplicationServersFromService(serviceInfo *HCService) []*HCApplicationServer {
+	applicationServers := make([]*HCApplicationServer, len(serviceInfo.HCApplicationServers))
+	for i, applicationServer := range serviceInfo.HCApplicationServers {
+		tmpHCApplicationServer := InternalHC{
+			HCType:           applicationServer.InternalHC.HCType,
+			HCAddress:        applicationServer.InternalHC.HCAddress,
+			HCTimeout:        applicationServer.InternalHC.HCTimeout,
+			RetriesForUP:     applicationServer.InternalHC.RetriesForUP,
+			RetriesForDown:   applicationServer.InternalHC.RetriesForDown,
+			LastIndexForUp:   applicationServer.InternalHC.LastIndexForUp,
+			LastIndexForDown: applicationServer.InternalHC.LastIndexForDown,
+			NearFieldsMode:   applicationServer.InternalHC.NearFieldsMode,
+			UserDefinedData:  applicationServer.InternalHC.UserDefinedData,
 		}
 
-		applicationServers[i] = &ApplicationServer{
+		applicationServers[i] = &HCApplicationServer{
 			Address:             applicationServer.Address,
 			IP:                  applicationServer.IP,
 			Port:                applicationServer.Port,
 			IsUp:                applicationServer.IsUp,
 			HCAddress:           applicationServer.HCAddress,
-			HCApplicationServer: tmpHCApplicationServer,
+			InternalHC:          tmpHCApplicationServer,
 			ExampleBashCommands: applicationServer.ExampleBashCommands,
 		}
 	}
 	return applicationServers
 }
 
-func enrichApplicationServersHealthchecks(newServiceHealthcheck *HCService, oldApplicationServers []*ApplicationServer) {
+func enrichApplicationServersHealthchecks(newServiceHealthcheck *HCService, oldApplicationServers []*HCApplicationServer) {
 	newServiceHealthcheck.Lock()
 	defer newServiceHealthcheck.Unlock()
 	newServiceHealthcheck.HCStop = make(chan struct{}, 1)
 	newServiceHealthcheck.HCStopped = make(chan struct{}, 1)
 
-	for i := range newServiceHealthcheck.ApplicationServers {
-		hcApplicationServer := HCApplicationServer{}
-		hcApplicationServer.HCType = newServiceHealthcheck.HCType
-		hcApplicationServer.HCAddress = newServiceHealthcheck.ApplicationServers[i].HCAddress
-		hcApplicationServer.HCTimeout = newServiceHealthcheck.HCTimeout
-		hcApplicationServer.LastIndexForUp = 0
-		hcApplicationServer.LastIndexForDown = 0
-		hcApplicationServer.NearFieldsMode = newServiceHealthcheck.HCNearFieldsMode
-		hcApplicationServer.UserDefinedData = newServiceHealthcheck.HCUserDefinedData
+	for i := range newServiceHealthcheck.HCApplicationServers {
+		internalHC := InternalHC{}
+		internalHC.HCType = newServiceHealthcheck.HCType
+		internalHC.HCAddress = newServiceHealthcheck.HCApplicationServers[i].HCAddress
+		internalHC.HCTimeout = newServiceHealthcheck.HCTimeout
+		internalHC.LastIndexForUp = 0
+		internalHC.LastIndexForDown = 0
+		internalHC.NearFieldsMode = newServiceHealthcheck.HCNearFieldsMode
+		internalHC.UserDefinedData = newServiceHealthcheck.HCUserDefinedData
 
 		retriesCounterForUp := make([]bool, newServiceHealthcheck.HCRetriesForUP)
 		retriesCounterForDown := make([]bool, newServiceHealthcheck.HCRetriesForDown)
 
 		j, isFinded := findApplicationServer(newServiceHealthcheck.Address, oldApplicationServers)
 		if isFinded {
-			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[j].HCApplicationServer.RetriesForUP)
-			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[j].HCApplicationServer.RetriesForDown)
-			hcApplicationServer.RetriesForUP = retriesCounterForUp
-			hcApplicationServer.RetriesForDown = retriesCounterForDown
-			newServiceHealthcheck.ApplicationServers[i].IsUp = oldApplicationServers[j].IsUp
-			newServiceHealthcheck.ApplicationServers[i].HCApplicationServer = hcApplicationServer
+			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[j].InternalHC.RetriesForUP)
+			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[j].InternalHC.RetriesForDown)
+			internalHC.RetriesForUP = retriesCounterForUp
+			internalHC.RetriesForDown = retriesCounterForDown
+			newServiceHealthcheck.HCApplicationServers[i].IsUp = oldApplicationServers[j].IsUp
+			newServiceHealthcheck.HCApplicationServers[i].InternalHC = internalHC
 			continue
 		}
-		hcApplicationServer.RetriesForUP = retriesCounterForUp
-		hcApplicationServer.RetriesForDown = retriesCounterForDown
-		newServiceHealthcheck.ApplicationServers[i].IsUp = false
-		newServiceHealthcheck.ApplicationServers[i].HCApplicationServer = hcApplicationServer
+		internalHC.RetriesForUP = retriesCounterForUp
+		internalHC.RetriesForDown = retriesCounterForDown
+		newServiceHealthcheck.HCApplicationServers[i].IsUp = false
+		newServiceHealthcheck.HCApplicationServers[i].InternalHC = internalHC
 	}
 }
 
@@ -298,9 +296,8 @@ func (hc *HeathcheckEntity) findServiceInHealtcheckSlice(address string) (int, b
 
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *HCService) {
 	// first run hc at create entity
-	domainService := convertHCServiceToDomainServiceInfo(hcService) // TODO: that bad tmp solution
-	hc.CheckApplicationServersInService(domainService)              // lock hc, hcService, dummy
-	hc.logging.Infof("hc service: %v", domainService)
+	hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
+	hc.logging.Infof("hc service: %v", hcService)
 	ticker := time.NewTicker(hcService.HCRepeat)
 	for {
 		select {
@@ -309,31 +306,30 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *HCServ
 			hcService.HCStopped <- struct{}{}
 			return
 		case <-ticker.C:
-			hc.CheckApplicationServersInService(domainService) // lock hc, hcService, dummy
+			hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
 		}
 	}
 }
 
 // CheckApplicationServersInService ...
-func (hc *HeathcheckEntity) CheckApplicationServersInService(domainService *domain.ServiceInfo) {
-	hcService := convertDomainServiceToHCService(domainService)
+func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *HCService) {
 	fs := &failedApplicationServers{wg: new(sync.WaitGroup)}
 
-	for i := range hcService.ApplicationServers {
+	for i := range hcService.HCApplicationServers {
 		fs.wg.Add(1)
 		go hc.checkApplicationServerInService(hcService,
 			fs,
 			i) // lock hcService
 	}
 	fs.wg.Wait()
-	percentageUp := percentageOfUp(len(hcService.ApplicationServers), fs.count)
+	percentageUp := percentageOfUp(len(hcService.HCApplicationServers), fs.count)
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
 		"event id": healthcheckID,
 	}).Debugf("Heathcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
 		hcService.Address,
 		fs.count,
-		len(hcService.ApplicationServers),
+		len(hcService.HCApplicationServers),
 		percentageUp,
 		hcService.AlivedAppServersForUp)
 	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageUp, hcService.AlivedAppServersForUp)
@@ -401,7 +397,7 @@ func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState b
 }
 
 func (hc *HeathcheckEntity) updateInStorages(hcService *HCService) {
-	serviceInfo := convertHCServiceToDomainServiceInfo(hcService)
+	serviceInfo := ConvertHCServiceToDomainServiceInfo(hcService)
 	errUpdataCache := hc.cacheStorage.UpdateServiceInfo(serviceInfo, healthcheckID)
 	if errUpdataCache != nil {
 		hc.logging.WithFields(logrus.Fields{
@@ -427,14 +423,14 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 	var isApplicationServerUp, isApplicationServerChangeState bool
 	switch hcService.HCType {
 	case "tcp":
-		isCheckOk := hc.tcpCheckOk(hcService.ApplicationServers[applicationServerInfoIndex].HCAddress,
+		isCheckOk := hc.tcpCheckOk(hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
 			hcService.HCTimeout)
 
 		hc.moveApplicationServerStateIndexes(hcService, applicationServerInfoIndex, isCheckOk) // lock hcService
 		if !isCheckOk {
 			isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(hcService, applicationServerInfoIndex) // lock hcService
 			hc.logging.Debugf("one hc for application server %v fail: %v; is change state: %v",
-				hcService.ApplicationServers[applicationServerInfoIndex].Address,
+				hcService.HCApplicationServers[applicationServerInfoIndex].Address,
 				isApplicationServerUp,
 				isApplicationServerChangeState)
 			if !isApplicationServerUp {
@@ -442,7 +438,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.ApplicationServers[applicationServerInfoIndex]); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":   healthcheckName,
 							"event id": healthcheckID,
@@ -455,7 +451,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 
 		isApplicationServerUp, isApplicationServerChangeState = hc.isApplicationServerUpAndStateChange(hcService, applicationServerInfoIndex) // lock hcService
 		hc.logging.Debugf("one hc for application server %v ok: %v; is change state: %v",
-			hcService.ApplicationServers[applicationServerInfoIndex].Address,
+			hcService.HCApplicationServers[applicationServerInfoIndex].Address,
 			isApplicationServerUp,
 			isApplicationServerChangeState)
 		if !isApplicationServerUp {
@@ -464,7 +460,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 			fs.Unlock()
 		}
 	case "http":
-		isCheckOk := hc.httpCheckOk(hcService.ApplicationServers[applicationServerInfoIndex].HCAddress,
+		isCheckOk := hc.httpCheckOk(hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
 			hcService.HCTimeout)
 		if !isCheckOk {
 			hc.moveApplicationServerStateIndexes(hcService, applicationServerInfoIndex, isCheckOk)                                                // lock hcService
@@ -474,7 +470,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.ApplicationServers[applicationServerInfoIndex]); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":   healthcheckName,
 							"event id": healthcheckID,
@@ -493,7 +489,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 		}
 	case "http-advanced":
 		isCheckOk := hc.httpAdvancedCheckOk(hcService.HCType,
-			hcService.ApplicationServers[applicationServerInfoIndex].HCAddress,
+			hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
 			hcService.HCNearFieldsMode,
 			hcService.HCUserDefinedData,
 			hcService.HCTimeout)
@@ -505,7 +501,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.ApplicationServers[applicationServerInfoIndex]); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":   healthcheckName,
 							"event id": healthcheckID,
@@ -523,7 +519,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 			fs.Unlock()
 		}
 	case "icmp":
-		isCheckOk := hc.icmpCheckOk(hcService.ApplicationServers[applicationServerInfoIndex].HCAddress,
+		isCheckOk := hc.icmpCheckOk(hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
 			hcService.HCTimeout)
 		if !isCheckOk {
 			hc.moveApplicationServerStateIndexes(hcService, applicationServerInfoIndex, isCheckOk)                                                // lock hcService
@@ -533,7 +529,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 				fs.count++
 				fs.Unlock()
 				if isApplicationServerChangeState {
-					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.ApplicationServers[applicationServerInfoIndex]); err != nil {
+					if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex]); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":   healthcheckName,
 							"event id": healthcheckID,
@@ -559,7 +555,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *HCService
 	}
 
 	if isApplicationServerUp && isApplicationServerChangeState { // TODO: trace info TODO: do not UP when server already up!
-		if err := hc.inclideApplicationServerInIPVS(hcService, hcService.ApplicationServers[applicationServerInfoIndex]); err != nil {
+		if err := hc.inclideApplicationServerInIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex]); err != nil {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":   healthcheckName,
 				"event id": healthcheckID,
@@ -574,25 +570,25 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *HCSer
 	//return isUp and isChagedState booleans
 	hcService.Lock()
 	defer hcService.Unlock()
-	hc.logging.Tracef("real: %v, RetriesCounterForDown: %v", hcService.ApplicationServers[applicationServerInfoIndex].Address, hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForUP)
-	hc.logging.Tracef("real: %v, RetriesCounterForUp: %v", hcService.ApplicationServers[applicationServerInfoIndex].Address, hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForDown)
+	hc.logging.Tracef("real: %v, RetriesCounterForDown: %v", hcService.HCApplicationServers[applicationServerInfoIndex].Address, hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForUP)
+	hc.logging.Tracef("real: %v, RetriesCounterForUp: %v", hcService.HCApplicationServers[applicationServerInfoIndex].Address, hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForDown)
 
-	if hcService.ApplicationServers[applicationServerInfoIndex].IsUp {
+	if hcService.HCApplicationServers[applicationServerInfoIndex].IsUp {
 		// check it not down
-		for _, isUp := range hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForDown {
+		for _, isUp := range hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForDown {
 			if isUp {
 				return true, false // do not change up state
 			}
 		}
-		hcService.ApplicationServers[applicationServerInfoIndex].IsUp = false // if all hc fail at RetriesCounterForDown - change state
+		hcService.HCApplicationServers[applicationServerInfoIndex].IsUp = false // if all hc fail at RetriesCounterForDown - change state
 		hc.logging.WithFields(logrus.Fields{
 			"event id": healthcheckID,
 		}).Warnf("at service %v real server %v DOWN", hcService.Address,
-			hcService.ApplicationServers[applicationServerInfoIndex].Address)
+			hcService.HCApplicationServers[applicationServerInfoIndex].Address)
 		return false, true
 	}
 
-	for _, isUp := range hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForUP {
+	for _, isUp := range hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForUP {
 		if !isUp {
 			// do not change down state
 			return false, false
@@ -600,11 +596,11 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *HCSer
 	}
 
 	// all RetriesCounterForUp true
-	hcService.ApplicationServers[applicationServerInfoIndex].IsUp = true // if all hc fail at RetriesCounterForDown - change state
+	hcService.HCApplicationServers[applicationServerInfoIndex].IsUp = true // if all hc fail at RetriesCounterForDown - change state
 	hc.logging.WithFields(logrus.Fields{
 		"event id": healthcheckID,
 	}).Warnf("at service %v real server %v UP", hcService.Address,
-		hcService.ApplicationServers[applicationServerInfoIndex].Address)
+		hcService.HCApplicationServers[applicationServerInfoIndex].Address)
 	return true, true
 
 }
@@ -615,21 +611,21 @@ func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(hcService *HCServi
 	hc.logging.Tracef("moveApplicationServerStateIndexes: app srv index: %v,isUpNow: %v, total app srv at service: %v, RetriesForUP array len: %v, RetriesForDown array len: %v",
 		applicationServerInfoIndex,
 		isUpNow,
-		len(hcService.ApplicationServers),
-		len(hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForUP),
-		len(hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForDown))
+		len(hcService.HCApplicationServers),
+		len(hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForUP),
+		len(hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForDown))
 
-	if len(hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForUP) < hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForUp+1 {
-		hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForUp = 0
+	if len(hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForUP) < hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForUp+1 {
+		hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForUp = 0
 	}
-	hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForUP[hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForUp] = isUpNow
-	hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForUp++
+	hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForUP[hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForUp] = isUpNow
+	hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForUp++
 
-	if len(hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForDown) < hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForDown+1 {
-		hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForDown = 0
+	if len(hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForDown) < hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForDown+1 {
+		hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForDown = 0
 	}
-	hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForDown[hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForDown] = isUpNow
-	hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForDown++
+	hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.RetriesForDown[hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForDown] = isUpNow
+	hcService.HCApplicationServers[applicationServerInfoIndex].InternalHC.LastIndexForDown++
 }
 
 func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
@@ -807,8 +803,8 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 }
 
 func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *HCService,
-	applicationServer *ApplicationServer) error {
-	tmpAppSs := convertHCApplicationServersToDomainApplicationServers([]*ApplicationServer{applicationServer})
+	applicationServer *HCApplicationServer) error {
+	tmpAppSs := convertHCApplicationServersToDomainApplicationServers([]*HCApplicationServer{applicationServer})
 	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(hcService.IP,
 		hcService.IP,
 		hcService.RoutingType,
@@ -831,8 +827,8 @@ func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *HCServic
 }
 
 func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *HCService,
-	applicationServer *ApplicationServer) error {
-	tmpAppSs := convertHCApplicationServersToDomainApplicationServers([]*ApplicationServer{applicationServer})
+	applicationServer *HCApplicationServer) error {
+	tmpAppSs := convertHCApplicationServersToDomainApplicationServers([]*HCApplicationServer{applicationServer})
 	vip, port, routingType, balanceType, protocol, applicationServers, err := domain.PrepareDataForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -1099,7 +1095,7 @@ func reverceArray(ar []bool) {
 	}
 }
 
-func findApplicationServer(address string, oldApplicationServers []*ApplicationServer) (int, bool) {
+func findApplicationServer(address string, oldApplicationServers []*HCApplicationServer) (int, bool) {
 	var findedIndex int
 	var isFinded bool
 	if oldApplicationServers == nil {

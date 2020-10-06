@@ -221,7 +221,6 @@ func (storageEntity *StorageEntity) ReadTunnelInfoForApplicationServer(ip string
 		if err != nil {
 			return fmt.Errorf("txn.Get fail: %v", err)
 		}
-		tunnelInfo := &domain.TunnelForApplicationServer{}
 		if err = item.Value(func(val []byte) error {
 			if err := json.Unmarshal(val, &tunnelInfo); err != nil {
 				return fmt.Errorf("can't unmarshall tunnnel data: %v", err)
@@ -309,7 +308,7 @@ func (storageEntity *StorageEntity) UpdateTunnelFilesInfoAtStorage(tunnelsFilesI
 	defer storageEntity.Unlock()
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		key := []byte(tunnelFilesInfo.ApplicationServerIP)
-		tunnelFileInfoValue, err := json.Marshal(tunnelsFilesInfo)
+		tunnelFileInfoValue, err := json.Marshal(tunnelFilesInfo)
 		if err != nil {
 			return fmt.Errorf("can't marshal transformedTunnelForService: %v", err)
 		}

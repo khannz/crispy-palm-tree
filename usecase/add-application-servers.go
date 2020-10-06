@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ type AddApplicationServers struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                domain.HeathcheckWorker
+	hc                *healthchecks.HeathcheckEntity
 	commandGenerator  domain.CommandGenerator
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
@@ -28,7 +29,7 @@ func NewAddApplicationServers(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc domain.HeathcheckWorker,
+	hc *healthchecks.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *AddApplicationServers {
@@ -159,7 +160,8 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	logGeneratedCommandsForApplicationServers(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 
 	logUpdateServiceAtHealtchecks(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
-	if err = addApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo); err != nil {
+	hcService := healthchecks.ConvertDomainServiceToHCService(updatedServiceInfo)
+	if err = addApplicationServers.hc.UpdateServiceAtHealtchecks(hcService); err != nil {
 		return newServiceInfo, fmt.Errorf("application server added, but not activated, an error occurred when adding to the healtchecks: %v", err)
 	}
 	logUpdatedServiceAtHealtchecks(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)

@@ -1,4 +1,4 @@
-package usecase
+package healthchecks
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
+
+// TODO: move HC to other service
 
 func (hc *HeathcheckEntity) removeFromDummyWrapper(serviceIP string) {
 	hc.dw.Lock()

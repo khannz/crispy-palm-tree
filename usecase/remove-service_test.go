@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/stretchr/testify/assert"
 	logger "github.com/thevan4/logrus-wrapper"
@@ -15,7 +16,7 @@ func TestRemoveService(t *testing.T) {
 	locker := &domain.Locker{}
 	mockIPVSWorker := &MockIPVSWorker{}
 	mockTunnelMaker := &MockTunnelMaker{}
-	mockHeathcheckWorker := &MockHeathcheckWorker{}
+	mockHeathcheckEntity := &healthchecks.HeathcheckEntity{}
 	gracefulShutdown := &domain.GracefulShutdown{
 		ShutdownNow:  true,
 		UsecasesJobs: 0,
@@ -41,7 +42,7 @@ func TestRemoveService(t *testing.T) {
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
-		mockHeathcheckWorker,
+		mockHeathcheckEntity,
 		gracefulShutdown,
 		logging)
 	errNotNilOne := removeServiceGracefulEnd.RemoveService(currentServiceInfoOne, "")
@@ -53,7 +54,7 @@ func TestRemoveService(t *testing.T) {
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
-		mockHeathcheckWorker,
+		mockHeathcheckEntity,
 		gracefulShutdown,
 		logging)
 	errNotNilTwo := removeServiceFail.RemoveService(currentServiceInfoOne, "")
@@ -66,7 +67,7 @@ func TestRemoveService(t *testing.T) {
 		mockCacheDB,
 		mockPersistentDB,
 		mockTunnelMaker,
-		mockHeathcheckWorker,
+		mockHeathcheckEntity,
 		gracefulShutdown,
 		logging)
 	errNilOne := removeServiceOk.RemoveService(currentServiceInfoOne, "")

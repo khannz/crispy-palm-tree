@@ -1,6 +1,7 @@
-package usecase
+package healthchecks
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -11,38 +12,38 @@ import (
 // HCService ...
 type HCService struct {
 	sync.RWMutex          `json:"-"`
-	Address               string               `json:"address"`
-	IP                    string               `json:"ip"`
-	Port                  string               `json:"port"`
-	IsUp                  bool                 `json:"isUp"`
-	BalanceType           string               `json:"balanceType"`
-	RoutingType           string               `json:"routingType"`
-	Protocol              string               `json:"protocol"`
-	AlivedAppServersForUp int                  `json:"alivedAppServersForUp"`
-	HCType                string               `json:"hcType"`
-	HCRepeat              time.Duration        `json:"hcRepeat"`
-	HCTimeout             time.Duration        `json:"hcTimeout"`
-	HCNearFieldsMode      bool                 `json:"hcNearFieldsMode,omitempty"`
-	HCUserDefinedData     map[string]string    `json:"hcUserDefinedData,omitempty"`
-	HCRetriesForUP        int                  `json:"hcRetriesForUP"`
-	HCRetriesForDown      int                  `json:"hcRetriesForDown"`
-	ApplicationServers    []*ApplicationServer `json:"ApplicationServers"`
-	HCStop                chan struct{}        `json:"-"`
-	HCStopped             chan struct{}        `json:"-"`
-}
-
-type ApplicationServer struct {
-	sync.RWMutex        `json:"-"`
-	Address             string              `json:"address"`
-	IP                  string              `json:"ip"`
-	Port                string              `json:"port"`
-	IsUp                bool                `json:"isUp"`
-	HCAddress           string              `json:"hcAddress"`
-	HCApplicationServer HCApplicationServer `json:"hcApplicationServer"`
-	ExampleBashCommands string              `json:"-"`
+	Address               string                 `json:"address"`
+	IP                    string                 `json:"ip"`
+	Port                  string                 `json:"port"`
+	IsUp                  bool                   `json:"isUp"`
+	BalanceType           string                 `json:"balanceType"`
+	RoutingType           string                 `json:"routingType"`
+	Protocol              string                 `json:"protocol"`
+	AlivedAppServersForUp int                    `json:"alivedAppServersForUp"`
+	HCType                string                 `json:"hcType"`
+	HCRepeat              time.Duration          `json:"hcRepeat"`
+	HCTimeout             time.Duration          `json:"hcTimeout"`
+	HCNearFieldsMode      bool                   `json:"hcNearFieldsMode,omitempty"`
+	HCUserDefinedData     map[string]string      `json:"hcUserDefinedData,omitempty"`
+	HCRetriesForUP        int                    `json:"hcRetriesForUP"`
+	HCRetriesForDown      int                    `json:"hcRetriesForDown"`
+	HCApplicationServers  []*HCApplicationServer `json:"ApplicationServers"`
+	HCStop                chan struct{}          `json:"-"`
+	HCStopped             chan struct{}          `json:"-"`
 }
 
 type HCApplicationServer struct {
+	sync.RWMutex        `json:"-"`
+	Address             string     `json:"address"`
+	IP                  string     `json:"ip"`
+	Port                string     `json:"port"`
+	IsUp                bool       `json:"isUp"`
+	HCAddress           string     `json:"hcAddress"`
+	InternalHC          InternalHC `json:"hcApplicationServer"`
+	ExampleBashCommands string     `json:"-"`
+}
+
+type InternalHC struct {
 	HCType           string
 	HCAddress        string
 	HCTimeout        time.Duration
@@ -54,7 +55,8 @@ type HCApplicationServer struct {
 	UserDefinedData  map[string]string
 }
 
-func convertDomainServiceToHCService(domainServiceInfo *domain.ServiceInfo) *HCService {
+// ConvertDomainServiceToHCService ...
+func ConvertDomainServiceToHCService(domainServiceInfo *domain.ServiceInfo) *HCService {
 	preparedApplicationServers := convertDomainApplicationServersToHCApplicationServers(domainServiceInfo.ApplicationServers)
 	hcService := &HCService{}
 	hcService.Address = domainServiceInfo.Address
@@ -72,14 +74,14 @@ func convertDomainServiceToHCService(domainServiceInfo *domain.ServiceInfo) *HCS
 	hcService.HCUserDefinedData = domainServiceInfo.HCUserDefinedData
 	hcService.HCRetriesForUP = domainServiceInfo.HCRetriesForUP
 	hcService.HCRetriesForDown = domainServiceInfo.HCRetriesForDown
-	hcService.ApplicationServers = preparedApplicationServers
+	hcService.HCApplicationServers = preparedApplicationServers
 	return hcService
 }
 
-func convertDomainApplicationServersToHCApplicationServers(domainApplicationServers []*domain.ApplicationServer) []*ApplicationServer {
-	preparedApplicationServers := make([]*ApplicationServer, len(domainApplicationServers))
+func convertDomainApplicationServersToHCApplicationServers(domainApplicationServers []*domain.ApplicationServer) []*HCApplicationServer {
+	preparedApplicationServers := make([]*HCApplicationServer, len(domainApplicationServers))
 	for i, domainApplicationServer := range domainApplicationServers {
-		preparedApplicationServer := &ApplicationServer{}
+		preparedApplicationServer := &HCApplicationServer{}
 		preparedApplicationServer.Address = domainApplicationServer.Address
 		preparedApplicationServer.IP = domainApplicationServer.IP
 		preparedApplicationServer.Port = domainApplicationServer.Port
@@ -91,8 +93,9 @@ func convertDomainApplicationServersToHCApplicationServers(domainApplicationServ
 	return preparedApplicationServers
 }
 
-func convertHCServiceToDomainServiceInfo(hcService *HCService) *domain.ServiceInfo {
-	preparedApplicationServers := convertHCApplicationServersToDomainApplicationServers(hcService.ApplicationServers)
+// ConvertHCServiceToDomainServiceInfo ...
+func ConvertHCServiceToDomainServiceInfo(hcService *HCService) *domain.ServiceInfo {
+	preparedApplicationServers := convertHCApplicationServersToDomainApplicationServers(hcService.HCApplicationServers)
 	domainServiceInfo := &domain.ServiceInfo{}
 	domainServiceInfo.Address = hcService.Address
 	domainServiceInfo.IP = hcService.IP
@@ -115,7 +118,7 @@ func convertHCServiceToDomainServiceInfo(hcService *HCService) *domain.ServiceIn
 	return domainServiceInfo
 }
 
-func convertHCApplicationServersToDomainApplicationServers(restApplicationServers []*ApplicationServer) []*domain.ApplicationServer {
+func convertHCApplicationServersToDomainApplicationServers(restApplicationServers []*HCApplicationServer) []*domain.ApplicationServer {
 	preparedApplicationServers := make([]*domain.ApplicationServer, len(restApplicationServers))
 	for i, restApplicationServer := range restApplicationServers {
 		preparedApplicationServer := &domain.ApplicationServer{}
@@ -127,4 +130,13 @@ func convertHCApplicationServersToDomainApplicationServers(restApplicationServer
 		preparedApplicationServers[i] = preparedApplicationServer
 	}
 	return preparedApplicationServers
+}
+
+// Release stringer interface for print/log data in []*ApplicationServer
+func (hcApplicationServer *HCApplicationServer) String() string {
+	return fmt.Sprintf("applicationServer{Address:%s, IsUp:%v, HCAddress:%v, InternalHC:%v}",
+		hcApplicationServer.Address,
+		hcApplicationServer.IsUp,
+		hcApplicationServer.HCAddress,
+		hcApplicationServer.InternalHC)
 }

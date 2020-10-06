@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
 )
@@ -48,7 +49,7 @@ func (balancerFacade *BalancerFacade) DisableRemoveService(serviceConfigFromStor
 	}
 
 	if !isMockMode {
-		if err := usecase.RemoveFromDummy(serviceConfigFromStorage.IP); err != nil {
+		if err := healthchecks.RemoveFromDummy(serviceConfigFromStorage.IP); err != nil {
 			balancerFacade.Logging.WithFields(logrus.Fields{"event id": id}).Warnf("can't remove from dummy: %v", err)
 			errors = append(errors, err)
 		}

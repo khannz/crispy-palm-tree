@@ -235,35 +235,35 @@ func (mockTunnelMaker *MockTunnelMaker) RemoveAllTunnels([]*domain.TunnelForAppl
 	return nil
 }
 
-// MockHeathcheckWorker ...
-type MockHeathcheckWorker struct{}
+// MockHeathcheckEntity ...
+type MockHeathcheckEntity struct{}
 
 // StartGracefulShutdownControlForHealthchecks ...
-func (mockHeathcheckWorker *MockHeathcheckWorker) StartGracefulShutdownControlForHealthchecks() {}
+func (mockHeathcheckEntity *MockHeathcheckEntity) StartGracefulShutdownControlForHealthchecks() {}
 
 // StartHealthchecksForCurrentServices ...
-func (mockHeathcheckWorker *MockHeathcheckWorker) StartHealthchecksForCurrentServices() error {
+func (mockHeathcheckEntity *MockHeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	return nil
 }
 
-// NewServiceToHealtchecks ...
-func (mockHeathcheckWorker *MockHeathcheckWorker) NewServiceToHealtchecks(*domain.ServiceInfo) {}
+// // NewServiceToHealtchecks ...
+// func (mockHeathcheckEntity *MockHeathcheckEntity) NewServiceToHealtchecks(*domain.HCService) {}
 
-// RemoveServiceFromHealtchecks ...
-func (mockHeathcheckWorker *MockHeathcheckWorker) RemoveServiceFromHealtchecks(*domain.ServiceInfo) {}
+// // RemoveServiceFromHealtchecks ...
+// func (mockHeathcheckEntity *MockHeathcheckEntity) RemoveServiceFromHealtchecks(*domain.HCService) {}
 
-// UpdateServiceAtHealtchecks ...
-func (mockHeathcheckWorker *MockHeathcheckWorker) UpdateServiceAtHealtchecks(*domain.ServiceInfo) error {
-	return nil
-}
+// // UpdateServiceAtHealtchecks ...
+// func (mockHeathcheckEntity *MockHeathcheckEntity) UpdateServiceAtHealtchecks(*domain.HCService) error {
+// 	return nil
+// }
 
-// CheckApplicationServersInService ...
-func (mockHeathcheckWorker *MockHeathcheckWorker) CheckApplicationServersInService(*domain.ServiceInfo) {
-}
+// // CheckApplicationServersInService ...
+// func (mockHeathcheckEntity *MockHeathcheckEntity) CheckApplicationServersInService(*domain.HCService) {
+// }
 
-func (mockHeathcheckWorker *MockHeathcheckWorker) IsMockMode() bool {
-	return true
-}
+// func (mockHeathcheckEntity *MockHeathcheckEntity) IsMockMode() bool {
+// 	return true
+// }
 
 // MockCommandGenerator ...
 type MockCommandGenerator struct{}

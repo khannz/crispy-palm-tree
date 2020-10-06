@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthchecks"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ type RemoveApplicationServers struct {
 	cacheStorage      domain.StorageActions
 	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	hc                domain.HeathcheckWorker
+	hc                *healthchecks.HeathcheckEntity
 	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
 }
@@ -27,7 +28,7 @@ func NewRemoveApplicationServers(locker *domain.Locker,
 	cacheStorage domain.StorageActions,
 	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	hc domain.HeathcheckWorker,
+	hc *healthchecks.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *RemoveApplicationServers {
 	return &RemoveApplicationServers{
@@ -151,7 +152,8 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	}
 
 	logUpdateServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
-	if err = removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo); err != nil {
+	hcService := healthchecks.ConvertDomainServiceToHCService(updatedServiceInfo)
+	if err = removeApplicationServers.hc.UpdateServiceAtHealtchecks(hcService); err != nil {
 		return updatedServiceInfo, fmt.Errorf("application server removed, butan error occurred when removing it from the healtchecks: %v", err)
 	}
 	logUpdatedServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
