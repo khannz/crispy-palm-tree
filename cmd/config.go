@@ -14,7 +14,7 @@ import (
 
 // Default values
 const (
-	defaultConfigFilePath   = "./nw-lb.yaml"
+	defaultConfigFilePath   = "./lbost1a.yaml"
 	defaultLogOutput        = "syslog"
 	defaultLogLevel         = "trace"
 	defaultLogFormat        = "text"

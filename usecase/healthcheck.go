@@ -300,7 +300,7 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *HCServ
 	// first run hc at create entity
 	domainService := convertHCServiceToDomainServiceInfo(hcService) // TODO: that bad tmp solution
 	hc.CheckApplicationServersInService(domainService)              // lock hc, hcService, dummy
-
+	hc.logging.Infof("hc service: %v", domainService)
 	ticker := time.NewTicker(hcService.HCRepeat)
 	for {
 		select {
@@ -612,6 +612,13 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *HCSer
 func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(hcService *HCService, applicationServerInfoIndex int, isUpNow bool) {
 	hcService.Lock()
 	defer hcService.Unlock()
+	hc.logging.Tracef("moveApplicationServerStateIndexes: app srv index: %v,isUpNow: %v, total app srv at service: %v, RetriesForUP array len: %v, RetriesForDown array len: %v",
+		applicationServerInfoIndex,
+		isUpNow,
+		len(hcService.ApplicationServers),
+		len(hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForUP),
+		len(hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForDown))
+
 	if len(hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.RetriesForUP) < hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForUp+1 {
 		hcService.ApplicationServers[applicationServerInfoIndex].HCApplicationServer.LastIndexForUp = 0
 	}

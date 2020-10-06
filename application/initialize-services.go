@@ -30,7 +30,7 @@ func (balancerFacade *BalancerFacade) InitializeRuntimeSettings(id string) error
 func (balancerFacade *BalancerFacade) resetHealtchecksInfo(id string) error {
 	servicesConfigsFromStorage, err := balancerFacade.CacheStorage.LoadAllStorageDataToDomainModels()
 	if err != nil {
-		return fmt.Errorf("fail to load storage config at start")
+		return fmt.Errorf("fail to load storage config at start: %v", err)
 	}
 	for i := range servicesConfigsFromStorage {
 		servicesConfigsFromStorage[i].IsUp = false

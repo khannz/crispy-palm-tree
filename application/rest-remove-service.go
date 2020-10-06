@@ -11,7 +11,7 @@ const removeServiceRequestName = "remove service"
 
 // removeService godoc
 // @tags load balancer
-// @Summary Remove nlb service
+// @Summary Remove service
 // @Description Beyond the network balance
 // @Param addr path string true "IP"
 // @Param port path uint true "Port"

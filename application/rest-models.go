@@ -3,9 +3,9 @@ package application
 import "time"
 
 type Service struct {
-	IP                    string               `json:"ip" validate:"ipv4" example:"1.1.1.1"`
-	Port                  string               `json:"port" validate:"required" example:"1111"`
-	IsUp                  bool                 `json:"isUp,omitempty"`
+	IP                    string               `json:"ip" validate:"ipv4" swagger:"ignoreParam"`
+	Port                  string               `json:"port" validate:"required" swagger:"ignoreParam"`
+	IsUp                  bool                 `json:"isUp,omitempty" swagger:"ignoreParam"`
 	BalanceType           string               `json:"balanceType" validate:"required" example:"rr"`
 	RoutingType           string               `json:"routingType" validate:"required" example:"masquerading,tunneling"`
 	Protocol              string               `json:"protocol" validate:"required" example:"tcp,udp"`
@@ -23,7 +23,7 @@ type Service struct {
 type ApplicationServer struct {
 	IP                  string `json:"ip" validate:"ipv4" example:"1.1.1.1"`
 	Port                string `json:"port" validate:"required" example:"1111"`
-	IsUp                bool   `json:"isUp,omitempty"`
+	IsUp                bool   `json:"isUp,omitempty" swagger:"ignoreParam"`
 	HCAddress           string `json:"hcAddress" validate:"required" example:"http://1.1.1.1:1234"`
 	ExampleBashCommands string `json:"exampleBashCommands,omitempty" swagger:"ignoreParam"`
 }
