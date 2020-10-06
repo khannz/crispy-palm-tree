@@ -138,13 +138,13 @@ func (storageEntity *StorageEntity) LoadAllStorageDataToDomainModels() ([]*domai
 			item := it.Item()
 			key := item.Key()
 			err := item.Value(func(val []byte) error {
-				dbServiceData := &domain.ServiceInfo{}
-				if err := json.Unmarshal(val, &dbServiceData); err != nil {
-					return fmt.Errorf("can't unmarshall application servers data: %v", err)
-				}
 				rawServiceData := strings.Split(string(key), ":")
 				if len(rawServiceData) != 2 {
 					return nil // it's not service info
+				}
+				dbServiceData := &domain.ServiceInfo{}
+				if err := json.Unmarshal(val, dbServiceData); err != nil {
+					return fmt.Errorf("can't unmarshall service data: %v", err)
 				}
 
 				servicesInfo = append(servicesInfo, dbServiceData)
