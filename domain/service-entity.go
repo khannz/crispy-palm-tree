@@ -1,46 +1,53 @@
 package domain
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
 
-// ServiceHealthcheck ...
-type ServiceHealthcheck struct {
-	StopChecks           chan struct{} `json:"-"` // when need to stop checks
-	PercentOfAlivedForUp int           `json:"percentOfAlivedForUp"`
-	Type                 string        `json:"type" example:"http"`
-	Timeout              time.Duration `json:"timeout" example:"1000000000"`
-	RepeatHealthcheck    time.Duration `json:"repeatHealthcheck" example:"3000000000"`
-}
-
-// ServerHealthcheck ...
-type ServerHealthcheck struct {
-	HealthcheckAddress string `json:"address"` // ip+port, http address or some one else
-}
-
-// ApplicationServer ...
-type ApplicationServer struct {
-	ServerIP                    string            `json:"serverIP"`
-	ServerPort                  string            `json:"serverPort"`
-	IsUp                        bool              `json:"serverIsUp"`
-	ServerHealthcheck           ServerHealthcheck `json:"serverHealthcheck"`
-	ServerСonfigurationCommands string            `json:"-"`
-}
-
 // ServiceInfo ...
 type ServiceInfo struct {
-	sync.Mutex
-	ServiceIP          string               `json:"serviceIP"`
-	ServicePort        string               `json:"servicePort"`
-	ApplicationServers []*ApplicationServer `json:"applicationServers"`
-	Healthcheck        ServiceHealthcheck   `json:"serviceHealthcheck"`
-	ExtraInfo          []string             `json:"extraInfo"`
-	IsUp               bool                 `json:"serviceIsUp"`
-	BalanceType        string               `json:"balanceType"`
+	sync.RWMutex          `json:"-"`
+	Address               string               `json:"address"`
+	IP                    string               `json:"ip"`
+	Port                  string               `json:"port"`
+	IsUp                  bool                 `json:"isUp"`
+	BalanceType           string               `json:"balanceType"`
+	RoutingType           string               `json:"routingType"`
+	Protocol              string               `json:"protocol"`
+	AlivedAppServersForUp int                  `json:"alivedAppServersForUp"`
+	HCType                string               `json:"hcType"`
+	HCRepeat              time.Duration        `json:"hcRepeat"`
+	HCTimeout             time.Duration        `json:"hcTimeout"`
+	HCNearFieldsMode      bool                 `json:"hcNearFieldsMode,omitempty"`
+	HCUserDefinedData     map[string]string    `json:"hcUserDefinedData,omitempty"`
+	HCRetriesForUP        int                  `json:"hcRetriesForUP"`
+	HCRetriesForDown      int                  `json:"hcRetriesForDown"`
+	ApplicationServers    []*ApplicationServer `json:"ApplicationServers"`
+	HCStop                chan struct{}        `json:"-"`
+	HCStopped             chan struct{}        `json:"-"`
+}
+
+type ApplicationServer struct {
+	sync.RWMutex        `json:"-"`
+	Address             string `json:"address"`
+	IP                  string `json:"ip"`
+	Port                string `json:"port"`
+	IsUp                bool   `json:"isUp"`
+	HCAddress           string `json:"hcAddress"`
+	ExampleBashCommands string `json:"-"`
 }
 
 // CommandGenerator ...
 type CommandGenerator interface {
 	GenerateCommandsForApplicationServers(*ServiceInfo, string) error
+}
+
+// Release stringer interface for print/log data in []*ApplicationServer
+func (applicationServer *ApplicationServer) String() string {
+	return fmt.Sprintf("applicationServer{Address:%v, IsUp:%v, HCAddress:%v}",
+		applicationServer.Address,
+		applicationServer.IsUp,
+		applicationServer.HCAddress)
 }

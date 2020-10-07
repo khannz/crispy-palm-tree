@@ -4,42 +4,47 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/sirupsen/logrus"
 )
+
+const getServiceStateName = "get-service-state"
 
 // GetServiceStateEntity ...
 type GetServiceStateEntity struct {
-	locker            *domain.Locker
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	gracefullShutdown *domain.GracefullShutdown
+	locker           *domain.Locker
+	cacheStorage     domain.StorageActions
+	gracefulShutdown *domain.GracefulShutdown
+	logging          *logrus.Logger
 }
 
 // NewGetServiceStateEntity ...
 func NewGetServiceStateEntity(locker *domain.Locker,
-	cacheStorage *portadapter.StorageEntity,
-	gracefullShutdown *domain.GracefullShutdown) *GetServiceStateEntity {
+	cacheStorage domain.StorageActions,
+	gracefulShutdown *domain.GracefulShutdown,
+	logging *logrus.Logger) *GetServiceStateEntity {
 	return &GetServiceStateEntity{
-		locker:            locker,
-		cacheStorage:      cacheStorage,
-		gracefullShutdown: gracefullShutdown,
+		locker:           locker,
+		cacheStorage:     cacheStorage,
+		gracefulShutdown: gracefulShutdown,
+		logging:          logging,
 	}
 }
 
 // GetServiceState ...
 func (getServiceStateEntity *GetServiceStateEntity) GetServiceState(serviceInfo *domain.ServiceInfo,
-	getServiceStateUUID string) (*domain.ServiceInfo, error) {
-	// gracefull shutdown part start
+	getServiceStateID string) (*domain.ServiceInfo, error) {
+	// graceful shutdown part start
 	getServiceStateEntity.locker.Lock()
 	defer getServiceStateEntity.locker.Unlock()
-	getServiceStateEntity.gracefullShutdown.Lock()
-	if getServiceStateEntity.gracefullShutdown.ShutdownNow {
-		defer getServiceStateEntity.gracefullShutdown.Unlock()
+	getServiceStateEntity.gracefulShutdown.Lock()
+	if getServiceStateEntity.gracefulShutdown.ShutdownNow {
+		defer getServiceStateEntity.gracefulShutdown.Unlock()
 		return nil, fmt.Errorf("program got shutdown signal, job get service state %v cancel", serviceInfo)
 	}
-	getServiceStateEntity.gracefullShutdown.UsecasesJobs++
-	getServiceStateEntity.gracefullShutdown.Unlock()
-	defer decreaseJobs(getServiceStateEntity.gracefullShutdown)
-	// gracefull shutdown part end
-
-	return getServiceStateEntity.cacheStorage.GetServiceInfo(serviceInfo, getServiceStateUUID)
+	getServiceStateEntity.gracefulShutdown.UsecasesJobs++
+	getServiceStateEntity.gracefulShutdown.Unlock()
+	defer decreaseJobs(getServiceStateEntity.gracefulShutdown)
+	// graceful shutdown part end
+	logStartUsecase(getServiceStateName, "get service state", getServiceStateID, serviceInfo, getServiceStateEntity.logging)
+	return getServiceStateEntity.cacheStorage.GetServiceInfo(serviceInfo, getServiceStateID)
 }

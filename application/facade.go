@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/khannz/crispy-palm-tree/usecase"
 	"github.com/sirupsen/logrus"
@@ -11,109 +12,81 @@ import (
 
 // BalancerFacade struct
 type BalancerFacade struct {
-	Locker              *domain.Locker
-	IPVSADMConfigurator *portadapter.IPVSADMEntity
-	CacheStorage        *portadapter.StorageEntity // so dirty
-	PersistentStorage   *portadapter.StorageEntity // so dirty
-	TunnelConfig        domain.TunnelMaker
-	HeathcheckEntity    *usecase.HeathcheckEntity
-	CommandGenerator    domain.CommandGenerator
-	GracefullShutdown   *domain.GracefullShutdown
-	UUIDgenerator       domain.UUIDgenerator
-	Logging             *logrus.Logger
+	Locker            *domain.Locker
+	CacheStorage      *portadapter.StorageEntity // so dirty
+	PersistentStorage *portadapter.StorageEntity // so dirty
+	TunnelConfig      domain.TunnelMaker
+	HeathcheckEntity  *healthcheck.HeathcheckEntity
+	CommandGenerator  domain.CommandGenerator
+	GracefulShutdown  *domain.GracefulShutdown
+	IDgenerator       domain.IDgenerator
+	Logging           *logrus.Logger
 }
 
 // NewBalancerFacade ...
 func NewBalancerFacade(locker *domain.Locker,
-	ipvsadmConfigurator *portadapter.IPVSADMEntity,
 	cacheStorage *portadapter.StorageEntity,
 	persistentStorage *portadapter.StorageEntity,
 	tunnelConfig domain.TunnelMaker,
-	hc *usecase.HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
 	commandGenerator domain.CommandGenerator,
-	gracefullShutdown *domain.GracefullShutdown,
-	uuidGenerator domain.UUIDgenerator,
+	gracefulShutdown *domain.GracefulShutdown,
+	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *BalancerFacade {
 
 	return &BalancerFacade{
-		Locker:              locker,
-		IPVSADMConfigurator: ipvsadmConfigurator,
-		CacheStorage:        cacheStorage,
-		PersistentStorage:   persistentStorage,
-		TunnelConfig:        tunnelConfig,
-		HeathcheckEntity:    hc,
-		CommandGenerator:    commandGenerator,
-		GracefullShutdown:   gracefullShutdown,
-		UUIDgenerator:       uuidGenerator,
-		Logging:             logging,
+		Locker:            locker,
+		CacheStorage:      cacheStorage,
+		PersistentStorage: persistentStorage,
+		TunnelConfig:      tunnelConfig,
+		HeathcheckEntity:  hc,
+		CommandGenerator:  commandGenerator,
+		GracefulShutdown:  gracefulShutdown,
+		IDgenerator:       idGenerator,
+		Logging:           logging,
 	}
 }
 
-// CreateService ...
-func (balancerFacade *BalancerFacade) CreateService(createService *NewServiceInfo,
-	createServiceUUID string) (*domain.ServiceInfo, error) {
-	newCreateServiceEntity := usecase.NewCreateServiceEntity(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
+// NewService ...
+func (balancerFacade *BalancerFacade) NewService(newService *Service,
+	newServiceID string) (*Service, error) {
+	newNewServiceEntity := usecase.NewNewServiceEntity(balancerFacade.Locker,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.CommandGenerator,
-		balancerFacade.GracefullShutdown,
-		balancerFacade.UUIDgenerator,
+		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	appSvrs := []*domain.ApplicationServer{}
-	for _, appSrvr := range createService.ApplicationServers {
-		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
-		as := &domain.ApplicationServer{
-			ServerIP:          appSrvr.ServerIP,
-			ServerPort:        appSrvr.ServerPort,
-			ServerHealthcheck: hcA,
-			IsUp:              false,
-		}
-		appSvrs = append(appSvrs, as)
-	}
-	hcS := domain.ServiceHealthcheck{
-		Type:                 createService.Healtcheck.Type,
-		Timeout:              createService.Healtcheck.Timeout,
-		RepeatHealthcheck:    createService.Healtcheck.RepeatHealthcheck,
-		PercentOfAlivedForUp: createService.Healtcheck.PercentOfAlivedForUp,
-	}
+	serviceInfo := convertRestServiceToDomainServiceInfo(newService)
 
-	serviceInfo := &domain.ServiceInfo{
-		ServiceIP:          createService.ServiceIP,
-		ServicePort:        createService.ServicePort,
-		ApplicationServers: appSvrs,
-		Healthcheck:        hcS,
-		BalanceType:        createService.BalanceType,
-		IsUp:               false,
+	resultNewServiceInfo, err := newNewServiceEntity.NewService(serviceInfo, newServiceID)
+	if err != nil {
+		return newService, err
 	}
-	return newCreateServiceEntity.CreateService(serviceInfo, createServiceUUID)
+	return convertDomainServiceInfoToRestService(resultNewServiceInfo), nil
 }
 
 // RemoveService ...
-func (balancerFacade *BalancerFacade) RemoveService(removeServiceRequest *RemoveServiceInfo,
-	newNWBRequestUUID string) error {
+func (balancerFacade *BalancerFacade) RemoveService(ip, port, newNWBRequestID string) error {
 	removeService := usecase.NewRemoveServiceEntity(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
-		balancerFacade.GracefullShutdown,
-		balancerFacade.UUIDgenerator,
 		balancerFacade.HeathcheckEntity,
+		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	serviceInfo := &domain.ServiceInfo{ServiceIP: removeServiceRequest.ServiceIP, ServicePort: removeServiceRequest.ServicePort}
-	return removeService.RemoveService(serviceInfo, newNWBRequestUUID)
+	serviceInfo := &domain.ServiceInfo{Address: ip + ":" + port, IP: ip, Port: port}
+	return removeService.RemoveService(serviceInfo, newNWBRequestID)
 }
 
 // GetServices ...
-func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]*domain.ServiceInfo, error) {
-	getNWBServices := usecase.NewGetAllServices(balancerFacade.CacheStorage,
-		balancerFacade.Locker,
-		balancerFacade.GracefullShutdown,
+func (balancerFacade *BalancerFacade) GetServices(getNWBServicesID string) ([]*domain.ServiceInfo, error) {
+	getNWBServices := usecase.NewGetAllServices(balancerFacade.Locker,
+		balancerFacade.CacheStorage,
+		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	nwbServices, err := getNWBServices.GetAllServices(getNWBServicesUUID)
+	nwbServices, err := getNWBServices.GetAllServices(getNWBServicesID)
 	if err != nil {
 		return nil, fmt.Errorf("can't get nwb services: %v", err)
 	}
@@ -121,88 +94,79 @@ func (balancerFacade *BalancerFacade) GetServices(getNWBServicesUUID string) ([]
 }
 
 // AddApplicationServers ...
-func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *AddApplicationServersRequest,
-	addApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) AddApplicationServers(addApplicationServersRequest *Service,
+	addApplicationServersRequestID string) (*Service, error) {
 	addApplicationServers := usecase.NewAddApplicationServers(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
 		balancerFacade.HeathcheckEntity,
 		balancerFacade.CommandGenerator,
-		balancerFacade.GracefullShutdown,
-		balancerFacade.UUIDgenerator,
+		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
 
-	appSvrs := []*domain.ApplicationServer{}
-	for _, appSrvr := range addApplicationServersRequest.ApplicationServers {
-		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
-		as := &domain.ApplicationServer{
-			ServerIP:          appSrvr.ServerIP,
-			ServerPort:        appSrvr.ServerPort,
-			ServerHealthcheck: hcA,
-			IsUp:              false,
-		}
-		appSvrs = append(appSvrs, as)
-	}
-
-	incomeServiceInfo := &domain.ServiceInfo{
-		ServiceIP:          addApplicationServersRequest.ServiceIP,
-		ServicePort:        addApplicationServersRequest.ServicePort,
-		ApplicationServers: appSvrs,
-		Healthcheck:        domain.ServiceHealthcheck{},
-	}
-	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestUUID)
+	incomeServiceInfo := convertRestServiceToDomainServiceInfo(addApplicationServersRequest)
+	currentserviceInfo, err := addApplicationServers.AddNewApplicationServers(incomeServiceInfo, addApplicationServersRequestID)
 	if err != nil {
-		return incomeServiceInfo, fmt.Errorf("can't add application servers to service: %v", err)
+		return addApplicationServersRequest, fmt.Errorf("can't add application servers to service: %v", err)
 	}
-	return currentserviceInfo, nil
+	return convertDomainServiceInfoToRestService(currentserviceInfo), nil
 }
 
 // RemoveApplicationServers ...
-func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplicationServersRequest *RemoveApplicationServersRequest,
-	removeApplicationServersRequestUUID string) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) RemoveApplicationServers(removeApplicationServersRequest *Service,
+	removeApplicationServersRequestID string) (*Service, error) {
 	removeApplicationServers := usecase.NewRemoveApplicationServers(balancerFacade.Locker,
-		balancerFacade.IPVSADMConfigurator,
 		balancerFacade.CacheStorage,
 		balancerFacade.PersistentStorage,
 		balancerFacade.TunnelConfig,
 		balancerFacade.HeathcheckEntity,
-		balancerFacade.GracefullShutdown,
-		balancerFacade.UUIDgenerator,
+		balancerFacade.GracefulShutdown,
 		balancerFacade.Logging)
-	appSvrs := []*domain.ApplicationServer{}
-	for _, appSrvr := range removeApplicationServersRequest.ApplicationServers {
-		hcA := domain.ServerHealthcheck{HealthcheckAddress: appSrvr.ServerHealthcheck.HealthcheckAddress}
-		as := &domain.ApplicationServer{
-			ServerIP:          appSrvr.ServerIP,
-			ServerPort:        appSrvr.ServerPort,
-			ServerHealthcheck: hcA,
-		}
-		appSvrs = append(appSvrs, as)
-	}
 
-	incomeServiceInfo := &domain.ServiceInfo{
-		ServiceIP:          removeApplicationServersRequest.ServiceIP,
-		ServicePort:        removeApplicationServersRequest.ServicePort,
-		ApplicationServers: appSvrs,
-	}
+	incomeServiceInfo := convertRestServiceToDomainServiceInfo(removeApplicationServersRequest)
 
-	currentserviceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestUUID)
+	resultCurrentServiceInfo, err := removeApplicationServers.RemoveApplicationServers(incomeServiceInfo, removeApplicationServersRequestID)
 	if err != nil {
-		return incomeServiceInfo, fmt.Errorf("can't remove application servers from service: %v", err)
+		return removeApplicationServersRequest, fmt.Errorf("can't remove application servers from service: %v", err)
 	}
-	return currentserviceInfo, nil
+	return convertDomainServiceInfoToRestService(resultCurrentServiceInfo), nil
 }
 
 // GetServiceState ...
-func (balancerFacade *BalancerFacade) GetServiceState(getServiceStateRequest *GetServiceStateRequest) (*domain.ServiceInfo, error) {
+func (balancerFacade *BalancerFacade) GetServiceState(ip, port, getServiceRequestID string) (*Service, error) {
 	getServiceStateEntity := usecase.NewGetServiceStateEntity(balancerFacade.Locker,
 		balancerFacade.CacheStorage,
-		balancerFacade.GracefullShutdown)
+		balancerFacade.GracefulShutdown,
+		balancerFacade.Logging)
 	incomeServiceInfo := &domain.ServiceInfo{
-		ServiceIP:   getServiceStateRequest.ServiceIP,
-		ServicePort: getServiceStateRequest.ServicePort,
+		Address: ip + ":" + port,
+		IP:      ip,
+		Port:    port,
 	}
-	return getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceStateRequest.ID)
+	serviceInfo, err := getServiceStateEntity.GetServiceState(incomeServiceInfo, getServiceRequestID)
+	if err != nil {
+		return convertDomainServiceInfoToRestService(incomeServiceInfo), err
+	}
+	return convertDomainServiceInfoToRestService(serviceInfo), nil
+}
+
+// ModifyService ...
+func (balancerFacade *BalancerFacade) ModifyService(modifyService *Service,
+	modifyServiceID string) (*Service, error) {
+	newModifyServiceEntity := usecase.NewModifyServiceEntity(balancerFacade.Locker,
+		balancerFacade.CacheStorage,
+		balancerFacade.PersistentStorage,
+		balancerFacade.TunnelConfig,
+		balancerFacade.HeathcheckEntity,
+		balancerFacade.CommandGenerator,
+		balancerFacade.GracefulShutdown,
+		balancerFacade.Logging)
+
+	serviceInfo := convertRestServiceToDomainServiceInfo(modifyService)
+	updatedServiceInfo, err := newModifyServiceEntity.ModifyService(serviceInfo, modifyServiceID)
+	if err != nil {
+		return modifyService, err
+	}
+	return convertDomainServiceInfoToRestService(updatedServiceInfo), nil
 }

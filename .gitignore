@@ -8,3 +8,5 @@ swag
 route-tun*
 database/*
 dist/*
+nlb
+coverage.out

@@ -4,45 +4,47 @@ import (
 	"errors"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
 	"github.com/sirupsen/logrus"
 )
 
-const getNlbServicesEntity = "get-nlb-services"
+const getAllServicesName = "get-all-services"
 
 // GetAllServices ...
 type GetAllServices struct {
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	locker            *domain.Locker
-	gracefullShutdown *domain.GracefullShutdown
-	logging           *logrus.Logger
+	locker           *domain.Locker
+	cacheStorage     domain.StorageActions
+	gracefulShutdown *domain.GracefulShutdown
+	logging          *logrus.Logger
 }
 
 // NewGetAllServices ...
-func NewGetAllServices(cacheStorage *portadapter.StorageEntity,
-	locker *domain.Locker,
-	gracefullShutdown *domain.GracefullShutdown,
+func NewGetAllServices(locker *domain.Locker,
+	cacheStorage domain.StorageActions,
+	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *GetAllServices {
 	return &GetAllServices{
-		cacheStorage:      cacheStorage,
-		locker:            locker,
-		gracefullShutdown: gracefullShutdown,
-		logging:           logging,
+		cacheStorage:     cacheStorage,
+		locker:           locker,
+		gracefulShutdown: gracefulShutdown,
+		logging:          logging,
 	}
 }
 
 // GetAllServices ...
-func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestUUID string) ([]*domain.ServiceInfo, error) {
+func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestID string) ([]*domain.ServiceInfo, error) {
+
+	// graceful shutdown part start
 	getAllServices.locker.Lock()
 	defer getAllServices.locker.Unlock()
-	getAllServices.gracefullShutdown.Lock()
-	if getAllServices.gracefullShutdown.ShutdownNow {
-		defer getAllServices.gracefullShutdown.Unlock()
+	getAllServices.gracefulShutdown.Lock()
+	if getAllServices.gracefulShutdown.ShutdownNow {
+		defer getAllServices.gracefulShutdown.Unlock()
 		return nil, errors.New("program got shutdown signal, job get services cancel")
 	}
-	getAllServices.gracefullShutdown.UsecasesJobs++
-	getAllServices.gracefullShutdown.Unlock()
-	defer decreaseJobs(getAllServices.gracefullShutdown)
-
-	return getAllServices.cacheStorage.LoadAllStorageDataToDomainModel()
+	getAllServices.gracefulShutdown.UsecasesJobs++
+	getAllServices.gracefulShutdown.Unlock()
+	defer decreaseJobs(getAllServices.gracefulShutdown)
+	// graceful shutdown part end
+	logStartUsecase(getAllServicesName, "get all services", getAllServicesRequestID, nil, getAllServices.logging)
+	return getAllServices.cacheStorage.LoadAllStorageDataToDomainModels()
 }

@@ -5,39 +5,51 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/contrib/ginrus"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
 	// Need for httpSwagger
 	_ "github.com/khannz/crispy-palm-tree/docs"
-	httpSwagger "github.com/swaggo/http-swagger"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 const restAPIlogName = "restAPI"
 
-// @title NLB service swagger
-// @version 1.0.1
-// @description create/delete nlb service.
-// @Tags New nlb service
-// @tag.name Link for docs
-// @tag.docs.url http://kb.sdn.sbrf.ru/display/SDN/*
-// @tag.docs.description Docs at confluence
-// @contact.name Ivan Tikhonov
-// @contact.email sdn@sberbank.ru
+// Authorization ...
+type Authorization struct {
+	mainSecret            string
+	mainSecretForRefresh  string
+	credentials           map[string]string
+	expireToken           time.Duration
+	expireTokenForRefresh time.Duration
+}
 
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// NewAuthorization ...
+func NewAuthorization(mainSecret, mainSecretForRefresh string, credentials map[string]string, expireToken, expireTokenForRefresh time.Duration) *Authorization {
+	return &Authorization{
+		mainSecret:            mainSecret,
+		mainSecretForRefresh:  mainSecretForRefresh,
+		credentials:           credentials,
+		expireToken:           expireToken,
+		expireTokenForRefresh: expireTokenForRefresh,
+	}
+}
 
 // RestAPIstruct restapi entity
 type RestAPIstruct struct {
 	server         *http.Server
-	router         *mux.Router
+	ip             string
+	router         *gin.Engine
 	balancerFacade *BalancerFacade
+	authorization  *Authorization
 }
 
 // NewRestAPIentity ...
-func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIstruct { // TODO: authentication (Oauth2?)
-	router := mux.NewRouter()
+func NewRestAPIentity(ip, port string, authorization *Authorization, balancerFacade *BalancerFacade, logger *logrus.Logger) *RestAPIstruct {
+	router := gin.Default()
+	router.Use(ginrus.Ginrus(logger, time.RFC3339, false))
 	fullAddres := ip + ":" + port
 	server := &http.Server{
 		Addr: fullAddres, // ip + ":" + port - not working here
@@ -50,8 +62,10 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIs
 
 	restAPI := &RestAPIstruct{
 		server:         server,
+		ip:             ip,
 		router:         router,
 		balancerFacade: balancerFacade,
+		authorization:  authorization,
 	}
 
 	return restAPI
@@ -59,13 +73,23 @@ func NewRestAPIentity(ip, port string, balancerFacade *BalancerFacade) *RestAPIs
 
 // UpRestAPI ...
 func (restAPI *RestAPIstruct) UpRestAPI() {
-	restAPI.router.HandleFunc("/create-service", restAPI.createService).Methods("POST")
-	restAPI.router.HandleFunc("/remove-service", restAPI.removeService).Methods("POST")
-	restAPI.router.HandleFunc("/get-services", restAPI.getServices).Methods("POST")
-	restAPI.router.HandleFunc("/add-application-servers", restAPI.addApplicationServers).Methods("POST")
-	restAPI.router.HandleFunc("/remove-application-servers", restAPI.removeApplicationServers).Methods("POST")
-	restAPI.router.HandleFunc("/get-service-state", restAPI.getServiceState).Methods("POST")
-	restAPI.router.PathPrefix("/swagger-ui.html/").Handler(httpSwagger.WrapHandler)
+	// service := restAPI.router.Group("/service")
+	// service.Use(jwt.Auth(restAPI.authorization.mainSecret))
+	restAPI.router.GET("/services", restAPI.getServices)
+	restAPI.router.GET("/service/:addr/:port", restAPI.getService)
+	restAPI.router.POST("/service/:addr/:port", restAPI.newService)
+	restAPI.router.PUT("/service/:addr/:port", restAPI.modifyService)
+	restAPI.router.DELETE("/service/:addr/:port", restAPI.removeService)
+	restAPI.router.POST("/service/:addr/:port/remove-application-servers", restAPI.removeApplicationServers)
+	restAPI.router.POST("/service/:addr/:port/add-application-servers", restAPI.addApplicationServers)
+
+	url := ginSwagger.URL("http://" + restAPI.server.Addr + "/swagger/doc.json") // The url pointing to API definition
+	restAPI.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
+
+	// jwtGroup := restAPI.router.Group("/jwt")
+	// jwtGroup.POST("/request-token", restAPI.loginRequest)
+	// jwtGroup.Use(jwt.Auth(restAPI.authorization.mainSecretForRefresh))
+	// jwtGroup.POST("/refresh-token", restAPI.tokenRefresh)
 
 	err := restAPI.server.ListenAndServe()
 	if err != nil {

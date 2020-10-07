@@ -48,7 +48,7 @@
 
 ```json
 {
-  "jobUUID": "7a7aebea-4e05-45b9-8d11-c4115dbdd4a2",
+  "jobID": "7a7aebea-4e05-45b9-8d11-c4115dbdd4a2",
   "realServers": [
     "1.1.1.1:11",
     "2.2.2.2:22"

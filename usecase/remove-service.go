@@ -4,99 +4,114 @@ import (
 	"fmt"
 
 	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/khannz/crispy-palm-tree/healthcheck"
 	"github.com/sirupsen/logrus"
 )
 
-const removeNlbServiceEntity = "remove-nlb-service"
+const removeServiceName = "remove-service"
 
 // RemoveServiceEntity ...
 type RemoveServiceEntity struct {
 	locker            *domain.Locker
-	ipvsadm           *portadapter.IPVSADMEntity
-	cacheStorage      *portadapter.StorageEntity // so dirty
-	persistentStorage *portadapter.StorageEntity // so dirty
+	cacheStorage      domain.StorageActions
+	persistentStorage domain.StorageActions
 	tunnelConfig      domain.TunnelMaker
-	gracefullShutdown *domain.GracefullShutdown
-	uuidGenerator     domain.UUIDgenerator
-	hc                *HeathcheckEntity
+	hc                *healthcheck.HeathcheckEntity
+	gracefulShutdown  *domain.GracefulShutdown
 	logging           *logrus.Logger
 }
 
 // NewRemoveServiceEntity ...
 func NewRemoveServiceEntity(locker *domain.Locker,
-	ipvsadm *portadapter.IPVSADMEntity,
-	cacheStorage *portadapter.StorageEntity, // so dirty
-	persistentStorage *portadapter.StorageEntity, // so dirty
+	cacheStorage domain.StorageActions,
+	persistentStorage domain.StorageActions,
 	tunnelConfig domain.TunnelMaker,
-	gracefullShutdown *domain.GracefullShutdown,
-	uuidGenerator domain.UUIDgenerator,
-	hc *HeathcheckEntity,
+	hc *healthcheck.HeathcheckEntity,
+	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *RemoveServiceEntity {
 	return &RemoveServiceEntity{
 		locker:            locker,
-		ipvsadm:           ipvsadm,
 		cacheStorage:      cacheStorage,
 		persistentStorage: persistentStorage,
 		tunnelConfig:      tunnelConfig,
-		gracefullShutdown: gracefullShutdown,
-		uuidGenerator:     uuidGenerator,
 		hc:                hc,
+		gracefulShutdown:  gracefulShutdown,
 		logging:           logging,
 	}
 }
 
 // RemoveService ...
-// FIXME: rollbacks need refactor
+// TODO: rollbacks need refactor
 func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domain.ServiceInfo,
-	removeServiceUUID string) error {
+	removeServiceID string) error {
 	var err error
 
-	// gracefull shutdown part start
+	// graceful shutdown part start
 	removeServiceEntity.locker.Lock()
 	defer removeServiceEntity.locker.Unlock()
-	removeServiceEntity.gracefullShutdown.Lock()
-	if removeServiceEntity.gracefullShutdown.ShutdownNow {
-		defer removeServiceEntity.gracefullShutdown.Unlock()
+	removeServiceEntity.gracefulShutdown.Lock()
+	if removeServiceEntity.gracefulShutdown.ShutdownNow {
+		defer removeServiceEntity.gracefulShutdown.Unlock()
 		return fmt.Errorf("program got shutdown signal, job remove service %v cancel", serviceInfo)
 	}
-	removeServiceEntity.gracefullShutdown.UsecasesJobs++
-	removeServiceEntity.gracefullShutdown.Unlock()
-	defer decreaseJobs(removeServiceEntity.gracefullShutdown)
-	// gracefull shutdown part end
-	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceUUID)
+	removeServiceEntity.gracefulShutdown.UsecasesJobs++
+	removeServiceEntity.gracefulShutdown.Unlock()
+	defer decreaseJobs(removeServiceEntity.gracefulShutdown)
+	// graceful shutdown part end
+	logStartUsecase(removeServiceName, "remove service", removeServiceID, serviceInfo, removeServiceEntity.logging)
+	allCurrentServices, err := removeServiceEntity.cacheStorage.LoadAllStorageDataToDomainModels()
+	if err != nil {
+		return fmt.Errorf("fail when loading info about current services: %v", err)
+	}
+
+	if !isServiceExist(serviceInfo.IP, serviceInfo.Port, allCurrentServices) {
+		return fmt.Errorf("service %v:%v not exist, can't remove it", serviceInfo.IP, serviceInfo.Port)
+	}
+
+	logTryToGetCurrentServiceInfo(removeServiceName, removeServiceID, removeServiceEntity.logging)
+	currentServiceInfo, err := removeServiceEntity.cacheStorage.GetServiceInfo(serviceInfo, removeServiceID)
 	if err != nil {
 		return fmt.Errorf("can't get current service info: %v", err)
 	}
+	logGotCurrentServiceInfo(removeServiceName, removeServiceID, currentServiceInfo, removeServiceEntity.logging)
+	logTryPreValidateRequest(removeServiceName, removeServiceID, removeServiceEntity.logging)
 
-	tunnelsFilesInfo := formTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
-	oldTunnelsFilesInfo, err := removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceUUID)
-	if err != nil {
-		return fmt.Errorf("can't create tunnel files: %v", err)
-	}
-	if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
-		return fmt.Errorf("can't update tunnel info")
+	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
+	hcService := healthcheck.ConvertDomainServiceToHCService(serviceInfo)
+	removeServiceEntity.hc.RemoveServiceFromHealtchecks(hcService) // will wait until removed
+	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
+
+	var tunnelsFilesInfo, oldTunnelsFilesInfo []*domain.TunnelForApplicationServer
+	if currentServiceInfo.Protocol == "tcp" {
+		tunnelsFilesInfo = FormTunnelsFilesInfo(currentServiceInfo.ApplicationServers, removeServiceEntity.cacheStorage)
+		logTryRemoveTunnels(removeServiceName, removeServiceID, tunnelsFilesInfo, removeServiceEntity.logging)
+		oldTunnelsFilesInfo, err = removeServiceEntity.tunnelConfig.RemoveTunnels(tunnelsFilesInfo, removeServiceID)
+		if err != nil {
+			return fmt.Errorf("can't remove tunnel files: %v", err)
+		}
+		logRemovedTunnels(removeServiceName, removeServiceID, tunnelsFilesInfo, removeServiceEntity.logging)
+
+		if err := removeServiceEntity.cacheStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+			return fmt.Errorf("can't update tunnel info")
+		}
 	}
 
-	if err = removeServiceEntity.ipvsadm.RemoveService(serviceInfo, removeServiceUUID); err != nil {
-		return fmt.Errorf("ipvsadm can't remove service: %v. got error: %v", serviceInfo, err)
-	}
-	if err = removeServiceEntity.persistentStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
+	removeServiceEntity.logging.WithFields(logrus.Fields{
+		"event id": removeServiceID,
+	}).Debugf("try remove from storages service %v", serviceInfo)
+	if err = removeServiceEntity.persistentStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceID); err != nil {
 		return err
 	}
-	if err = removeServiceEntity.cacheStorage.RemoveServiceDataFromStorage(serviceInfo, removeServiceUUID); err != nil {
+	if err = removeServiceEntity.cacheStorage.RemoveServiceInfoFromStorage(serviceInfo, removeServiceID); err != nil {
 		return err
 	}
+	removeServiceEntity.logging.WithFields(logrus.Fields{
+		"event id": removeServiceID,
+	}).Debugf("removed from storages service %v", serviceInfo)
 
-	if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
-		return fmt.Errorf("can't update tunnel info")
-	}
-
-	go removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo)
-
-	if !removeServiceEntity.hc.isMockMode {
-		if err = RemoveFromDummy(serviceInfo.ServiceIP); err != nil {
-			return err
+	if currentServiceInfo.Protocol == "tcp" {
+		if err := removeServiceEntity.persistentStorage.UpdateTunnelFilesInfoAtStorage(oldTunnelsFilesInfo); err != nil {
+			return fmt.Errorf("can't update tunnel info")
 		}
 	}
 

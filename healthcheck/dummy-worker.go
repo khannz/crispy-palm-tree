@@ -1,4 +1,4 @@
-package usecase
+package healthcheck
 
 import (
 	"fmt"
@@ -8,14 +8,16 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+// TODO: move HC to other service
+
 func (hc *HeathcheckEntity) removeFromDummyWrapper(serviceIP string) {
 	hc.dw.Lock()
 	defer hc.dw.Unlock()
 	if !hc.isMockMode {
 		if err := RemoveFromDummy(serviceIP); err != nil {
 			hc.logging.WithFields(logrus.Fields{
-				"entity":     healthcheckName,
-				"event uuid": healthcheckUUID,
+				"entity":   healthcheckName,
+				"event id": healthcheckID,
 			}).Errorf("Heathcheck error: can't remove service ip from dummy: %v", err)
 		}
 	}
@@ -27,8 +29,8 @@ func (hc *HeathcheckEntity) addToDummyWrapper(serviceIP string) {
 	if !hc.isMockMode {
 		if err := addToDummy(serviceIP); err != nil {
 			hc.logging.WithFields(logrus.Fields{
-				"entity":     healthcheckName,
-				"event uuid": healthcheckUUID,
+				"entity":   healthcheckName,
+				"event id": healthcheckID,
 			}).Errorf("Heathcheck error: can't add service ip to dummy: %v", err)
 		}
 	}
@@ -97,6 +99,10 @@ func removeAddr(addrForDel string) error {
 	}
 
 	addr, err := netlink.ParseAddr(addrForDel)
+	if err != nil {
+		return err
+	}
+
 	if err = netlink.AddrDel(dummy, addr); err != nil {
 		return err
 	}
@@ -110,6 +116,10 @@ func addAddr(addrForAdd string) error {
 	}
 
 	addr, err := netlink.ParseAddr(addrForAdd)
+	if err != nil {
+		return err
+	}
+
 	if err = netlink.AddrAdd(dummy, addr); err != nil {
 		return err
 	}
