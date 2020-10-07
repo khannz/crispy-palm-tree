@@ -9,8 +9,6 @@ import (
 	"github.com/thevan4/go-billet/executor"
 )
 
-// TODO:: possible bug, when ipvs app servers add/removed from healthcheckwhen that code running
-
 // IPVSADMEntity ...
 type IPVSADMEntity struct {
 	sync.Mutex
@@ -191,4 +189,50 @@ func (ipvsadmEntity *IPVSADMEntity) Flush() error {
 		return fmt.Errorf("can't ipvs Flush: %v", err)
 	}
 	return nil
+}
+
+// IsApplicationServerInService ...
+func (ipvsadmEntity *IPVSADMEntity) IsApplicationServerInService(serviceIP string,
+	servicePort uint16,
+	applicationServerIP string,
+	applicationServerPort uint16) (bool, error) {
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return false, fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+
+	pools, err := ipvs.GetPools()
+	if err != nil {
+		return false, fmt.Errorf("can't read actual config: %v", err)
+	}
+
+	poolIndex, err := getPoolIndexForService(serviceIP, servicePort, pools)
+	if err != nil {
+		return false, fmt.Errorf("can't get pool index for service: %v", err)
+	}
+
+	return isAppSrvInService(applicationServerIP, applicationServerPort, pools[poolIndex].Dests), nil
+}
+
+func getPoolIndexForService(ip string, port uint16, pools []gnl2go.Pool) (int, error) {
+	for i, pool := range pools {
+		if ip == pool.Service.VIP &&
+			port == pool.Service.Port {
+			return i, nil
+		}
+	}
+	return 0, fmt.Errorf("service %v:%v not found in ipvs", ip, port)
+}
+
+func isAppSrvInService(ip string, port uint16, dests []gnl2go.Dest) bool {
+	for _, dest := range dests {
+		if ip == dest.IP &&
+			port == dest.Port {
+			return true
+		}
+	}
+	return false
 }
