@@ -125,7 +125,7 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices() error {
 	}
 
 	for _, hcService := range hcServices {
-		enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
+		hc.enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
 		hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
 		alreadyAnnounced := hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
 		if !alreadyAnnounced {
@@ -166,7 +166,7 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *HCService) {
 	if hc.gracefulShutdown.ShutdownNow {
 		return
 	}
-	enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
+	hc.enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
 	hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
 	alreadyAnnounced := hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
 	if !alreadyAnnounced {
@@ -253,8 +253,7 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *HCService) err
 		hc.runningHeathchecks[updateIndex].HCStop <- struct{}{}
 		<-hc.runningHeathchecks[updateIndex].HCStopped
 		hc.logging.Tracef("healthchecks stopped for update service job %v", hcService.Address)
-		enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[updateIndex].IsUp) // lock hcService
-
+		hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[updateIndex].IsUp) // lock hcService
 		applicationServersForRemove := formApplicationServersForRemove(hcService.HCApplicationServers, currentApplicationServers)
 		if len(applicationServersForRemove) != 0 {
 			for i := range applicationServersForRemove {
@@ -323,7 +322,7 @@ func getCopyOfApplicationServersFromService(serviceInfo *HCService) []*HCApplica
 	return applicationServers
 }
 
-func enrichApplicationServersHealthchecks(newServiceHealthcheck *HCService, oldApplicationServers []*HCApplicationServer, oldIsUpState bool) {
+func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealthcheck *HCService, oldApplicationServers []*HCApplicationServer, oldIsUpState bool) {
 	newServiceHealthcheck.Lock()
 	defer newServiceHealthcheck.Unlock()
 	newServiceHealthcheck.IsUp = oldIsUpState
@@ -343,7 +342,7 @@ func enrichApplicationServersHealthchecks(newServiceHealthcheck *HCService, oldA
 		retriesCounterForUp := make([]bool, newServiceHealthcheck.HCRetriesForUP)
 		retriesCounterForDown := make([]bool, newServiceHealthcheck.HCRetriesForDown)
 
-		j, isFinded := findApplicationServer(newServiceHealthcheck.Address, oldApplicationServers)
+		j, isFinded := findApplicationServer(newServiceHealthcheck.HCApplicationServers[i].Address, oldApplicationServers)
 		if isFinded {
 			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[j].InternalHC.RetriesForUP)
 			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[j].InternalHC.RetriesForDown)
@@ -351,12 +350,14 @@ func enrichApplicationServersHealthchecks(newServiceHealthcheck *HCService, oldA
 			internalHC.RetriesForDown = retriesCounterForDown
 			newServiceHealthcheck.HCApplicationServers[i].IsUp = oldApplicationServers[j].IsUp
 			newServiceHealthcheck.HCApplicationServers[i].InternalHC = internalHC
+			hc.logging.Debugf("application server %v was found, is up state was moved", newServiceHealthcheck.HCApplicationServers[i].Address)
 			continue
 		}
 		internalHC.RetriesForUP = retriesCounterForUp
 		internalHC.RetriesForDown = retriesCounterForDown
 		newServiceHealthcheck.HCApplicationServers[i].IsUp = false
 		newServiceHealthcheck.HCApplicationServers[i].InternalHC = internalHC
+		hc.logging.Debugf("application server %v NOT found, is up state set false", newServiceHealthcheck.HCApplicationServers[i].Address)
 	}
 }
 
@@ -412,7 +413,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *HCServic
 		percentageUp,
 		hcService.AlivedAppServersForUp)
 	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageUp, hcService.AlivedAppServersForUp)
-	hc.logging.Debugf("Old service state %v. New service state %v", hcService.IsUp, isServiceUp)
+	hc.logging.Tracef("Old service state %v. New service state %v", hcService.IsUp, isServiceUp)
 
 	if !hcService.IsUp && isServiceUp {
 		hc.logging.WithFields(logrus.Fields{
@@ -429,7 +430,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *HCServic
 		hcService.IsUp = false
 		hc.annonceLogic(hcService.IP, hcService.IsUp) // lock hc and dummy
 	} else {
-		hc.logging.Debugf("service state not changed")
+		hc.logging.Debugf("service state not changed: is up: %v", hcService.IsUp)
 	}
 	hc.updateInStorages(hcService)
 }
@@ -659,7 +660,7 @@ func (hc *HeathcheckEntity) isApplicationServerInIPSVService(hcServiceIP, rawHcS
 func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *HCService,
 	applicationServer *HCApplicationServer) error {
 	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
-		hcService.IP,
+		hcService.Port,
 		hcService.RoutingType,
 		hcService.BalanceType,
 		hcService.Protocol,
@@ -681,6 +682,8 @@ func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *HCServic
 
 func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *HCService,
 	applicationServer *HCApplicationServer) error {
+	// !!!
+
 	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -690,14 +693,28 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *HCService,
 	if err != nil {
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}
-	if err = hc.ipvsadm.AddApplicationServersForService(vip,
+
+	applicationServerPort, err := stringToUINT16(applicationServer.Port)
+	if err != nil {
+		return fmt.Errorf("can't convert port to uint16: %v", err)
+	}
+	isApplicationServerInService, err := hc.ipvsadm.IsApplicationServerInService(vip,
 		port,
-		routingType,
-		balanceType,
-		protocol,
-		applicationServers,
-		healthcheckID); err != nil {
-		return fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
+		applicationServer.IP,
+		applicationServerPort)
+	if err != nil {
+		return fmt.Errorf("can't check is application server in service: %v", err)
+	}
+	if !isApplicationServerInService {
+		if err = hc.ipvsadm.AddApplicationServersForService(vip,
+			port,
+			routingType,
+			balanceType,
+			protocol,
+			applicationServers,
+			healthcheckID); err != nil {
+			return fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
+		}
 	}
 	return nil
 

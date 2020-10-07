@@ -66,10 +66,7 @@ func forAddApplicationServersFormUpdateServiceInfo(currentServiceInfo, newServic
 	var updatedServiceInfo *domain.ServiceInfo
 
 	// concatenate two slices
-	resultApplicationServers := make([]*domain.ApplicationServer, len(newServiceInfo.ApplicationServers)) // append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
-	for i, currentApplicationServer := range newServiceInfo.ApplicationServers {
-		resultApplicationServers[i] = currentApplicationServer
-	}
+	resultApplicationServers := append(currentServiceInfo.ApplicationServers, newServiceInfo.ApplicationServers...)
 
 	updatedServiceInfo = &domain.ServiceInfo{
 		Address:               newServiceInfo.Address,
