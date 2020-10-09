@@ -3,8 +3,8 @@ package application
 import (
 	"fmt"
 
-	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/usecase"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/usecase"
 )
 
 // InitializeRuntimeSettings ...

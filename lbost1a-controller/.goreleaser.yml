@@ -22,7 +22,7 @@ nfpms:
     file_name_template: "lbost1ac_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
     vendor: thevan4
-    homepage: https://github.com/khannz/crispy-palm-tree
+    homepage: https://github.com/khannz/crispy-palm-tree/lbost1a-controller
     maintainer: SDN <sdn@*.com>
     description: lbost1ac
     license: Apache-2.0

@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/khannz/crispy-palm-tree/application"
-	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/application"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/portadapter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/usecase"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/usecase"
 	"github.com/sirupsen/logrus"
 )
 

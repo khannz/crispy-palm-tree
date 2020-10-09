@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	// Need for httpSwagger
-	_ "github.com/khannz/crispy-palm-tree/docs"
+	_ "github.com/khannz/crispy-palm-tree/lbost1a-controller/docs"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )

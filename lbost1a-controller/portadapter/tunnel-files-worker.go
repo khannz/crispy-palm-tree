@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )

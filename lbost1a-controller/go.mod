@@ -1,4 +1,4 @@
-module github.com/khannz/crispy-palm-tree
+module github.com/khannz/crispy-palm-tree/lbost1a-controller
 
 go 1.15
 

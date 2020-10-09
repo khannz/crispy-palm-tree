@@ -2,7 +2,7 @@ package main
 
 //go:generate ./swag init -g application/rest.go
 
-import run "github.com/khannz/crispy-palm-tree/cmd"
+import run "github.com/khannz/crispy-palm-tree/lbost1a-controller/cmd"
 
 // @title LBOS tier 1 swagger
 // @version 1.2.3

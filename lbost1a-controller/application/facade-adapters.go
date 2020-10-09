@@ -1,6 +1,6 @@
 package application
 
-import "github.com/khannz/crispy-palm-tree/domain"
+import "github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
 
 func convertDomainServiceInfoToRestService(domainServiceInfo *domain.ServiceInfo) *Service {
 	preparedApplicationServers := convertDomainApplicationServersToRestApplicationServers(domainServiceInfo.ApplicationServers)

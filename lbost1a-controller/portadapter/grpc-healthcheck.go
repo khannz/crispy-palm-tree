@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
 	"github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
 )

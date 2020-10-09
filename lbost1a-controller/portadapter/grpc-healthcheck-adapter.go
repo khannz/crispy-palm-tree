@@ -2,7 +2,7 @@ package portadapter
 
 import (
 	"github.com/golang/protobuf/ptypes"
-	"github.com/khannz/crispy-palm-tree/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
 )
 
 func pbServiceToDomainServiceInfo(pbService *PbService) *domain.ServiceInfo {

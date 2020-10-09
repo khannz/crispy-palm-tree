@@ -3,8 +3,8 @@ package usecase
 import (
 	"testing"
 
-	"github.com/khannz/crispy-palm-tree/domain"
-	"github.com/khannz/crispy-palm-tree/portadapter"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-controller/portadapter"
 	"github.com/stretchr/testify/assert"
 	logger "github.com/thevan4/logrus-wrapper"
 )
