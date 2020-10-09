@@ -124,7 +124,7 @@ func init() {
 
 	pflag.String(idTypeName, defaultIDType, "ID type(nanoid|uuid4)")
 
-	pflag.String(hcAddressName, defaultHCAddress, "Healthcheck address. Example:'127.0.0.1:8000'")
+	pflag.String(hcAddressName, defaultHCAddress, "Healthcheck address. Example:'127.0.0.1:7000'")
 	pflag.Duration(hcTimeoutName, defaultHCTimeout, "Healthcheck request timeout")
 
 	pflag.Parse()

@@ -4,7 +4,7 @@
 // 	protoc        v3.12.4
 // source: grpc-healthcheck-rpc-models.proto
 
-package portadapter
+package application
 
 import (
 	proto "github.com/golang/protobuf/proto"

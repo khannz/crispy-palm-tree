@@ -47,7 +47,7 @@ func (hc *HeathcheckEntity) StartHealthchecksForCurrentServices(servicesInfo []*
 }
 
 func (hc *HeathcheckEntity) NewServiceToHealtchecks(serviceInfo *domain.ServiceInfo) error {
-	ctx, cancel := context.WithTimeout(context.Background(), hc.grpcTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	pbServiceInfo := domainServiceInfoToPbService(serviceInfo)
 	if _, err := hc.hcNewClient.HCNewPbService(ctx, pbServiceInfo); err != nil {
@@ -57,7 +57,7 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(serviceInfo *domain.ServiceI
 }
 
 func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.ServiceInfo) error {
-	ctx, cancel := context.WithTimeout(context.Background(), hc.grpcTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	pbServiceInfo := domainServiceInfoToPbService(serviceInfo)
 	if _, err := hc.hcUpdateClient.HCRemovePbService(ctx, pbServiceInfo); err != nil {
@@ -67,7 +67,7 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(serviceInfo *domain.Ser
 }
 
 func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.ServiceInfo) (*domain.ServiceInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), hc.grpcTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	pbServiceInfo := domainServiceInfoToPbService(serviceInfo)
 	pbUpdatedServiceInfo, err := hc.hcUpdateClient.HCUpdatePbService(ctx, pbServiceInfo)
@@ -79,7 +79,7 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(serviceInfo *domain.Servi
 }
 
 func (hc *HeathcheckEntity) GetServiceState(serviceInfo *domain.ServiceInfo) (*domain.ServiceInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), hc.grpcTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	pbServiceInfo := domainServiceInfoToPbService(serviceInfo)
 	pbUpdatedServiceInfo, err := hc.hcGetClient.HCGetPbService(ctx, pbServiceInfo)
@@ -91,8 +91,9 @@ func (hc *HeathcheckEntity) GetServiceState(serviceInfo *domain.ServiceInfo) (*d
 }
 
 func (hc *HeathcheckEntity) GetServicesState() ([]*domain.ServiceInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), hc.grpcTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
+	fmt.Println(2 * time.Second)
 	pbUpdatedServicesInfo, err := hc.hcGetClient.HCGetPbServiceS(ctx, &EmptyPbService{})
 	if err != nil {
 		return nil, fmt.Errorf("can't get services from healtchecks: %v", err)
