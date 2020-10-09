@@ -1,0 +1,51 @@
+env:
+  - GO111MODULE=on
+before:
+  hooks:
+    - go mod download
+builds:
+  - env:
+    - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+    targets:
+      - linux_amd64
+    main: .
+    binary: "lbost1ac"
+
+nfpms:
+  -
+    id: 1
+    package_name: lbost1ac
+    file_name_template: "lbost1ac_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+    vendor: thevan4
+    homepage: https://github.com/khannz/crispy-palm-tree
+    maintainer: SDN <sdn@*.com>
+    description: lbost1ac
+    license: Apache-2.0
+    formats:
+        - rpm
+    bindir: /opt/lbost1ac
+    overrides:
+      rpm:
+        replacements:
+          amd64: x86_64
+        dependencies:
+          - ipvsadm
+        files:
+          "bundle/rpm.lbost1ac.service": "/lib/systemd/system/lbost1ac.service"
+        # empty_folders:
+        #   - /bootflash/lbost1ac
+        scripts:
+          preinstall: "bundle/rpm.preinstall.sh"
+          postinstall: "bundle/rpm.postinstall.sh"
+          preremove: "bundle/rpm.preremove.sh"
+          postremove: "bundle/rpm.postremove.sh"
+
+archives:
+  - name_template: 'lbost1ac_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    replacements:
+      amd64: x86_64
