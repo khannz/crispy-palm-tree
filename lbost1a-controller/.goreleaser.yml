@@ -33,8 +33,6 @@ nfpms:
       rpm:
         replacements:
           amd64: x86_64
-        dependencies:
-          - ipvsadm
         files:
           "bundle/rpm.lbost1ac.service": "/lib/systemd/system/lbost1ac.service"
         # empty_folders:
