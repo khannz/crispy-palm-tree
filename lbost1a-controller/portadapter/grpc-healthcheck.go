@@ -12,7 +12,7 @@ import (
 
 type HeathcheckEntity struct {
 	address        string
-	grpcTimeout    time.Duration
+	grpcTimeout    time.Duration // TODO: somehow use tickers?
 	conn           *grpc.ClientConn
 	hcGetClient    HCGetClient
 	hcNewClient    HCNewClient
