@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 		defer memDB.Db.Close()
 
 		// ipvsadmSender init
-		ipvsadmSender := portadapter.NewIPVSSenderEntity(ipvsAddressName, viperConfig.GetDuration(ipvsTimeoutName), logging)
+		ipvsadmSender := portadapter.NewIPVSWorkerEntity(ipvsAddressName, viperConfig.GetDuration(ipvsTimeoutName), logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
 		}

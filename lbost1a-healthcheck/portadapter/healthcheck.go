@@ -29,7 +29,7 @@ type HeathcheckEntity struct {
 	sync.Mutex
 	runningHeathchecks []*domain.HCService
 	cacheStorage       domain.StorageActions
-	ipvsadm            domain.IPVSSender
+	ipvsadm            domain.IPVSWorker
 	techInterface      *net.TCPAddr
 	locker             *domain.Locker
 	dw                 *dummyWorker
@@ -40,7 +40,7 @@ type HeathcheckEntity struct {
 
 // NewHeathcheckEntity ...
 func NewHeathcheckEntity(cacheStorage *StorageEntity,
-	ipvsadm domain.IPVSSender,
+	ipvsadm domain.IPVSWorker,
 	rawTechInterface string,
 	locker *domain.Locker,
 	isMockMode bool,

@@ -93,7 +93,7 @@ func (hc *HeathcheckEntity) GetServiceState(serviceInfo *domain.ServiceInfo) (*d
 func (hc *HeathcheckEntity) GetServicesState() ([]*domain.ServiceInfo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	fmt.Println(2 * time.Second)
+
 	pbUpdatedServicesInfo, err := hc.hcGetClient.HCGetPbServiceS(ctx, &EmptyPbService{})
 	if err != nil {
 		return nil, fmt.Errorf("can't get services from healtchecks: %v", err)
