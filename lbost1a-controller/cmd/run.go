@@ -83,6 +83,14 @@ var rootCmd = &cobra.Command{
 			logging)
 		// tunnel maker end
 
+		//  healthchecks start
+		hc := portadapter.NewHeathcheckEntity(viperConfig.GetString(hcAddressName), viperConfig.GetDuration(hcTimeoutName), logging)
+		if err := hc.ConnectToHealtchecks(); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't connect to healtchecks: %v", err)
+		}
+		defer hc.DisconnectFromHealtchecks()
+		// healthchecks end
+
 		// db and caches init
 		cacheDB, persistentDB, err := storageAndCacheInit(viperConfig.GetString(databasePathName), idForRootProcess, logging)
 		if err != nil {
@@ -94,13 +102,6 @@ var rootCmd = &cobra.Command{
 		// CommandGenerator start
 		commandGenerator := portadapter.NewCommandGenerator()
 		// CommandGenerator end
-
-		//  healthchecks start
-		hc := portadapter.NewHeathcheckEntity(viperConfig.GetString(hcAddressName), viperConfig.GetDuration(hcTimeoutName), logging)
-		if err := hc.ConnectToHealtchecks(); err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't connect to healtchecks: %v", err)
-		}
-		// healthchecks end
 
 		// init config end
 
@@ -153,7 +154,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("runtime settings disabled")
-		hc.DisconnectFromHealtchecks()
+
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("program stopped")
 	},
 }

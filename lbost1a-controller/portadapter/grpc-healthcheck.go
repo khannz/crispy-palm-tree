@@ -26,7 +26,9 @@ func NewHeathcheckEntity(address string, grpcTimeout time.Duration, logging *log
 
 func (hc *HeathcheckEntity) initGRPC() error {
 	var err error
-	hc.conn, err = grpc.Dial(hc.address, grpc.WithInsecure(), grpc.WithBlock())
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	hc.conn, err = grpc.DialContext(ctx, hc.address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return fmt.Errorf("did not connect to grpc server: %v", err)
 	}

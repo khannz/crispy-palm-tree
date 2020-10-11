@@ -12,18 +12,18 @@ import (
 
 // GrpcServer is used to implement portadapter.HCGetService.
 type GrpcServer struct {
-	port    string
+	address string
 	facade  *IPVSFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
 	UnimplementedIPVSWokerServer
 }
 
-func NewGrpcServer(port string,
+func NewGrpcServer(address string,
 	facade *IPVSFacade,
 	logging *logrus.Logger) *GrpcServer {
 	return &GrpcServer{
-		port:    port,
+		address: address,
 		facade:  facade,
 		logging: logging,
 	}
@@ -115,7 +115,7 @@ func (gs *GrpcServer) IPVSFlush(ctx context.Context, incomeIPVSService *EmptyPbS
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
-	lis, err := net.Listen("tcp", grpcServer.port)
+	lis, err := net.Listen("tcp", grpcServer.address)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}

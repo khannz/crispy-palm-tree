@@ -24,7 +24,7 @@ const (
 	defaultTechInterface = "" // required
 	defaultIDType        = "nanoid"
 
-	defaultIPVSAddress = "127.0.0.1:9000"
+	defaultIPVSAddress = "127.0.0.1:7002"
 	defaultIPVSTimeout = 2 * time.Second
 )
 
@@ -38,6 +38,7 @@ const (
 	logEventLocationName = "log-event-location"
 
 	ipvsAddressName = "ipvs-address"
+	ipvsTimeoutName = "ipvs-timeout"
 
 	techInterfaceName = "tech-interface"
 	idTypeName        = "id-type"
@@ -72,6 +73,7 @@ func init() {
 	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
 
 	pflag.String(ipvsAddressName, defaultIPVSAddress, "ipvs address")
+	pflag.Duration(ipvsTimeoutName, defaultIPVSTimeout, "ipvs timeout")
 
 	pflag.String(techInterfaceName, defaultTechInterface, "tech interface")
 

@@ -31,7 +31,7 @@ var rootCmd = &cobra.Command{
 			"log output":       viperConfig.GetString(logOutputName),
 			"syslog tag":       viperConfig.GetString(syslogTagName),
 
-			"hc address":     viperConfig.GetString(ipvsAddressName),
+			"ipvs address":   viperConfig.GetString(ipvsAddressName),
 			"tech interface": viperConfig.GetString(techInterfaceName),
 			"id type":        viperConfig.GetString(idTypeName),
 		}).Info("")
