@@ -14,7 +14,7 @@ import (
 
 // Default values
 const (
-	defaultConfigFilePath   = "./lbost1ah.yaml"
+	defaultConfigFilePath   = "./lbost1ai.yaml"
 	defaultLogOutput        = "syslog"
 	defaultLogLevel         = "trace"
 	defaultLogFormat        = "text"
@@ -24,14 +24,8 @@ const (
 	defaultTechInterface = "" // required
 	defaultIDType        = "nanoid"
 
-	defaultHCAddress = "127.0.0.1:7001"
-	defaultHCTimeout = 2 * time.Second
-
-	defaultIPVSAddressName = "127.0.0.1:7002"
-	defaultIPVSTimeout     = 2 * time.Second
-
-	defaultDummyAddress = "127.0.0.1:7003"
-	defaultDummyTimeout = 2 * time.Second
+	defaultIPVSAddress = "127.0.0.1:9000"
+	defaultIPVSTimeout = 2 * time.Second
 )
 
 // Config names
@@ -43,14 +37,7 @@ const (
 	syslogTagName        = "syslog-tag"
 	logEventLocationName = "log-event-location"
 
-	hcAddressName = "hc-address"
-	hcTimeoutName = "hc-timeout"
-
 	ipvsAddressName = "ipvs-address"
-	ipvsTimeoutName = "ipvs-timeout"
-
-	dummyAddressName = "dummy-address"
-	dummyTimeoutName = "dummy-timeout"
 
 	techInterfaceName = "tech-interface"
 	idTypeName        = "id-type"
@@ -84,12 +71,7 @@ func init() {
 	pflag.String(syslogTagName, defaultSystemLogTag, "Syslog tag. Example: 'trac-dgen'")
 	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
 
-	pflag.String(hcAddressName, defaultHCAddress, "hc address")
-	pflag.Duration(hcTimeoutName, defaultHCTimeout, "hc timeout")
-	pflag.String(ipvsAddressName, defaultIPVSAddressName, "ipvs address")
-	pflag.Duration(ipvsTimeoutName, defaultIPVSTimeout, "ipvs timeout")
-	pflag.String(dummyAddressName, defaultDummyAddress, "dummy address")
-	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy timeout")
+	pflag.String(ipvsAddressName, defaultIPVSAddress, "ipvs address")
 
 	pflag.String(techInterfaceName, defaultTechInterface, "tech interface")
 

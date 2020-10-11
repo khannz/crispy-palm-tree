@@ -5,6 +5,8 @@ import "google/protobuf/duration.proto";
 
 option go_package = "github.com/crispy-palm-tree/lbost1a-controller/portadapter";
 
+// TODO: protofiles for microservoces (at now we have only one file)
+
 service HCGet {
   rpc HCGetPbService (PbService) returns (PbService) {}
   rpc HCGetPbServiceS (EmptyPbService) returns (PbServices) {}
@@ -57,4 +59,27 @@ message PbService {
 
 message PbServices {
     map<string, PbService> services = 1;
+}
+
+message PbIPVSServices {
+  string vip = 1;
+  uint32 port = 2; // uint16
+  uint32 routingType = 3;
+  string balanceType = 4;
+  uint32 protocol = 5; // uint16
+  map<string, uint32> applicationServers = 6;
+  string id = 7;
+}
+
+service IPVSWoker {
+  rpc NewIPVSService (PbIPVSServices) returns (EmptyPbService) {}
+  rpc AddIPVSApplicationServersForService (PbIPVSServices) returns (EmptyPbService) {}
+  rpc RemoveIPVSService (PbIPVSServices) returns (EmptyPbService) {}
+  rpc RemoveIPVSApplicationServersFromService (PbIPVSServices) returns (EmptyPbService) {}
+  rpc IsIPVSApplicationServerInService (PbIPVSServices) returns (BoolData) {}
+  rpc IPVSFlush (EmptyPbService) returns (EmptyPbService) {}
+}
+
+message BoolData {
+  bool isIn = 1;
 }

@@ -1,8 +1,7 @@
 [Unit]
 Description=Software network load balancer service
-ConditionPathExists=/opt/lbost1ah/lbost1ah
+ConditionPathExists=/opt/lbost1ai/lbost1ai
 After=network.target
-Requires=lbost1ai.service
 
 [Service]
 Type=simple
@@ -11,9 +10,9 @@ Group=root
 LimitNOFILE=1024
 Restart=on-failure
 RestartSec=10
-WorkingDirectory=/opt/lbost1ah
-ExecStartPre=mkdir -p /run/lbost1ah
-ExecStart=/opt/lbost1ah/lbost1ah run
+WorkingDirectory=/opt/lbost1ai
+ExecStartPre=mkdir -p /run/lbost1ai
+ExecStart=/opt/lbost1ai/lbost1ai run
 KillSignal=SIGINT
 SendSIGKILL=no
 PermissionsStartOnly=true

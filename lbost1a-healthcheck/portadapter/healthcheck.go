@@ -29,7 +29,7 @@ type HeathcheckEntity struct {
 	sync.Mutex
 	runningHeathchecks []*domain.HCService
 	cacheStorage       domain.StorageActions
-	ipvsadm            domain.IPVSWorker
+	ipvsadm            domain.IPVSSender
 	techInterface      *net.TCPAddr
 	locker             *domain.Locker
 	dw                 *dummyWorker
@@ -40,7 +40,7 @@ type HeathcheckEntity struct {
 
 // NewHeathcheckEntity ...
 func NewHeathcheckEntity(cacheStorage *StorageEntity,
-	ipvsadm domain.IPVSWorker,
+	ipvsadm domain.IPVSSender,
 	rawTechInterface string,
 	locker *domain.Locker,
 	isMockMode bool,
@@ -102,7 +102,7 @@ func (hc *HeathcheckEntity) addServiceToIPVS(hcService *domain.HCService) error 
 	if err != nil {
 		return fmt.Errorf("error prepare data for IPVS: %v", err)
 	}
-	if err := hc.ipvsadm.NewService(vip,
+	if err := hc.ipvsadm.NewIPVSService(vip,
 		port,
 		routingType,
 		balanceType,
@@ -174,7 +174,7 @@ func (hc *HeathcheckEntity) removeServiceFromIPVS(hcService *domain.HCService) e
 	if err != nil {
 		return fmt.Errorf("error prepare data for IPVS: %v", err)
 	}
-	if err := hc.ipvsadm.RemoveService(vip,
+	if err := hc.ipvsadm.RemoveIPVSService(vip,
 		port,
 		protocol,
 		healthcheckID); err != nil {
@@ -583,10 +583,13 @@ func (hc *HeathcheckEntity) isApplicationServerInIPSVService(hcServiceIP, rawHcS
 	if err != nil {
 		hc.logging.Errorf("can't convert port to uint16: %v", err)
 	}
-	isApplicationServerInService, err := hc.ipvsadm.IsApplicationServerInService(hcServiceIP,
+
+	oneAppSrvMap := make(map[string]uint16, 1)
+	oneAppSrvMap[applicationServerIP] = applicationServerPort
+	isApplicationServerInService, err := hc.ipvsadm.IsIPVSApplicationServerInService(hcServiceIP,
 		hcServicePort,
-		applicationServerIP,
-		applicationServerPort)
+		oneAppSrvMap,
+		"tmp fake id")
 	if err != nil {
 		hc.logging.Errorf("can't check is application server in service: %v", err)
 		return false
@@ -605,7 +608,7 @@ func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *domain.H
 	if err != nil {
 		return fmt.Errorf("Error prepare data for IPVS: %v", err)
 	}
-	if err := hc.ipvsadm.RemoveApplicationServersFromService(vip,
+	if err := hc.ipvsadm.RemoveIPVSApplicationServersFromService(vip,
 		port,
 		routingType,
 		balanceType,
@@ -635,15 +638,18 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *domain.HCS
 	if err != nil {
 		return fmt.Errorf("can't convert port to uint16: %v", err)
 	}
-	isApplicationServerInService, err := hc.ipvsadm.IsApplicationServerInService(vip,
+
+	oneAppSrvMap := make(map[string]uint16, 1)
+	oneAppSrvMap[applicationServer.IP] = applicationServerPort
+	isApplicationServerInService, err := hc.ipvsadm.IsIPVSApplicationServerInService(vip,
 		port,
-		applicationServer.IP,
-		applicationServerPort)
+		oneAppSrvMap,
+		"tmp fale id")
 	if err != nil {
 		return fmt.Errorf("can't check is application server in service: %v", err)
 	}
 	if !isApplicationServerInService {
-		if err = hc.ipvsadm.AddApplicationServersForService(vip,
+		if err = hc.ipvsadm.AddIPVSApplicationServersForService(vip,
 			port,
 			routingType,
 			balanceType,
@@ -654,7 +660,6 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *domain.HCS
 		}
 	}
 	return nil
-
 }
 
 func percentageOfUp(rawTotal, rawDown int) float32 {

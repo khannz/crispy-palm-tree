@@ -6,16 +6,16 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/application"
-	"github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/domain"
-	"github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/portadapter"
+	"github.com/khannz/crispy-palm-tree/lbost1a-ipvs/application"
+	"github.com/khannz/crispy-palm-tree/lbost1a-ipvs/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-ipvs/portadapter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "run",
-	Short: "lbost1ah 😉",
+	Short: "lbost1ai 😉",
 	Run: func(cmd *cobra.Command, args []string) {
 		idGenerator := chooseIDGenerator(viperConfig.GetString(idTypeName))
 		idForRootProcess := idGenerator.NewID()
@@ -31,18 +31,10 @@ var rootCmd = &cobra.Command{
 			"log output":       viperConfig.GetString(logOutputName),
 			"syslog tag":       viperConfig.GetString(syslogTagName),
 
-			"hc address":    viperConfig.GetString(hcAddressName),
-			"hc timeout":    viperConfig.GetDuration(hcTimeoutName),
-			"ipvs address":  viperConfig.GetString(ipvsAddressName),
-			"ipvs timeout":  viperConfig.GetDuration(ipvsTimeoutName),
-			"dummy address": viperConfig.GetString(dummyAddressName),
-			"dummy timeout": viperConfig.GetDuration(dummyTimeoutName),
-
+			"hc address":     viperConfig.GetString(ipvsAddressName),
 			"tech interface": viperConfig.GetString(techInterfaceName),
 			"id type":        viperConfig.GetString(idTypeName),
 		}).Info("")
-
-		locker := &domain.Locker{}
 
 		// more about signals: https://en.wikipedia.org/wiki/Signal_(IPC)
 		signalChan := make(chan os.Signal, 2)
@@ -51,41 +43,26 @@ var rootCmd = &cobra.Command{
 			syscall.SIGTERM,
 			syscall.SIGQUIT)
 
-		// db init
-		memDB, err := portadapter.NewStorageEntity(true, "", logging)
-		if err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("db init error: %v", err)
-		}
-		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Debug("init db successful")
-		defer memDB.Db.Close()
-
-		// ipvsadmSender init
-		ipvsadmSender := portadapter.NewIPVSSenderEntity(ipvsAddressName, viperConfig.GetDuration(ipvsTimeoutName), logging)
+		// ipvsadmConfigurator start
+		ipvsadmConfigurator, err := portadapter.NewIPVSADMEntity(logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
 		}
-		if err := ipvsadmSender.IPVSFlush(); err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't flush data at start: %v", err)
+		if err := ipvsadmConfigurator.IPVSFlush(); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't IPVSFlush data at start: %v", err)
 		}
-		// ipvsadmSender end
-
-		// dummySender init // TODO:
-		// dummySender end
-
-		hc := portadapter.NewHeathcheckEntity(memDB, ipvsadmSender, viperConfig.GetString(techInterfaceName), locker, false, logging)
+		// ipvsadmConfigurator end
 
 		// init config end
 
-		facade := application.NewHCFacade(locker,
-			memDB,
-			hc,
+		facade := application.NewIPVSFacade(ipvsadmConfigurator,
 			idGenerator,
 			logging)
 
 		// up grpc api
 
-		// grpcServer := application.NewGrpcServer(viperConfig.GetString(hcAddressName), facade, logging) // gorutine inside
-		grpcServer := application.NewGrpcServer(viperConfig.GetString(hcAddressName), facade, logging) // gorutine inside
+		// grpcServer := application.NewGrpcServer(viperConfig.GetString(ipvsAddressName), facade, logging) // gorutine inside
+		grpcServer := application.NewGrpcServer(viperConfig.GetString(ipvsAddressName), facade, logging) // gorutine inside
 		if err := grpcServer.StartServer(); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)
 		}

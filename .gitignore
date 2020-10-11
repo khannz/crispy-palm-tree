@@ -12,3 +12,6 @@ nlb
 coverage.out
 lbost1ac
 lbost1ah
+lbost1ai
+lbost1ad
+*.pb.go

@@ -38,7 +38,7 @@ const (
 	defaultExpireTokenForRefreshTime = 96 * time.Hour
 	defaultIDType                    = "nanoid"
 
-	defaultHCAddress = "127.0.0.1:8000"
+	defaultHCAddress = "127.0.0.1:7001"
 	defaultHCTimeout = 2 * time.Second
 )
 

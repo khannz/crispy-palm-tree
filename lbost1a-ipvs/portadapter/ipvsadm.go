@@ -24,14 +24,14 @@ func NewIPVSADMEntity(logging *logrus.Logger) (*IPVSADMEntity, error) {
 	return &IPVSADMEntity{logging: logging}, nil
 }
 
-// NewService ...
-func (ipvsadmEntity *IPVSADMEntity) NewService(vip string,
+// NewIPVSService ...
+func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	createServiceID string) error {
+	id string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -69,11 +69,11 @@ func ipvsInit() (*gnl2go.IpvsClient, error) {
 	return ipvs, nil
 }
 
-// RemoveService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveService(vip string,
+// RemoveIPVSService ...
+func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSService(vip string,
 	port uint16,
 	protocol uint16,
-	requestID string) error {
+	id string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -109,7 +109,7 @@ func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.
 	return nil
 }
 
-func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gnl2go.IpvsClient,
+func (ipvsadmEntity *IPVSADMEntity) removeIPVSApplicationServersFromService(ipvs *gnl2go.IpvsClient,
 	serviceIP string, servicePort uint16, protocol uint16,
 	applicationServers map[string]uint16) error {
 	for ip, port := range applicationServers {
@@ -128,14 +128,14 @@ func (ipvsadmEntity *IPVSADMEntity) removeApplicationServersFromService(ipvs *gn
 	return nil
 }
 
-// AddApplicationServersForService ...
-func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(vip string,
+// AddIPVSApplicationServersForService ...
+func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	updateServiceID string) error {
+	id string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -151,14 +151,14 @@ func (ipvsadmEntity *IPVSADMEntity) AddApplicationServersForService(vip string,
 	return nil
 }
 
-// RemoveApplicationServersFromService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(vip string,
+// RemoveIPVSApplicationServersFromService ...
+func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSApplicationServersFromService(vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	updateServiceID string) error {
+	id string) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -167,15 +167,15 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveApplicationServersFromService(vip stri
 	}
 	defer ipvs.Exit()
 
-	if err = ipvsadmEntity.removeApplicationServersFromService(ipvs, vip, port, protocol, applicationServers); err != nil {
+	if err = ipvsadmEntity.removeIPVSApplicationServersFromService(ipvs, vip, port, protocol, applicationServers); err != nil {
 		return fmt.Errorf("cant remove application servers from service: %v", err)
 	}
 
 	return nil
 }
 
-// Flush remove all ipvsadm data
-func (ipvsadmEntity *IPVSADMEntity) Flush() error {
+// IPVSFlush remove all ipvsadm data
+func (ipvsadmEntity *IPVSADMEntity) IPVSFlush() error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -191,11 +191,15 @@ func (ipvsadmEntity *IPVSADMEntity) Flush() error {
 	return nil
 }
 
-// IsApplicationServerInService ...
-func (ipvsadmEntity *IPVSADMEntity) IsApplicationServerInService(serviceIP string,
+// IsIPVSApplicationServerInService ...
+func (ipvsadmEntity *IPVSADMEntity) IsIPVSApplicationServerInService(serviceIP string,
 	servicePort uint16,
-	applicationServerIP string,
-	applicationServerPort uint16) (bool, error) {
+	oneApplicationServerMap map[string]uint16,
+	id string) (bool, error) {
+	if len(oneApplicationServerMap) != 1 {
+		return false, fmt.Errorf("expect one application server map len 1, have: %v", len(oneApplicationServerMap))
+	}
+
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -212,6 +216,14 @@ func (ipvsadmEntity *IPVSADMEntity) IsApplicationServerInService(serviceIP strin
 	poolIndex, err := getPoolIndexForService(serviceIP, servicePort, pools)
 	if err != nil {
 		return false, fmt.Errorf("can't get pool index for service: %v", err)
+	}
+
+	var applicationServerIP string
+	var applicationServerPort uint16
+
+	for k, v := range oneApplicationServerMap {
+		applicationServerIP = k
+		applicationServerPort = v
 	}
 
 	return isAppSrvInService(applicationServerIP, applicationServerPort, pools[poolIndex].Dests), nil
