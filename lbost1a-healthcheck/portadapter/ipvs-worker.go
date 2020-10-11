@@ -23,7 +23,9 @@ func NewIPVSWorkerEntity(address string, grpcTimeout time.Duration, logging *log
 
 func (ipvsWorker *IPVSWorkerEntity) initGRPC() error {
 	var err error
-	ipvsWorker.conn, err = grpc.Dial(ipvsWorker.address, grpc.WithInsecure(), grpc.WithBlock())
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	ipvsWorker.conn, err = grpc.DialContext(ctx, ipvsWorker.address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return fmt.Errorf("did not connect to grpc server: %v", err)
 	}

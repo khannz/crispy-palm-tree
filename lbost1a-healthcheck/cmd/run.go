@@ -51,6 +51,25 @@ var rootCmd = &cobra.Command{
 			syscall.SIGTERM,
 			syscall.SIGQUIT)
 
+		// ipvsadmSender init
+		ipvsadmSender := portadapter.NewIPVSWorkerEntity(viperConfig.GetString(ipvsAddressName), viperConfig.GetDuration(ipvsTimeoutName), logging)
+		if err := ipvsadmSender.ConnectToIPVS(); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't connect: %v", err)
+		}
+		defer ipvsadmSender.DisconnectFromIPVS()
+		if err := ipvsadmSender.IPVSFlush(); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't flush data at start: %v", err)
+		}
+		// ipvsadmSender end
+
+		// dummySender init
+		dw := portadapter.NewDummyWorkerEntity(viperConfig.GetString(dummyAddressName), viperConfig.GetDuration(dummyTimeoutName), logging)
+		if err := dw.ConnectToDummy(); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("DUMMY can't connect: %v", err)
+		}
+		defer dw.DisconnectFromDummy()
+		// dummySender end
+
 		// db init
 		memDB, err := portadapter.NewStorageEntity(true, "", logging)
 		if err != nil {
@@ -59,20 +78,9 @@ var rootCmd = &cobra.Command{
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Debug("init db successful")
 		defer memDB.Db.Close()
 
-		// ipvsadmSender init
-		ipvsadmSender := portadapter.NewIPVSWorkerEntity(ipvsAddressName, viperConfig.GetDuration(ipvsTimeoutName), logging)
-		if err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't create IPVSADM entity: %v", err)
-		}
-		if err := ipvsadmSender.IPVSFlush(); err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't flush data at start: %v", err)
-		}
-		// ipvsadmSender end
+		// FIXME: client connects
 
-		// dummySender init // TODO:
-		// dummySender end
-
-		hc := portadapter.NewHeathcheckEntity(memDB, ipvsadmSender, viperConfig.GetString(techInterfaceName), locker, false, logging)
+		hc := portadapter.NewHeathcheckEntity(memDB, ipvsadmSender, viperConfig.GetString(techInterfaceName), locker, false, dw, logging)
 
 		// init config end
 

@@ -3,6 +3,7 @@ Description=Software network load balancer service
 ConditionPathExists=/opt/lbost1ah/lbost1ah
 After=network.target
 Requires=lbost1ai.service
+Requires=lbost1ad.service
 
 [Service]
 Type=simple
