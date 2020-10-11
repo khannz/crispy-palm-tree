@@ -83,3 +83,12 @@ service IPVSWoker {
 message BoolData {
   bool isIn = 1;
 }
+
+service DummyWoker {
+  rpc AddToDummy (IpData) returns (EmptyPbService) {}
+  rpc RemoveFromDummy (IpData) returns (EmptyPbService) {}
+}
+
+message IpData {
+  string ip = 1;
+}
