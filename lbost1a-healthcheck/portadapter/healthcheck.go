@@ -483,7 +483,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.HC
 		isApplicationServerChangeState)
 
 	if !isCheckOk {
-		hc.logging.Debugf("one hc for application server %v fail: %v; is change state: %v",
+		hc.logging.Debugf("one hc for application server %v is up: %v; is server change state: %v",
 			hcService.HCApplicationServers[applicationServerInfoIndex].Address,
 			isApplicationServerUp,
 			isApplicationServerChangeState)
@@ -503,7 +503,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.HC
 		return
 	}
 
-	hc.logging.Debugf("one hc for application server %v ok: %v; is change state: %v",
+	hc.logging.Debugf("one hc for application server %v is up: %v; is server change state: %v",
 		hcService.HCApplicationServers[applicationServerInfoIndex].Address,
 		isApplicationServerUp,
 		isApplicationServerChangeState)
