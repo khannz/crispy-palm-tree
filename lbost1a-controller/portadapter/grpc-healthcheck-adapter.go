@@ -3,9 +3,10 @@ package portadapter
 import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-controller/grpc-transport"
 )
 
-func pbServiceToDomainServiceInfo(pbService *PbService) *domain.ServiceInfo {
+func pbServiceToDomainServiceInfo(pbService *transport.PbService) *domain.ServiceInfo {
 	domainApplicationServers := pbApplicationServersToDomainApplicationServers(pbService.PbApplicationServers)
 	alivedAppServersForUp := int(pbService.AlivedAppServersForUp)
 	hcRepeat, _ := ptypes.Duration(pbService.HcRepeat)
@@ -34,7 +35,7 @@ func pbServiceToDomainServiceInfo(pbService *PbService) *domain.ServiceInfo {
 	}
 }
 
-func pbApplicationServersToDomainApplicationServers(pbApplicationServers []*PbService_PbApplicationServer) []*domain.ApplicationServer {
+func pbApplicationServersToDomainApplicationServers(pbApplicationServers []*transport.PbService_PbApplicationServer) []*domain.ApplicationServer {
 	domainApplicationServers := make([]*domain.ApplicationServer, len(pbApplicationServers))
 	for i := range pbApplicationServers {
 		domainApplicationServers[i] = &domain.ApplicationServer{
@@ -48,9 +49,9 @@ func pbApplicationServersToDomainApplicationServers(pbApplicationServers []*PbSe
 	return domainApplicationServers
 }
 
-func domainServiceInfoToPbService(domainServiceInfo *domain.ServiceInfo) *PbService {
+func domainServiceInfoToPbService(domainServiceInfo *domain.ServiceInfo) *transport.PbService {
 	pbApplicationServers := domainApplicationServersToPbApplicationServers(domainServiceInfo.ApplicationServers)
-	return &PbService{
+	return &transport.PbService{
 		Address:               domainServiceInfo.Address,
 		Ip:                    domainServiceInfo.IP,
 		Port:                  domainServiceInfo.Port,
@@ -70,10 +71,10 @@ func domainServiceInfoToPbService(domainServiceInfo *domain.ServiceInfo) *PbServ
 	}
 }
 
-func domainApplicationServersToPbApplicationServers(domainApplicationServers []*domain.ApplicationServer) []*PbService_PbApplicationServer {
-	pbApplicationServer := make([]*PbService_PbApplicationServer, len(domainApplicationServers))
+func domainApplicationServersToPbApplicationServers(domainApplicationServers []*domain.ApplicationServer) []*transport.PbService_PbApplicationServer {
+	pbApplicationServer := make([]*transport.PbService_PbApplicationServer, len(domainApplicationServers))
 	for i := range domainApplicationServers {
-		pbApplicationServer[i] = &PbService_PbApplicationServer{
+		pbApplicationServer[i] = &transport.PbService_PbApplicationServer{
 			Address:   domainApplicationServers[i].Address,
 			Ip:        domainApplicationServers[i].IP,
 			Port:      domainApplicationServers[i].Port,

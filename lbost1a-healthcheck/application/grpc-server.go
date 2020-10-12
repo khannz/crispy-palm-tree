@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/grpc-transport"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -16,9 +17,9 @@ type GrpcServer struct {
 	facade  *HCFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	UnimplementedHCGetServer
-	UnimplementedHCNewServer
-	UnimplementedHCUpdateServer
+	transport.UnimplementedHCGetServer
+	transport.UnimplementedHCNewServer
+	transport.UnimplementedHCUpdateServer
 }
 
 func NewGrpcServer(address string,
@@ -32,7 +33,7 @@ func NewGrpcServer(address string,
 }
 
 // HCGetPbService implements portadapter.HCGetPbService
-func (gs *GrpcServer) HCGetPbService(ctx context.Context, incomePbService *PbService) (*PbService, error) {
+func (gs *GrpcServer) HCGetPbService(ctx context.Context, incomePbService *transport.PbService) (*transport.PbService, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
 	outHCService, err := gs.facade.HCGetService(incomeHCService)
 	if err != nil {
@@ -43,14 +44,14 @@ func (gs *GrpcServer) HCGetPbService(ctx context.Context, incomePbService *PbSer
 }
 
 // HCGetPbServiceS implements portadapter.HCGetPbServiceS
-func (gs *GrpcServer) HCGetPbServiceS(ctx context.Context, empty *EmptyPbService) (*PbServices, error) {
+func (gs *GrpcServer) HCGetPbServiceS(ctx context.Context, empty *transport.EmptyHcData) (*transport.PbServices, error) {
 	outHCServices, err := gs.facade.HCGetServices()
 	if err != nil {
 		return nil, err
 	}
 
-	m := map[string]*PbService{}
-	outPbServices := &PbServices{Services: m}
+	m := map[string]*transport.PbService{}
+	outPbServices := &transport.PbServices{Services: m}
 	for i := range outHCServices {
 		outPbService := domainHCServiceToPbService(outHCServices[i])
 		outPbServices.Services[outPbService.Address] = outPbService
@@ -59,15 +60,15 @@ func (gs *GrpcServer) HCGetPbServiceS(ctx context.Context, empty *EmptyPbService
 }
 
 // HCNewService implements portadapter.HCNewService
-func (gs *GrpcServer) HCNewPbService(ctx context.Context, incomePbService *PbService) (*EmptyPbService, error) {
+func (gs *GrpcServer) HCNewPbService(ctx context.Context, incomePbService *transport.PbService) (*transport.EmptyHcData, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
 	if err := gs.facade.HCNewService(incomeHCService); err != nil {
 		return nil, err
 	}
-	return &EmptyPbService{}, nil
+	return &transport.EmptyHcData{}, nil
 }
 
-func (gs *GrpcServer) HCUpdatePbService(ctx context.Context, incomePbService *PbService) (*PbService, error) {
+func (gs *GrpcServer) HCUpdatePbService(ctx context.Context, incomePbService *transport.PbService) (*transport.PbService, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
 	outHCService, err := gs.facade.HCUpdateService(incomeHCService)
 	if err != nil {
@@ -77,12 +78,12 @@ func (gs *GrpcServer) HCUpdatePbService(ctx context.Context, incomePbService *Pb
 	return outPbService, nil
 }
 
-func (gs *GrpcServer) HCRemovePbService(ctx context.Context, incomePbService *PbService) (*EmptyPbService, error) {
+func (gs *GrpcServer) HCRemovePbService(ctx context.Context, incomePbService *transport.PbService) (*transport.EmptyHcData, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
 	if err := gs.facade.HCRemoveService(incomeHCService); err != nil {
 		return nil, err
 	}
-	return &EmptyPbService{}, nil
+	return &transport.EmptyHcData{}, nil
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
@@ -91,9 +92,9 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	RegisterHCGetServer(grpcServer.grpcSrv, grpcServer)
-	RegisterHCNewServer(grpcServer.grpcSrv, grpcServer)
-	RegisterHCUpdateServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterHCGetServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterHCNewServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterHCUpdateServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.Serve(lis)
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/grpc-transport"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -13,7 +14,7 @@ type IPVSWorkerEntity struct {
 	address         string
 	grpcTimeout     time.Duration // TODO: somehow use tickers?
 	conn            *grpc.ClientConn
-	ipvsWokerClient IPVSWokerClient
+	ipvsWokerClient transport.IPVSWokerClient
 	logging         *logrus.Logger
 }
 
@@ -29,7 +30,7 @@ func (ipvsWorker *IPVSWorkerEntity) initGRPC() error {
 	if err != nil {
 		return fmt.Errorf("did not connect to grpc server: %v", err)
 	}
-	ipvsWorker.ipvsWokerClient = NewIPVSWokerClient(ipvsWorker.conn)
+	ipvsWorker.ipvsWokerClient = transport.NewIPVSWokerClient(ipvsWorker.conn)
 
 	return nil
 }
@@ -50,7 +51,7 @@ func (ipvsWorker *IPVSWorkerEntity) NewIPVSService(vip string,
 	applicationServers map[string]uint16,
 	id string) error {
 	convertedMap := convertMapToPbmap(applicationServers)
-	pbServiceInfo := &PbIPVSServices{
+	pbServiceInfo := &transport.PbIPVSServices{
 		Vip:                vip,
 		Port:               uint32(port),
 		RoutingType:        routingType,
@@ -77,7 +78,7 @@ func (ipvsWorker *IPVSWorkerEntity) AddIPVSApplicationServersForService(vip stri
 	applicationServers map[string]uint16,
 	id string) error {
 	convertedMap := convertMapToPbmap(applicationServers)
-	pbServiceInfo := &PbIPVSServices{
+	pbServiceInfo := &transport.PbIPVSServices{
 		Vip:                vip,
 		Port:               uint32(port),
 		RoutingType:        routingType,
@@ -100,7 +101,7 @@ func (ipvsWorker *IPVSWorkerEntity) RemoveIPVSService(vip string,
 	port uint16,
 	protocol uint16,
 	id string) error {
-	pbServiceInfo := &PbIPVSServices{
+	pbServiceInfo := &transport.PbIPVSServices{
 		Vip:  vip,
 		Port: uint32(port),
 		Id:   id,
@@ -122,7 +123,7 @@ func (ipvsWorker *IPVSWorkerEntity) RemoveIPVSApplicationServersFromService(vip 
 	applicationServers map[string]uint16,
 	id string) error {
 	convertedMap := convertMapToPbmap(applicationServers)
-	pbServiceInfo := &PbIPVSServices{
+	pbServiceInfo := &transport.PbIPVSServices{
 		Vip:                vip,
 		Port:               uint32(port),
 		RoutingType:        routingType,
@@ -146,7 +147,7 @@ func (ipvsWorker *IPVSWorkerEntity) IsIPVSApplicationServerInService(serviceIP s
 	oneApplicationServerMap map[string]uint16,
 	id string) (bool, error) {
 	convertedMap := convertMapToPbmap(oneApplicationServerMap)
-	pbServiceInfo := &PbIPVSServices{
+	pbServiceInfo := &transport.PbIPVSServices{
 		Vip:                serviceIP,
 		Port:               uint32(servicePort),
 		ApplicationServers: convertedMap,
@@ -167,7 +168,7 @@ func (ipvsWorker *IPVSWorkerEntity) IsIPVSApplicationServerInService(serviceIP s
 func (ipvsWorker *IPVSWorkerEntity) IPVSFlush() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err := ipvsWorker.ipvsWokerClient.IPVSFlush(ctx, &EmptyPbService{})
+	_, err := ipvsWorker.ipvsWokerClient.IPVSFlush(ctx, &transport.EmptyIpvsData{})
 	return err
 }
 

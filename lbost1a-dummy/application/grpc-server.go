@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-dummy/grpc-transport"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -16,7 +17,7 @@ type GrpcServer struct {
 	facade  *DummyFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	UnimplementedIPVSWokerServer
+	transport.UnimplementedDummyWokerServer
 }
 
 func NewGrpcServer(port string,
@@ -30,13 +31,13 @@ func NewGrpcServer(port string,
 }
 
 // AddToDummy implements portadapter.AddToDummy
-func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeIP *IpData) (*EmptyPbService, error) {
-	return &EmptyPbService{}, gs.facade.AddToDummy(incomeIP.Ip)
+func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeIP *transport.IpData) (*transport.EmptyDummyData, error) {
+	return &transport.EmptyDummyData{}, gs.facade.AddToDummy(incomeIP.Ip)
 }
 
 // RemoveFromDummy implements portadapter.RemoveFromDummy
-func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeIP *IpData) (*EmptyPbService, error) {
-	return &EmptyPbService{}, gs.facade.RemoveFromDummy(incomeIP.Ip)
+func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeIP *transport.IpData) (*transport.EmptyDummyData, error) {
+	return &transport.EmptyDummyData{}, gs.facade.RemoveFromDummy(incomeIP.Ip)
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
@@ -45,7 +46,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	RegisterIPVSWokerServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterDummyWokerServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.Serve(lis)
 	return nil
 }

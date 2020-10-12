@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/grpc-transport"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -13,7 +14,7 @@ type DummyWorkerEntity struct {
 	address          string
 	grpcTimeout      time.Duration // TODO: somehow use tickers?
 	conn             *grpc.ClientConn
-	dummyWokerClient DummyWokerClient
+	dummyWokerClient transport.DummyWokerClient
 	logging          *logrus.Logger
 }
 
@@ -29,7 +30,7 @@ func (ipvsWorker *DummyWorkerEntity) initGRPC() error {
 	if err != nil {
 		return fmt.Errorf("did not connect to grpc server: %v", err)
 	}
-	ipvsWorker.dummyWokerClient = NewDummyWokerClient(ipvsWorker.conn)
+	ipvsWorker.dummyWokerClient = transport.NewDummyWokerClient(ipvsWorker.conn)
 
 	return nil
 }
@@ -37,7 +38,7 @@ func (ipvsWorker *DummyWorkerEntity) initGRPC() error {
 func (ipvsWorker *DummyWorkerEntity) AddToDummy(ip string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err := ipvsWorker.dummyWokerClient.AddToDummy(ctx, &IpData{Ip: ip})
+	_, err := ipvsWorker.dummyWokerClient.AddToDummy(ctx, &transport.IpData{Ip: ip})
 
 	return err
 }
@@ -45,7 +46,7 @@ func (ipvsWorker *DummyWorkerEntity) AddToDummy(ip string) error {
 func (ipvsWorker *DummyWorkerEntity) RemoveFromDummy(ip string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err := ipvsWorker.dummyWokerClient.RemoveFromDummy(ctx, &IpData{Ip: ip})
+	_, err := ipvsWorker.dummyWokerClient.RemoveFromDummy(ctx, &transport.IpData{Ip: ip})
 	return err
 }
 

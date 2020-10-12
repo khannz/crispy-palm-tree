@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/khannz/crispy-palm-tree/lbost1a-controller/domain"
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-controller/grpc-transport"
 	"github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
 )
@@ -14,9 +15,9 @@ type HeathcheckEntity struct {
 	address        string
 	grpcTimeout    time.Duration // TODO: somehow use tickers?
 	conn           *grpc.ClientConn
-	hcGetClient    HCGetClient
-	hcNewClient    HCNewClient
-	hcUpdateClient HCUpdateClient
+	hcGetClient    transport.HCGetClient
+	hcNewClient    transport.HCNewClient
+	hcUpdateClient transport.HCUpdateClient
 	logging        *logrus.Logger
 }
 
@@ -32,9 +33,9 @@ func (hc *HeathcheckEntity) initGRPC() error {
 	if err != nil {
 		return fmt.Errorf("did not connect to grpc server: %v", err)
 	}
-	hc.hcGetClient = NewHCGetClient(hc.conn)
-	hc.hcNewClient = NewHCNewClient(hc.conn)
-	hc.hcUpdateClient = NewHCUpdateClient(hc.conn)
+	hc.hcGetClient = transport.NewHCGetClient(hc.conn)
+	hc.hcNewClient = transport.NewHCNewClient(hc.conn)
+	hc.hcUpdateClient = transport.NewHCUpdateClient(hc.conn)
 
 	return nil
 }
@@ -96,7 +97,7 @@ func (hc *HeathcheckEntity) GetServicesState() ([]*domain.ServiceInfo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	pbUpdatedServicesInfo, err := hc.hcGetClient.HCGetPbServiceS(ctx, &EmptyPbService{})
+	pbUpdatedServicesInfo, err := hc.hcGetClient.HCGetPbServiceS(ctx, &transport.EmptyHcData{})
 	if err != nil {
 		return nil, fmt.Errorf("can't get services from healtchecks: %v", err)
 	}

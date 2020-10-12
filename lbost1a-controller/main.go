@@ -1,6 +1,7 @@
 package main
 
-//go:generate ./swag init -g application/rest.go
+//go:generate swag init -g application/rest-main.go
+//go:generate protoc --go_out=./grpc-transport/ --proto_path=../ --go-grpc_out=./grpc-transport/ --proto_path=../ controller-and-healthcheck.proto
 
 import run "github.com/khannz/crispy-palm-tree/lbost1a-controller/cmd"
 

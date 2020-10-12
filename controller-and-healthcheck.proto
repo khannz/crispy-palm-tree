@@ -1,0 +1,59 @@
+syntax = "proto3";
+package transport;
+
+import "google/protobuf/duration.proto";
+
+
+service HCGet {
+  rpc HCGetPbService (PbService) returns (PbService) {}
+  rpc HCGetPbServiceS (EmptyHcData) returns (PbServices) {}
+}
+
+service HCNew{
+  rpc HCNewPbService (PbService) returns (EmptyHcData) {}
+}
+
+service HCUpdate{
+  rpc HCUpdatePbService (PbService) returns (PbService) {}
+  rpc HCRemovePbService (PbService) returns (EmptyHcData) {}
+}
+
+// TODO: that and others pb models
+// message GetPbService {
+//   string address = 1;
+// }
+
+message EmptyHcData {
+}
+
+message PbService {
+  string address = 1;
+  string ip = 2;
+  string port = 3;
+  bool isUp = 4;
+  string balanceType = 5;
+  string routingType = 6;
+  string protocol = 7;
+  int32 alivedAppServersForUp = 8;
+  string hcType = 9;
+  google.protobuf.Duration hcRepeat = 10;
+  google.protobuf.Duration hcTimeout = 11;
+  map<string, string> hcUserDefinedData = 13;
+  bool hcNearFieldsMode = 12;
+  int32 hcRetriesForUP = 14;
+  int32 hcRetriesForDown = 15;
+
+  message PbApplicationServer {
+    string address = 1;
+    string ip = 2;
+    string port = 3;
+    bool isUp = 4;
+    string hcAddress = 5;
+  }
+
+  repeated PbApplicationServer pbApplicationServers = 16;
+}
+
+message PbServices {
+    map<string, PbService> services = 1;
+}

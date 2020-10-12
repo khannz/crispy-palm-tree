@@ -1,0 +1,15 @@
+syntax = "proto3";
+package transport;
+
+
+message EmptyDummyData {
+}
+
+service DummyWoker {
+  rpc AddToDummy (IpData) returns (EmptyDummyData) {}
+  rpc RemoveFromDummy (IpData) returns (EmptyDummyData) {}
+}
+
+message IpData {
+  string ip = 1;
+}

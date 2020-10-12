@@ -1,0 +1,28 @@
+syntax = "proto3";
+package transport;
+
+message EmptyIpvsData {
+}
+
+message PbIPVSServices {
+  string vip = 1;
+  uint32 port = 2; // uint16
+  uint32 routingType = 3;
+  string balanceType = 4;
+  uint32 protocol = 5; // uint16
+  map<string, uint32> applicationServers = 6;
+  string id = 7;
+}
+
+service IPVSWoker {
+  rpc NewIPVSService (PbIPVSServices) returns (EmptyIpvsData) {}
+  rpc AddIPVSApplicationServersForService (PbIPVSServices) returns (EmptyIpvsData) {}
+  rpc RemoveIPVSService (PbIPVSServices) returns (EmptyIpvsData) {}
+  rpc RemoveIPVSApplicationServersFromService (PbIPVSServices) returns (EmptyIpvsData) {}
+  rpc IsIPVSApplicationServerInService (PbIPVSServices) returns (BoolData) {}
+  rpc IPVSFlush (EmptyIpvsData) returns (EmptyIpvsData) {}
+}
+
+message BoolData {
+  bool isIn = 1;
+}

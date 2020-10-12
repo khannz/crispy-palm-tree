@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-ipvs/grpc-transport"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -16,7 +17,7 @@ type GrpcServer struct {
 	facade  *IPVSFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	UnimplementedIPVSWokerServer
+	transport.UnimplementedIPVSWokerServer
 }
 
 func NewGrpcServer(address string,
@@ -38,11 +39,11 @@ func convertPbApplicationServersToInternal(pbApplicationServers map[string]uint3
 }
 
 // NewIPVSService implements portadapter.NewIPVSService
-func (gs *GrpcServer) NewIPVSService(ctx context.Context, incomeIPVSService *PbIPVSServices) (*EmptyPbService, error) {
+func (gs *GrpcServer) NewIPVSService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
-	return &EmptyPbService{}, gs.facade.NewIPVSService(incomeIPVSService.Vip,
+	return &transport.EmptyIpvsData{}, gs.facade.NewIPVSService(incomeIPVSService.Vip,
 		convertedPort,
 		incomeIPVSService.RoutingType,
 		incomeIPVSService.BalanceType,
@@ -53,11 +54,11 @@ func (gs *GrpcServer) NewIPVSService(ctx context.Context, incomeIPVSService *PbI
 }
 
 // AddIPVSApplicationServersForService implements portadapter.AddIPVSApplicationServersForService
-func (gs *GrpcServer) AddIPVSApplicationServersForService(ctx context.Context, incomeIPVSService *PbIPVSServices) (*EmptyPbService, error) {
+func (gs *GrpcServer) AddIPVSApplicationServersForService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
-	return &EmptyPbService{}, gs.facade.AddIPVSApplicationServersForService(incomeIPVSService.Vip,
+	return &transport.EmptyIpvsData{}, gs.facade.AddIPVSApplicationServersForService(incomeIPVSService.Vip,
 		convertedPort,
 		incomeIPVSService.RoutingType,
 		incomeIPVSService.BalanceType,
@@ -68,10 +69,10 @@ func (gs *GrpcServer) AddIPVSApplicationServersForService(ctx context.Context, i
 }
 
 // RemoveIPVSService implements portadapter.RemoveIPVSService
-func (gs *GrpcServer) RemoveIPVSService(ctx context.Context, incomeIPVSService *PbIPVSServices) (*EmptyPbService, error) {
+func (gs *GrpcServer) RemoveIPVSService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
-	return &EmptyPbService{}, gs.facade.RemoveIPVSService(incomeIPVSService.Vip,
+	return &transport.EmptyIpvsData{}, gs.facade.RemoveIPVSService(incomeIPVSService.Vip,
 		convertedPort,
 		convertedProtocol,
 		incomeIPVSService.Id,
@@ -79,11 +80,11 @@ func (gs *GrpcServer) RemoveIPVSService(ctx context.Context, incomeIPVSService *
 }
 
 // RemoveIPVSApplicationServersFromService implements portadapter.RemoveIPVSApplicationServersFromService
-func (gs *GrpcServer) RemoveIPVSApplicationServersFromService(ctx context.Context, incomeIPVSService *PbIPVSServices) (*EmptyPbService, error) {
+func (gs *GrpcServer) RemoveIPVSApplicationServersFromService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
-	return &EmptyPbService{}, gs.facade.RemoveIPVSApplicationServersFromService(incomeIPVSService.Vip,
+	return &transport.EmptyIpvsData{}, gs.facade.RemoveIPVSApplicationServersFromService(incomeIPVSService.Vip,
 		convertedPort,
 		incomeIPVSService.RoutingType,
 		incomeIPVSService.BalanceType,
@@ -94,7 +95,7 @@ func (gs *GrpcServer) RemoveIPVSApplicationServersFromService(ctx context.Contex
 }
 
 // IsIPVSApplicationServerInService implements portadapter.IsIPVSApplicationServerInService
-func (gs *GrpcServer) IsIPVSApplicationServerInService(ctx context.Context, incomeIPVSService *PbIPVSServices) (*BoolData, error) {
+func (gs *GrpcServer) IsIPVSApplicationServerInService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.BoolData, error) {
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
 	isIn, err := gs.facade.IsIPVSApplicationServerInService(
@@ -104,14 +105,14 @@ func (gs *GrpcServer) IsIPVSApplicationServerInService(ctx context.Context, inco
 		incomeIPVSService.Id,
 	)
 	if err != nil {
-		return &BoolData{IsIn: isIn}, err
+		return &transport.BoolData{IsIn: isIn}, err
 	}
-	return &BoolData{IsIn: isIn}, nil
+	return &transport.BoolData{IsIn: isIn}, nil
 }
 
 // IPVSFlush implements portadapter.IPVSFlush
-func (gs *GrpcServer) IPVSFlush(ctx context.Context, incomeIPVSService *EmptyPbService) (*EmptyPbService, error) {
-	return &EmptyPbService{}, gs.facade.IPVSFlush()
+func (gs *GrpcServer) IPVSFlush(ctx context.Context, incomeIPVSService *transport.EmptyIpvsData) (*transport.EmptyIpvsData, error) {
+	return &transport.EmptyIpvsData{}, gs.facade.IPVSFlush()
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
@@ -120,7 +121,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	RegisterIPVSWokerServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterIPVSWokerServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.Serve(lis)
 	return nil
 }
