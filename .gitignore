@@ -15,3 +15,6 @@ lbost1ah
 lbost1ai
 lbost1ad
 *.pb.go
+*.txt
+*.tar.gz
+*.rpm
