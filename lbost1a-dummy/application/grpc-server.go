@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+const grpcDummyName = "dummy"
+
 // GrpcServer is used to implement portadapter.HCGetService.
 type GrpcServer struct {
 	port    string
@@ -32,12 +34,44 @@ func NewGrpcServer(port string,
 
 // AddToDummy implements portadapter.AddToDummy
 func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyDummyData, error) {
-	return &transport.EmptyDummyData{}, gs.facade.AddToDummy(incomeDummyData.Ip, incomeDummyData.Id)
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcDummyName,
+		"event id": incomeDummyData.Id,
+	}).Infof("got job add to dummy service %v", incomeDummyData)
+	if err := gs.facade.AddToDummy(incomeDummyData.Ip, incomeDummyData.Id); err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcDummyName,
+			"event id": incomeDummyData.Id,
+		}).Errorf("failed job add to dummy service %v", incomeDummyData)
+		return &transport.EmptyDummyData{}, err
+	}
+
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcDummyName,
+		"event id": incomeDummyData.Id,
+	}).Infof("completed job add to dummy service %v", incomeDummyData)
+	return &transport.EmptyDummyData{}, nil
 }
 
 // RemoveFromDummy implements portadapter.RemoveFromDummy
 func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyDummyData, error) {
-	return &transport.EmptyDummyData{}, gs.facade.RemoveFromDummy(incomeDummyData.Ip, incomeDummyData.Id)
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcDummyName,
+		"event id": incomeDummyData.Id,
+	}).Infof("got job remove from dummy service %v", incomeDummyData)
+	if err := gs.facade.RemoveFromDummy(incomeDummyData.Ip, incomeDummyData.Id); err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcDummyName,
+			"event id": incomeDummyData.Id,
+		}).Errorf("failed job remove from dummy service %v", incomeDummyData)
+		return &transport.EmptyDummyData{}, err
+	}
+
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcDummyName,
+		"event id": incomeDummyData.Id,
+	}).Infof("completed job remove from dummy service %v", incomeDummyData)
+	return &transport.EmptyDummyData{}, nil
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
