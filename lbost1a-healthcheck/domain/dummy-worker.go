@@ -2,6 +2,6 @@ package domain
 
 // DummyWorker ...
 type DummyWorker interface {
-	AddToDummy(string) error
-	RemoveFromDummy(string) error
+	AddToDummy(string, string) error
+	RemoveFromDummy(string, string) error
 }

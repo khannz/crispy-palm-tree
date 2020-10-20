@@ -30,6 +30,7 @@ type HeathcheckEntity struct {
 	locker             *domain.Locker
 	dw                 domain.DummyWorker
 	isMockMode         bool
+	idGenerator        domain.IDgenerator
 	logging            *logrus.Logger
 	announcedServices  map[string]int
 }
@@ -41,6 +42,7 @@ func NewHeathcheckEntity(cacheStorage *StorageEntity,
 	locker *domain.Locker,
 	isMockMode bool,
 	dw domain.DummyWorker,
+	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *HeathcheckEntity {
 	ti, _, _ := net.ParseCIDR(rawTechInterface + "/32")
 
@@ -52,6 +54,7 @@ func NewHeathcheckEntity(cacheStorage *StorageEntity,
 		locker:             locker,
 		dw:                 dw,
 		isMockMode:         isMockMode,
+		idGenerator:        idGenerator,
 		logging:            logging,
 		announcedServices:  make(map[string]int),
 	}
@@ -63,34 +66,32 @@ type UnknownDataStruct struct {
 	UnknowArrayOfMaps []map[string]string
 }
 
-func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) bool {
+func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) {
 	if _, inMap := hc.announcedServices[serviceIP]; inMap {
-		return true // already in map
+		hc.announcedServices[serviceIP]++
+		return
 	}
 	hc.announcedServices[serviceIP] = 0 // add new service to annonced pool
-	return false
 }
 
-// StartHealthchecksForServices ...
-func (hc *HeathcheckEntity) StartHealthchecksForServices(hcServices []*domain.HCService) error {
-	hc.Lock()
-	defer hc.Unlock()
+// // StartHealthchecksForServices ...
+// func (hc *HeathcheckEntity) StartHealthchecksForServices(hcServices []*domain.HCService, id string) error {
+// 	hc.Lock()
+// 	defer hc.Unlock()
 
-	for _, hcService := range hcServices {
-		hc.enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
-		hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
-		alreadyAnnounced := hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
-		if !alreadyAnnounced {
-			if err := hc.addServiceToIPVS(hcService); err != nil {
-				return fmt.Errorf("can't add srvice to IPVS: %v", err)
-			}
-		}
-		go hc.startHealthchecksForCurrentService(hcService)
-	}
-	return nil
-}
+// 	for _, hcService := range hcServices {
+// 		hc.enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
+// 		hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
+// 		hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
+// 		if err := hc.addServiceToIPVS(hcService, id); err != nil {
+// 			return fmt.Errorf("can't add srvice to IPVS: %v", err)
+// 		}
+// 		go hc.startHealthchecksForCurrentService(hcService)
+// 	}
+// 	return nil
+// }
 
-func (hc *HeathcheckEntity) addServiceToIPVS(hcService *domain.HCService) error {
+func (hc *HeathcheckEntity) addServiceToIPVS(hcService *domain.HCService, id string) error {
 	vip, port, routingType, balanceType, protocol, err := PrepareServiceForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -105,24 +106,22 @@ func (hc *HeathcheckEntity) addServiceToIPVS(hcService *domain.HCService) error 
 		balanceType,
 		protocol,
 		nil,
-		healthcheckID); err != nil {
+		id); err != nil {
 		return fmt.Errorf("error when ipvsadm create service: %v", err)
 	}
 	return nil
 }
 
 // NewServiceToHealtchecks - add service for healthchecks
-func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *domain.HCService) error {
+func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *domain.HCService, id string) error {
 	hc.Lock()
 	defer hc.Unlock()
 
 	hc.enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
 	hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
-	alreadyAnnounced := hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
-	if !alreadyAnnounced {
-		if err := hc.addServiceToIPVS(hcService); err != nil {
-			return fmt.Errorf("can't add srvice to IPVS: %v", err)
-		}
+	hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
+	if err := hc.addServiceToIPVS(hcService, id); err != nil {
+		return fmt.Errorf("can't add srvice to IPVS: %v", err)
 	}
 	go hc.startHealthchecksForCurrentService(hcService)
 	return nil
@@ -133,12 +132,14 @@ func (hc *HeathcheckEntity) removeServiceFromMayAnnouncedServices(serviceIP stri
 	if isFinded {
 		if hc.announcedServices[serviceIP] == 0 {
 			delete(hc.announcedServices, serviceIP)
+			return
 		}
+		hc.announcedServices[serviceIP]--
 	}
 }
 
 // RemoveServiceFromHealtchecks will work until removed
-func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.HCService) error {
+func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.HCService, id string) error {
 	hc.Lock()
 	indexForRemove, isFinded := hc.findServiceInHealtcheckSlice(hcService.Address)
 	hc.Unlock()
@@ -146,12 +147,12 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.HCSer
 		hc.logging.Tracef("send stop checks for service %v", hcService.Address)
 		hc.runningHeathchecks[indexForRemove].HCStop <- struct{}{}
 		<-hc.runningHeathchecks[indexForRemove].HCStopped
-		hc.annonceLogic(hcService.IP, false) // lock hc and dummy; may remove annonce
+		hc.annonceLogic(hcService.IP, false, id) // lock hc and dummy; may remove annonce
 		hc.Lock()
 		hc.removeServiceFromMayAnnouncedServices(hcService.IP) // hc must be locked
 		hc.runningHeathchecks = append(hc.runningHeathchecks[:indexForRemove], hc.runningHeathchecks[indexForRemove+1:]...)
 		hc.Unlock()
-		if err := hc.removeServiceFromIPVS(hcService); err != nil {
+		if err := hc.removeServiceFromIPVS(hcService, id); err != nil {
 			return fmt.Errorf("can't add srvice to IPVS: %v", err)
 		}
 		hc.logging.Tracef("get checks stopped from service %v", hcService.Address)
@@ -162,7 +163,7 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.HCSer
 		hcService.Address)
 }
 
-func (hc *HeathcheckEntity) removeServiceFromIPVS(hcService *domain.HCService) error {
+func (hc *HeathcheckEntity) removeServiceFromIPVS(hcService *domain.HCService, id string) error {
 	vip, port, _, _, protocol, err := PrepareServiceForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -174,14 +175,14 @@ func (hc *HeathcheckEntity) removeServiceFromIPVS(hcService *domain.HCService) e
 	if err := hc.ipvsadm.RemoveIPVSService(vip,
 		port,
 		protocol,
-		healthcheckID); err != nil {
+		id); err != nil {
 		return fmt.Errorf("error when ipvsadm remove service: %v", err)
 	}
 	return nil
 }
 
 // UpdateServiceAtHealtchecks ...
-func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.HCService) (*domain.HCService, error) {
+func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.HCService, id string) (*domain.HCService, error) {
 	hc.Lock()
 	updateIndex, isFinded := hc.findServiceInHealtcheckSlice(hcService.Address) // find service for update at hc services
 	hc.Unlock()
@@ -202,11 +203,12 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.HCServi
 				if hc.isApplicationServerInIPSVService(hcService.IP,
 					hcService.Port,
 					applicationServersForRemove[i].IP,
-					applicationServersForRemove[i].Port) {
-					if err := hc.excludeApplicationServerFromIPVS(hcService, applicationServersForRemove[i]); err != nil {
+					applicationServersForRemove[i].Port,
+					id) {
+					if err := hc.excludeApplicationServerFromIPVS(hcService, applicationServersForRemove[i], id); err != nil {
 						hc.logging.WithFields(logrus.Fields{
 							"entity":   healthcheckName,
-							"event id": healthcheckID,
+							"event id": id,
 						}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
 					}
 				}
@@ -319,7 +321,8 @@ func (hc *HeathcheckEntity) findServiceInHealtcheckSlice(address string) (int, b
 
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain.HCService) {
 	// first run hc at create entity
-	hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
+	idForCheckService := hc.idGenerator.NewID()
+	hc.CheckApplicationServersInService(hcService, idForCheckService) // lock hc, hcService, dummy
 	hc.logging.Infof("hc service: %v", hcService)
 	ticker := time.NewTicker(hcService.HCRepeat)
 	for {
@@ -329,26 +332,27 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain
 			hcService.HCStopped <- struct{}{}
 			return
 		case <-ticker.C:
-			hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
+			hc.CheckApplicationServersInService(hcService, idForCheckService) // lock hc, hcService, dummy
 		}
 	}
 }
 
 // CheckApplicationServersInService ...
-func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.HCService) {
+func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.HCService, id string) {
 	fs := &failedApplicationServers{wg: new(sync.WaitGroup)} // TODO: move wg to HCService
 
 	for i := range hcService.HCApplicationServers {
 		fs.wg.Add(1)
 		go hc.checkApplicationServerInService(hcService,
 			fs,
-			i) // lock hcService
+			i,
+			id) // lock hcService
 	}
 	fs.wg.Wait()
 	percentageUp := percentageOfUp(len(hcService.HCApplicationServers), fs.count)
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
-		"event id": healthcheckID,
+		"event id": id,
 	}).Debugf("Heathcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
 		hcService.Address,
 		fs.count,
@@ -361,35 +365,32 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.H
 	if !hcService.IsUp && isServiceUp {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Warnf("service %v is up now", hcService.Address)
 		hcService.IsUp = true
-		hc.annonceLogic(hcService.IP, hcService.IsUp) // lock hc and dummy
+		hc.annonceLogic(hcService.IP, hcService.IsUp, id) // lock hc and dummy
 	} else if hcService.IsUp && !isServiceUp {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Warnf("service %v is down now", hcService.Address)
 		hcService.IsUp = false
-		hc.annonceLogic(hcService.IP, hcService.IsUp) // lock hc and dummy
+		hc.annonceLogic(hcService.IP, hcService.IsUp, id) // lock hc and dummy
 	} else {
 		hc.logging.Debugf("service state not changed: is up: %v", hcService.IsUp)
 	}
-	hc.updateInStorage(hcService)
+	hc.updateInStorage(hcService, id)
 }
 
 // annonceLogic - used when service change state
-func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState bool) {
+func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState bool, id string) {
 	hc.Lock()
 	defer hc.Unlock()
 	isServiceAnoncedNow := hc.announcedServices[serviceIP] > 0
 	//
 	if isServiceAnoncedNow {
 		if newIsUpServiceState {
-			if i, inMap := hc.announcedServices[serviceIP]; inMap {
-				hc.announcedServices[serviceIP] = i + 1
-				return
-			}
+			hc.addNewServiceToMayAnnouncedServices(serviceIP)
 			// log error
 			return
 		}
@@ -397,10 +398,10 @@ func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState b
 		if i, inMap := hc.announcedServices[serviceIP]; inMap {
 			hc.announcedServices[serviceIP] = i - 1
 			if hc.announcedServices[serviceIP] == 0 {
-				if err := hc.dw.RemoveFromDummy(serviceIP); err != nil {
+				if err := hc.dw.RemoveFromDummy(serviceIP, id); err != nil {
 					hc.logging.WithFields(logrus.Fields{
 						"entity":   healthcheckName,
-						"event id": healthcheckID,
+						"event id": id,
 					}).Errorf("remove from dummy fail: %v", err)
 				}
 				return
@@ -413,10 +414,10 @@ func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState b
 	if newIsUpServiceState {
 		if i, inMap := hc.announcedServices[serviceIP]; inMap {
 			hc.announcedServices[serviceIP] = i + 1 // set 1, i=0 here
-			if err := hc.dw.AddToDummy(serviceIP); err != nil {
+			if err := hc.dw.AddToDummy(serviceIP, id); err != nil {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":   healthcheckName,
-					"event id": healthcheckID,
+					"event id": id,
 				}).Errorf("add to dummy fail: %v", err)
 			}
 			return
@@ -427,19 +428,20 @@ func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState b
 	// !isServiceAnoncedNow && !newIsUpServiceState return
 }
 
-func (hc *HeathcheckEntity) updateInStorage(hcService *domain.HCService) {
-	errUpdataCache := hc.cacheStorage.UpdateHCService(hcService, healthcheckID)
+func (hc *HeathcheckEntity) updateInStorage(hcService *domain.HCService, id string) {
+	errUpdataCache := hc.cacheStorage.UpdateHCService(hcService, id)
 	if errUpdataCache != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Errorf("Heathcheck update info in cache fail: %v", errUpdataCache)
 	}
 }
 
 func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.HCService,
 	fs *failedApplicationServers,
-	applicationServerInfoIndex int) bool {
+	applicationServerInfoIndex int,
+	id string) bool {
 	switch hcService.HCType {
 	case "tcp":
 		return hc.tcpCheckOk(hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
@@ -459,7 +461,7 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.HCService
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Errorf("Heathcheck error: unknown healtcheck type: %v", hcService.HCType)
 		return false // must never will bfe. all data already validated
 	}
@@ -467,16 +469,17 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.HCService
 
 func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.HCService,
 	fs *failedApplicationServers,
-	applicationServerInfoIndex int) {
+	applicationServerInfoIndex int,
+	id string) {
 	// TODO: still can be refactored
 	defer fs.wg.Done()
-	isCheckOk := hc.isApplicationServerOkNow(hcService, fs, applicationServerInfoIndex)
+	isCheckOk := hc.isApplicationServerOkNow(hcService, fs, applicationServerInfoIndex, id)
 	hc.logging.Tracef("is check ok for server %v: %v",
 		hcService.HCApplicationServers[applicationServerInfoIndex].Address,
 		isCheckOk)
 
-	hc.moveApplicationServerStateIndexes(hcService, applicationServerInfoIndex, isCheckOk)                                                 // lock hcService
-	isApplicationServerUp, isApplicationServerChangeState := hc.isApplicationServerUpAndStateChange(hcService, applicationServerInfoIndex) // lock hcService
+	hc.moveApplicationServerStateIndexes(hcService, applicationServerInfoIndex, isCheckOk)                                                     // lock hcService
+	isApplicationServerUp, isApplicationServerChangeState := hc.isApplicationServerUpAndStateChange(hcService, applicationServerInfoIndex, id) // lock hcService
 	hc.logging.Tracef("for server %v:isApplicationServerUp: %v,isApplicationServerChangeState: %v ",
 		hcService.HCApplicationServers[applicationServerInfoIndex].Address,
 		isApplicationServerUp,
@@ -492,10 +495,10 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.HC
 			fs.count++
 			fs.Unlock()
 			if isApplicationServerChangeState {
-				if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex]); err != nil {
+				if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex], id); err != nil {
 					hc.logging.WithFields(logrus.Fields{
 						"entity":   healthcheckName,
-						"event id": healthcheckID,
+						"event id": id,
 					}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
 				}
 			}
@@ -514,10 +517,10 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.HC
 	}
 
 	if isApplicationServerUp && isApplicationServerChangeState {
-		if err := hc.inclideApplicationServerInIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex]); err != nil {
+		if err := hc.inclideApplicationServerInIPVS(hcService, hcService.HCApplicationServers[applicationServerInfoIndex], id); err != nil {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":   healthcheckName,
-				"event id": healthcheckID,
+				"event id": id,
 			}).Errorf("Heathcheck error: inclide application server in IPVS error: %v", err)
 		}
 		return
@@ -525,7 +528,8 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.HC
 }
 
 func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domain.HCService,
-	applicationServerInfoIndex int) (bool, bool) {
+	applicationServerInfoIndex int,
+	id string) (bool, bool) {
 	//return isUp and isChagedState booleans
 	hcService.Lock()
 	defer hcService.Unlock()
@@ -541,7 +545,7 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domai
 		}
 		hcService.HCApplicationServers[applicationServerInfoIndex].IsUp = false // if all hc fail at RetriesCounterForDown - change state
 		hc.logging.WithFields(logrus.Fields{
-			"event id": healthcheckID,
+			"event id": id,
 		}).Warnf("at service %v real server %v DOWN", hcService.Address,
 			hcService.HCApplicationServers[applicationServerInfoIndex].Address)
 		return false, true
@@ -557,7 +561,7 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domai
 	// all RetriesCounterForUp true
 	hcService.HCApplicationServers[applicationServerInfoIndex].IsUp = true // if all hc fail at RetriesCounterForDown - change state
 	hc.logging.WithFields(logrus.Fields{
-		"event id": healthcheckID,
+		"event id": id,
 	}).Warnf("at service %v real server %v UP", hcService.Address,
 		hcService.HCApplicationServers[applicationServerInfoIndex].Address)
 	return true, true
@@ -588,7 +592,7 @@ func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(hcService *domain.
 }
 
 // TODO: much faster if we have func isApplicationServersInIPSVSerrvice, return []int (indexes for app srv not fount)
-func (hc *HeathcheckEntity) isApplicationServerInIPSVService(hcServiceIP, rawHcServicePort, applicationServerIP, rawApplicationServerPort string) bool {
+func (hc *HeathcheckEntity) isApplicationServerInIPSVService(hcServiceIP, rawHcServicePort, applicationServerIP, rawApplicationServerPort string, id string) bool {
 	hcServicePort, err := stringToUINT16(rawHcServicePort)
 	if err != nil {
 		hc.logging.Errorf("can't convert port to uint16: %v", err)
@@ -603,7 +607,7 @@ func (hc *HeathcheckEntity) isApplicationServerInIPSVService(hcServiceIP, rawHcS
 	isApplicationServerInService, err := hc.ipvsadm.IsIPVSApplicationServerInService(hcServiceIP,
 		hcServicePort,
 		oneAppSrvMap,
-		"tmp fake id")
+		id)
 	if err != nil {
 		hc.logging.Errorf("can't check is application server in service: %v", err)
 		return false
@@ -612,7 +616,8 @@ func (hc *HeathcheckEntity) isApplicationServerInIPSVService(hcServiceIP, rawHcS
 }
 
 func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *domain.HCService,
-	applicationServer *domain.HCApplicationServer) error {
+	applicationServer *domain.HCApplicationServer,
+	id string) error {
 	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -628,14 +633,15 @@ func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *domain.H
 		balanceType,
 		protocol,
 		applicationServers,
-		healthcheckID); err != nil {
+		id); err != nil {
 		return fmt.Errorf("Error when ipvsadm remove application servers from service: %v", err)
 	}
 	return nil
 }
 
 func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *domain.HCService,
-	applicationServer *domain.HCApplicationServer) error {
+	applicationServer *domain.HCApplicationServer,
+	id string) error {
 	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -667,7 +673,7 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *domain.HCS
 			balanceType,
 			protocol,
 			applicationServers,
-			healthcheckID); err != nil {
+			id); err != nil {
 			return fmt.Errorf("Error when ipvsadm add application servers for service: %v", err)
 		}
 	}
@@ -744,7 +750,7 @@ func findApplicationServer(address string, oldApplicationServers []*domain.HCApp
 	return findedIndex, isFinded
 }
 
-func (hc *HeathcheckEntity) GetServiceState(hcService *domain.HCService) (*domain.HCService, error) {
+func (hc *HeathcheckEntity) GetServiceState(hcService *domain.HCService, id string) (*domain.HCService, error) {
 	hc.Lock()
 	defer hc.Unlock()
 	for _, runHC := range hc.runningHeathchecks {
@@ -779,7 +785,7 @@ func copyHCService(hcService *domain.HCService) *domain.HCService {
 	}
 }
 
-func (hc *HeathcheckEntity) GetServicesState() ([]*domain.HCService, error) {
+func (hc *HeathcheckEntity) GetServicesState(id string) ([]*domain.HCService, error) {
 	hc.Lock()
 	defer hc.Unlock()
 	if len(hc.runningHeathchecks) == 0 {

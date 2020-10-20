@@ -12,4 +12,5 @@ service DummyWoker {
 
 message IpData {
   string ip = 1;
+  string id = 2;
 }

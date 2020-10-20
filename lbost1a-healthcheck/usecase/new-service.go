@@ -12,8 +12,8 @@ func NewNewServiceEntity(hc domain.HCWorker,
 	return &NewServiceEntity{hc: hc, locker: locker}
 }
 
-func (newServiceEntity *NewServiceEntity) NewService(service *domain.HCService) error {
+func (newServiceEntity *NewServiceEntity) NewService(service *domain.HCService, id string) error {
 	newServiceEntity.locker.Lock()
 	defer newServiceEntity.locker.Unlock()
-	return newServiceEntity.hc.NewServiceToHealtchecks(service)
+	return newServiceEntity.hc.NewServiceToHealtchecks(service, id)
 }

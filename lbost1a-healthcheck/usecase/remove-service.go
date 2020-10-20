@@ -12,8 +12,8 @@ func NewRemoveServiceEntity(hc domain.HCWorker,
 	return &RemoveServiceEntity{hc: hc, locker: locker}
 }
 
-func (removeServiceEntity *RemoveServiceEntity) RemoveService(service *domain.HCService) error {
+func (removeServiceEntity *RemoveServiceEntity) RemoveService(service *domain.HCService, id string) error {
 	removeServiceEntity.locker.Lock()
 	defer removeServiceEntity.locker.Unlock()
-	return removeServiceEntity.hc.RemoveServiceFromHealtchecks(service)
+	return removeServiceEntity.hc.RemoveServiceFromHealtchecks(service, id)
 }

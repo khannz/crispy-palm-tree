@@ -110,7 +110,7 @@ func (removeServiceEntity *RemoveServiceEntity) RemoveService(serviceInfo *domai
 	}
 
 	logTryRemoveServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)
-	if err = removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo); err != nil {
+	if err = removeServiceEntity.hc.RemoveServiceFromHealtchecks(serviceInfo, removeServiceID); err != nil {
 		return fmt.Errorf("error when change service in healthcheck: %v", err)
 	}
 	logRemovedServiceAtHealtchecks(removeServiceName, removeServiceID, removeServiceEntity.logging)

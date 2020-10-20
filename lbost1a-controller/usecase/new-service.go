@@ -125,7 +125,7 @@ func (createService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInf
 	logGeneratedCommandsForApplicationServers(newServiceName, createServiceID, createService.logging)
 
 	logUpdateServiceAtHealtchecks(newServiceName, createServiceID, createService.logging)
-	if err = createService.hc.NewServiceToHealtchecks(serviceInfo); err != nil {
+	if err = createService.hc.NewServiceToHealtchecks(serviceInfo, createServiceID); err != nil {
 		return serviceInfo, fmt.Errorf("error when change service in healthcheck: %v", err)
 	}
 	logUpdatedServiceAtHealtchecks(newServiceName, createServiceID, createService.logging)

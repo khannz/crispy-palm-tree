@@ -10,6 +10,6 @@ func NewRemoveFromDummyEntity(dummyWorker domain.DummyWorker) *RemoveFromDummyEn
 	return &RemoveFromDummyEntity{dummyWorker: dummyWorker}
 }
 
-func (iPVSFlushEntity *RemoveFromDummyEntity) RemoveFromDummy(ip string) error {
-	return nil
+func (removeFromDummyEntity *RemoveFromDummyEntity) RemoveFromDummy(ip string, id string) error {
+	return removeFromDummyEntity.dummyWorker.RemoveFromDummy(ip, id)
 }

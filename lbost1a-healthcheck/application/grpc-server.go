@@ -35,17 +35,20 @@ func NewGrpcServer(address string,
 // HCGetPbService implements portadapter.HCGetPbService
 func (gs *GrpcServer) HCGetPbService(ctx context.Context, incomePbService *transport.PbService) (*transport.PbService, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
-	outHCService, err := gs.facade.HCGetService(incomeHCService)
+	id := incomePbService.Id
+	outHCService, err := gs.facade.HCGetService(incomeHCService, id)
 	if err != nil {
 		return nil, err
 	}
 	outPbService := domainHCServiceToPbService(outHCService)
+	outPbService.Id = id
 	return outPbService, nil
 }
 
 // HCGetPbServiceS implements portadapter.HCGetPbServiceS
 func (gs *GrpcServer) HCGetPbServiceS(ctx context.Context, empty *transport.EmptyHcData) (*transport.PbServices, error) {
-	outHCServices, err := gs.facade.HCGetServices()
+	id := empty.Id
+	outHCServices, err := gs.facade.HCGetServices(id)
 	if err != nil {
 		return nil, err
 	}
@@ -56,34 +59,39 @@ func (gs *GrpcServer) HCGetPbServiceS(ctx context.Context, empty *transport.Empt
 		outPbService := domainHCServiceToPbService(outHCServices[i])
 		outPbServices.Services[outPbService.Address] = outPbService
 	}
+	outPbServices.Id = id
 	return outPbServices, nil
 }
 
 // HCNewService implements portadapter.HCNewService
 func (gs *GrpcServer) HCNewPbService(ctx context.Context, incomePbService *transport.PbService) (*transport.EmptyHcData, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
-	if err := gs.facade.HCNewService(incomeHCService); err != nil {
+	id := incomePbService.Id
+	if err := gs.facade.HCNewService(incomeHCService, id); err != nil {
 		return nil, err
 	}
-	return &transport.EmptyHcData{}, nil
+	return &transport.EmptyHcData{Id: id}, nil
 }
 
 func (gs *GrpcServer) HCUpdatePbService(ctx context.Context, incomePbService *transport.PbService) (*transport.PbService, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
-	outHCService, err := gs.facade.HCUpdateService(incomeHCService)
+	id := incomePbService.Id
+	outHCService, err := gs.facade.HCUpdateService(incomeHCService, id)
 	if err != nil {
 		return nil, err
 	}
 	outPbService := domainHCServiceToPbService(outHCService)
+	outPbService.Id = id
 	return outPbService, nil
 }
 
 func (gs *GrpcServer) HCRemovePbService(ctx context.Context, incomePbService *transport.PbService) (*transport.EmptyHcData, error) {
 	incomeHCService := pbServiceToDomainHCService(incomePbService)
-	if err := gs.facade.HCRemoveService(incomeHCService); err != nil {
+	id := incomePbService.Id
+	if err := gs.facade.HCRemoveService(incomeHCService, id); err != nil {
 		return nil, err
 	}
-	return &transport.EmptyHcData{}, nil
+	return &transport.EmptyHcData{Id: id}, nil
 }
 
 func (grpcServer *GrpcServer) StartServer() error {

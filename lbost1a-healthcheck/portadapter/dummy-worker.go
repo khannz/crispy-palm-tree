@@ -35,18 +35,18 @@ func (ipvsWorker *DummyWorkerEntity) initGRPC() error {
 	return nil
 }
 
-func (ipvsWorker *DummyWorkerEntity) AddToDummy(ip string) error {
+func (ipvsWorker *DummyWorkerEntity) AddToDummy(ip string, id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err := ipvsWorker.dummyWokerClient.AddToDummy(ctx, &transport.IpData{Ip: ip})
+	_, err := ipvsWorker.dummyWokerClient.AddToDummy(ctx, &transport.IpData{Ip: ip, Id: id})
 
 	return err
 }
 
-func (ipvsWorker *DummyWorkerEntity) RemoveFromDummy(ip string) error {
+func (ipvsWorker *DummyWorkerEntity) RemoveFromDummy(ip string, id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err := ipvsWorker.dummyWokerClient.RemoveFromDummy(ctx, &transport.IpData{Ip: ip})
+	_, err := ipvsWorker.dummyWokerClient.RemoveFromDummy(ctx, &transport.IpData{Ip: ip, Id: id})
 	return err
 }
 

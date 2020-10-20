@@ -135,7 +135,7 @@ func (addApplicationServers *AddApplicationServers) AddNewApplicationServers(new
 	logGeneratedCommandsForApplicationServers(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
 
 	logUpdateServiceAtHealtchecks(addApplicationServersName, addApplicationServersID, addApplicationServers.logging)
-	hcUpdatedServiceInfo, err := addApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo)
+	hcUpdatedServiceInfo, err := addApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo, addApplicationServersID)
 	if err != nil {
 		return newServiceInfo, fmt.Errorf("application server added, but not activated, an error occurred when adding to the healtchecks: %v", err)
 	}

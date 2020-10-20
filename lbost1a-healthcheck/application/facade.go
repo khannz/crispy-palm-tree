@@ -32,27 +32,27 @@ func NewHCFacade(locker *domain.Locker,
 	}
 }
 
-func (hcFacade *HCFacade) HCGetService(hcService *domain.HCService) (*domain.HCService, error) {
+func (hcFacade *HCFacade) HCGetService(hcService *domain.HCService, id string) (*domain.HCService, error) {
 	getServiceEntity := usecase.NewGetServiceEntity(hcFacade.HeathcheckEntity, hcFacade.Locker)
-	return getServiceEntity.GetService(hcService)
+	return getServiceEntity.GetService(hcService, id)
 }
 
-func (hcFacade *HCFacade) HCGetServices() ([]*domain.HCService, error) {
+func (hcFacade *HCFacade) HCGetServices(id string) ([]*domain.HCService, error) {
 	getServicesEntity := usecase.NewGetServicesEntity(hcFacade.HeathcheckEntity, hcFacade.Locker)
-	return getServicesEntity.GetServices()
+	return getServicesEntity.GetServices(id)
 }
 
-func (hcFacade *HCFacade) HCNewService(hcService *domain.HCService) error {
+func (hcFacade *HCFacade) HCNewService(hcService *domain.HCService, id string) error {
 	newServiceEntity := usecase.NewNewServiceEntity(hcFacade.HeathcheckEntity, hcFacade.Locker)
-	return newServiceEntity.NewService(hcService)
+	return newServiceEntity.NewService(hcService, id)
 }
 
-func (hcFacade *HCFacade) HCUpdateService(hcService *domain.HCService) (*domain.HCService, error) {
+func (hcFacade *HCFacade) HCUpdateService(hcService *domain.HCService, id string) (*domain.HCService, error) {
 	updateServiceEntity := usecase.NewUpdateServiceEntity(hcFacade.HeathcheckEntity, hcFacade.Locker)
-	return updateServiceEntity.UpdateService(hcService)
+	return updateServiceEntity.UpdateService(hcService, id)
 }
 
-func (hcFacade *HCFacade) HCRemoveService(hcService *domain.HCService) error {
+func (hcFacade *HCFacade) HCRemoveService(hcService *domain.HCService, id string) error {
 	removeServiceEntity := usecase.NewRemoveServiceEntity(hcFacade.HeathcheckEntity, hcFacade.Locker)
-	return removeServiceEntity.RemoveService(hcService)
+	return removeServiceEntity.RemoveService(hcService, id)
 }

@@ -12,8 +12,8 @@ func NewUpdateServiceEntity(hc domain.HCWorker,
 	return &UpdateServiceEntity{hc: hc, locker: locker}
 }
 
-func (updateServiceEntity *UpdateServiceEntity) UpdateService(service *domain.HCService) (*domain.HCService, error) {
+func (updateServiceEntity *UpdateServiceEntity) UpdateService(service *domain.HCService, id string) (*domain.HCService, error) {
 	updateServiceEntity.locker.Lock()
 	defer updateServiceEntity.locker.Unlock()
-	return updateServiceEntity.hc.UpdateServiceAtHealtchecks(service)
+	return updateServiceEntity.hc.UpdateServiceAtHealtchecks(service, id)
 }

@@ -46,5 +46,5 @@ func (getServiceStateEntity *GetServiceStateEntity) GetServiceState(serviceInfo 
 	defer decreaseJobs(getServiceStateEntity.gracefulShutdown)
 	// graceful shutdown part end
 	logStartUsecase(getServiceStateName, "get service state", getServiceStateID, serviceInfo, getServiceStateEntity.logging)
-	return getServiceStateEntity.hc.GetServiceState(serviceInfo)
+	return getServiceStateEntity.hc.GetServiceState(serviceInfo, getServiceStateID)
 }

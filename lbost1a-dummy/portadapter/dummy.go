@@ -21,7 +21,7 @@ func NewDummyEntity(interfaceName string, logging *logrus.Logger) *DummyEntity {
 	return &DummyEntity{interfaceName: interfaceName, logging: logging}
 }
 
-func (dummyEntity *DummyEntity) AddToDummy(serviceIP string) error {
+func (dummyEntity *DummyEntity) AddToDummy(serviceIP string, id string) error {
 	dummyEntity.Lock()
 	defer dummyEntity.Unlock()
 
@@ -45,7 +45,7 @@ func (dummyEntity *DummyEntity) AddToDummy(serviceIP string) error {
 	}
 	return nil
 }
-func (dummyEntity *DummyEntity) RemoveFromDummy(serviceIP string) error {
+func (dummyEntity *DummyEntity) RemoveFromDummy(serviceIP string, id string) error {
 	dummyEntity.Lock()
 	defer dummyEntity.Unlock()
 

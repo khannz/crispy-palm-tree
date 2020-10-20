@@ -24,6 +24,7 @@ service HCUpdate{
 // }
 
 message EmptyHcData {
+  string id = 1;
 }
 
 message PbService {
@@ -52,8 +53,11 @@ message PbService {
   }
 
   repeated PbApplicationServer pbApplicationServers = 16;
+
+  string id = 17;
 }
 
 message PbServices {
     map<string, PbService> services = 1;
+    string Id = 2;
 }

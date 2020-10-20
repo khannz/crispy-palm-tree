@@ -46,5 +46,5 @@ func (getAllServices *GetAllServices) GetAllServices(getAllServicesRequestID str
 	defer decreaseJobs(getAllServices.gracefulShutdown)
 	// graceful shutdown part end
 	logStartUsecase(getAllServicesName, "get all services", getAllServicesRequestID, nil, getAllServices.logging)
-	return getAllServices.hc.GetServicesState()
+	return getAllServices.hc.GetServicesState(getAllServicesRequestID)
 }

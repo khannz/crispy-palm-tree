@@ -2,12 +2,12 @@ package domain
 
 // HCWorker ...
 type HCWorker interface {
-	StartHealthchecksForCurrentServices([]*ServiceInfo) error
-	NewServiceToHealtchecks(*ServiceInfo) error
-	RemoveServiceFromHealtchecks(*ServiceInfo) error
-	UpdateServiceAtHealtchecks(*ServiceInfo) (*ServiceInfo, error)
-	GetServiceState(*ServiceInfo) (*ServiceInfo, error)
-	GetServicesState() ([]*ServiceInfo, error)
+	StartHealthchecksForCurrentServices([]*ServiceInfo, string) error
+	NewServiceToHealtchecks(*ServiceInfo, string) error
+	RemoveServiceFromHealtchecks(*ServiceInfo, string) error
+	UpdateServiceAtHealtchecks(*ServiceInfo, string) (*ServiceInfo, error)
+	GetServiceState(*ServiceInfo, string) (*ServiceInfo, error)
+	GetServicesState(string) ([]*ServiceInfo, error)
 	ConnectToHealtchecks() error
 	DisconnectFromHealtchecks()
 }

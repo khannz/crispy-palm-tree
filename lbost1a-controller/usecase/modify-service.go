@@ -108,7 +108,7 @@ func (modifyService *ModifyServiceEntity) ModifyService(serviceInfo *domain.Serv
 	logUpdatedServiceInfoAtPersistentStorage(modifyServiceName, modifyServiceID, modifyService.logging)
 
 	logUpdateServiceAtHealtchecks(modifyServiceName, modifyServiceID, modifyService.logging)
-	hcServiceInfo, err := modifyService.hc.UpdateServiceAtHealtchecks(serviceInfo)
+	hcServiceInfo, err := modifyService.hc.UpdateServiceAtHealtchecks(serviceInfo, modifyServiceID)
 	if err != nil {
 		return serviceInfo, fmt.Errorf("service modify for healtchecks not activated, an error occurred when changing healtchecks: %v", err)
 	}

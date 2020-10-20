@@ -31,13 +31,13 @@ func NewGrpcServer(port string,
 }
 
 // AddToDummy implements portadapter.AddToDummy
-func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeIP *transport.IpData) (*transport.EmptyDummyData, error) {
-	return &transport.EmptyDummyData{}, gs.facade.AddToDummy(incomeIP.Ip)
+func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyDummyData, error) {
+	return &transport.EmptyDummyData{}, gs.facade.AddToDummy(incomeDummyData.Ip, incomeDummyData.Id)
 }
 
 // RemoveFromDummy implements portadapter.RemoveFromDummy
-func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeIP *transport.IpData) (*transport.EmptyDummyData, error) {
-	return &transport.EmptyDummyData{}, gs.facade.RemoveFromDummy(incomeIP.Ip)
+func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyDummyData, error) {
+	return &transport.EmptyDummyData{}, gs.facade.RemoveFromDummy(incomeDummyData.Ip, incomeDummyData.Id)
 }
 
 func (grpcServer *GrpcServer) StartServer() error {

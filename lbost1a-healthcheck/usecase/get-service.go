@@ -12,8 +12,8 @@ func NewGetServiceEntity(hc domain.HCWorker,
 	return &GetServiceEntity{hc: hc, locker: locker}
 }
 
-func (getServiceEntity *GetServiceEntity) GetService(service *domain.HCService) (*domain.HCService, error) {
+func (getServiceEntity *GetServiceEntity) GetService(service *domain.HCService, id string) (*domain.HCService, error) {
 	getServiceEntity.locker.Lock()
 	defer getServiceEntity.locker.Unlock()
-	return getServiceEntity.hc.GetServiceState(service)
+	return getServiceEntity.hc.GetServiceState(service, id)
 }

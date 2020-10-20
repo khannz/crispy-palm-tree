@@ -10,6 +10,6 @@ func NewAddToDummyEntity(dummyWorker domain.DummyWorker) *AddToDummyEntity {
 	return &AddToDummyEntity{dummyWorker: dummyWorker}
 }
 
-func (addApplicationServersEntity *AddToDummyEntity) AddToDummy(ip string) error {
-	return nil
+func (addApplicationServersEntity *AddToDummyEntity) AddToDummy(ip string, id string) error {
+	return addApplicationServersEntity.dummyWorker.AddToDummy(ip, id)
 }

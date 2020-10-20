@@ -25,12 +25,12 @@ func NewDummyFacade(dummyWorker domain.DummyWorker,
 	}
 }
 
-func (dummyFacade *DummyFacade) AddToDummy(ip string) error {
+func (dummyFacade *DummyFacade) AddToDummy(ip string, id string) error {
 	newAddToDummyEntity := usecase.NewAddToDummyEntity(dummyFacade.DummyWorker)
-	return newAddToDummyEntity.AddToDummy(ip)
+	return newAddToDummyEntity.AddToDummy(ip, id)
 }
 
-func (dummyFacade *DummyFacade) RemoveFromDummy(ip string) error {
+func (dummyFacade *DummyFacade) RemoveFromDummy(ip string, id string) error {
 	newAddToDummyEntity := usecase.NewRemoveFromDummyEntity(dummyFacade.DummyWorker)
-	return newAddToDummyEntity.RemoveFromDummy(ip)
+	return newAddToDummyEntity.RemoveFromDummy(ip, id)
 }

@@ -80,7 +80,14 @@ var rootCmd = &cobra.Command{
 
 		// FIXME: client connects
 
-		hc := portadapter.NewHeathcheckEntity(memDB, ipvsadmSender, viperConfig.GetString(techInterfaceName), locker, false, dw, logging)
+		hc := portadapter.NewHeathcheckEntity(memDB,
+			ipvsadmSender,
+			viperConfig.GetString(techInterfaceName),
+			locker,
+			false,
+			dw,
+			idGenerator,
+			logging)
 
 		// init config end
 

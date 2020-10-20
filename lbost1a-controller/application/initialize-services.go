@@ -79,7 +79,7 @@ func (balancerFacade *BalancerFacade) InitializeCreateService(serviceConfigFromS
 			return fmt.Errorf("can't add to persistent storage :%v", err)
 		}
 	}
-	if err = balancerFacade.HeathcheckEntity.NewServiceToHealtchecks(serviceConfigFromStorage); err != nil {
+	if err = balancerFacade.HeathcheckEntity.NewServiceToHealtchecks(serviceConfigFromStorage, id); err != nil {
 		return fmt.Errorf("can't add %v to healtchecks :%v", serviceConfigFromStorage.Address, err)
 	}
 	return nil
