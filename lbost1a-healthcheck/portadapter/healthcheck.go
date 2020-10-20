@@ -11,7 +11,6 @@ import (
 )
 
 const healthcheckName = "healthcheck"
-const healthcheckID = "00000000-0000-0000-0000-000000000004"
 const protocolICMP = 1
 
 type failedApplicationServers struct { // TODO: remove that struct
@@ -445,19 +444,23 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.HCService
 	switch hcService.HCType {
 	case "tcp":
 		return hc.tcpCheckOk(hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
-			hcService.HCTimeout)
+			hcService.HCTimeout,
+			id)
 	case "http":
 		return hc.httpCheckOk(hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
-			hcService.HCTimeout)
+			hcService.HCTimeout,
+			id)
 	case "http-advanced":
 		return hc.httpAdvancedCheckOk(hcService.HCType,
 			hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
 			hcService.HCNearFieldsMode,
 			hcService.HCUserDefinedData,
-			hcService.HCTimeout)
+			hcService.HCTimeout,
+			id)
 	case "icmp":
 		return hc.icmpCheckOk(hcService.HCApplicationServers[applicationServerInfoIndex].HCAddress,
-			hcService.HCTimeout)
+			hcService.HCTimeout,
+			id)
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
-func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
+func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.Duration, id string) bool {
 	hcSlice := strings.Split(healthcheckAddress, ":")
 	hcPort := ""
 	if len(hcSlice) > 1 {
@@ -29,7 +29,7 @@ func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.D
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: Connecting tcp connect error: %v", err)
 		return false
 	}
@@ -38,7 +38,7 @@ func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.D
 	if conn != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck info port opened: %v", net.JoinHostPort(hcIP, hcPort))
 		return true
 	}
@@ -46,12 +46,12 @@ func (hc *HeathcheckEntity) tcpCheckOk(healthcheckAddress string, timeout time.D
 	// somehow it can be..
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
-		"event id": healthcheckID,
+		"event id": id,
 	}).Error("Heathcheck has unknown error: connection is nil, but have no errors")
 	return false
 }
 
-func (hc *HeathcheckEntity) httpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
+func (hc *HeathcheckEntity) httpCheckOk(healthcheckAddress string, timeout time.Duration, id string) bool {
 	// FIXME: https checks also here
 	roundTripper := &http.Transport{
 		Dial: (&net.Dialer{
@@ -69,7 +69,7 @@ func (hc *HeathcheckEntity) httpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: Connecting http error: %v", err)
 		return false
 	}
@@ -78,20 +78,20 @@ func (hc *HeathcheckEntity) httpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: Read http response errror: %v", err)
 		return false
 	}
 	return true
 }
 
-func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.Duration) bool {
+func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.Duration, id string) bool {
 	// Start listening for icmp replies
 	icpmConnection, err := icmp.ListenPacket("ip4:icmp", hc.techInterface.String())
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm connection error: %v", err)
 		return false
 	}
@@ -102,7 +102,7 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm resolve ip addr error: %v", err)
 		return false
 	}
@@ -120,7 +120,7 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm marshall message error: %v", err)
 		return false
 	}
@@ -130,13 +130,13 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm write bytes to error: %v", err)
 		return false
 	} else if n != len(b) {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm write bytes to error (not all of bytes was send): %v", err)
 		return false
 	}
@@ -147,7 +147,7 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm set read deadline error: %v", err)
 		return false
 	}
@@ -155,7 +155,7 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm read reply error: %v", err)
 		return false
 	}
@@ -165,7 +165,7 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm parse message error: %v", err)
 		return false
 	}
@@ -173,13 +173,13 @@ func (hc *HeathcheckEntity) icmpCheckOk(healthcheckAddress string, timeout time.
 	case ipv4.ICMPTypeEchoReply:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck icpm for %v succes", healthcheckAddress)
 		return true
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: icpm for %v reply type error: got %+v from %v; want echo reply",
 			healthcheckAddress,
 			rm,
@@ -193,15 +193,16 @@ func (hc *HeathcheckEntity) httpAdvancedCheckOk(hcType string,
 	hcAddress string,
 	nearFieldsMode bool,
 	userDefinedData map[string]string,
-	timeout time.Duration) bool {
+	timeout time.Duration,
+	id string) bool {
 	switch hcType {
 	case "http-advanced-json":
 		return hc.httpAdvancedJSONCheckOk(hcAddress, nearFieldsMode,
-			userDefinedData, timeout)
+			userDefinedData, timeout, id)
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Errorf("Heathcheck error: http advanced check fail error: unknown check type: %v", hcType)
 		return false
 	}
@@ -210,7 +211,8 @@ func (hc *HeathcheckEntity) httpAdvancedCheckOk(hcType string,
 func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(hcAddress string,
 	nearFieldsMode bool,
 	userDefinedData map[string]string,
-	timeout time.Duration) bool {
+	timeout time.Duration,
+	id string) bool {
 	client := http.Client{
 		Timeout: timeout,
 	}
@@ -219,7 +221,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(hcAddress string,
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Errorf("Heathcheck error: http advanced JSON check fail error: can't make new http request: %v", err)
 		return false
 	}
@@ -230,7 +232,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(hcAddress string,
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: Connecting http advanced JSON check error: %v", err)
 		return false
 	}
@@ -239,7 +241,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(hcAddress string,
 	if err != nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: Read http response errror: %v", err)
 		return false
 	}
@@ -249,7 +251,7 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(hcAddress string,
 		if err := json.Unmarshal(response, &u.UnknowArrayOfMaps); err != nil {
 			hc.logging.WithFields(logrus.Fields{
 				"entity":   healthcheckName,
-				"event id": healthcheckID,
+				"event id": id,
 			}).Tracef("Heathcheck error: http advanced JSON check fail error: can't unmarshal response from: %v, error: %v",
 				hcAddress,
 				err)
@@ -260,17 +262,17 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(hcAddress string,
 	if u.UnknowMap == nil && u.UnknowArrayOfMaps == nil {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck error: http advanced JSON check fail error: response is nil from: %v", hcAddress)
 		return false
 	}
 
 	if nearFieldsMode { // mode for finding all matches for the desired object in a single map
-		if hc.isFinderForNearFieldsModeFail(userDefinedData, u, hcAddress) { // if false do not return, continue range params
+		if hc.isFinderForNearFieldsModeFail(userDefinedData, u, hcAddress, id) { // if false do not return, continue range params
 			return false
 		}
 	} else {
-		if hc.isFinderMapToMapFail(userDefinedData, u, hcAddress) { // if false do not return, continue range params
+		if hc.isFinderMapToMapFail(userDefinedData, u, hcAddress, id) { // if false do not return, continue range params
 			return false
 		}
 	}
@@ -280,7 +282,8 @@ func (hc *HeathcheckEntity) httpAdvancedJSONCheckOk(hcAddress string,
 
 func (hc *HeathcheckEntity) isFinderForNearFieldsModeFail(userSearchData map[string]string,
 	unknownDataStruct UnknownDataStruct,
-	healthcheckAddres string) bool {
+	healthcheckAddres string,
+	id string) bool {
 	numberOfRequiredMatches := len(userSearchData) // the number of required matches in the user's search map
 	var mapForSearch map[string]string             // the map that we will use to search for all matches(beacose that nearFieldsMode)
 	for sK, sV := range userSearchData {           // go through the search map
@@ -310,13 +313,13 @@ func (hc *HeathcheckEntity) isFinderForNearFieldsModeFail(userSearchData map[str
 	if numberOfRequiredMatches != 0 {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck http advanded json for %v failed: not all required data finded", healthcheckAddres)
 		return true
 	}
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
-		"event id": healthcheckID,
+		"event id": id,
 	}).Tracef("Heathcheck http advanded json for %v succes", healthcheckAddres)
 
 	return false
@@ -324,7 +327,8 @@ func (hc *HeathcheckEntity) isFinderForNearFieldsModeFail(userSearchData map[str
 
 func (hc *HeathcheckEntity) isFinderMapToMapFail(userSearchData map[string]string,
 	unknownDataStruct UnknownDataStruct,
-	healthcheckAddres string) bool {
+	healthcheckAddres string,
+	id string) bool {
 	numberOfRequiredMatches := len(userSearchData) // the number of required matches in the user's search map
 
 	for sK, sV := range userSearchData { // go through the search map
@@ -347,14 +351,14 @@ func (hc *HeathcheckEntity) isFinderMapToMapFail(userSearchData map[string]strin
 	if numberOfRequiredMatches != 0 {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": healthcheckID,
+			"event id": id,
 		}).Tracef("Heathcheck http advanded json for %v failed: not all required data finded", healthcheckAddres)
 
 		return true
 	}
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
-		"event id": healthcheckID,
+		"event id": id,
 	}).Tracef("Heathcheck http advanded json for %v succes", healthcheckAddres)
 
 	return false
