@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+const grpcIpvsName = "ipvs grpc"
+
 // GrpcServer is used to implement portadapter.HCGetService.
 type GrpcServer struct {
 	address string
@@ -40,62 +42,133 @@ func convertPbApplicationServersToInternal(pbApplicationServers map[string]uint3
 
 // NewIPVSService implements portadapter.NewIPVSService
 func (gs *GrpcServer) NewIPVSService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("got job new ipvs service %v", incomeIPVSService)
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
-	return &transport.EmptyIpvsData{}, gs.facade.NewIPVSService(incomeIPVSService.Vip,
+
+	if err := gs.facade.NewIPVSService(incomeIPVSService.Vip,
 		convertedPort,
 		incomeIPVSService.RoutingType,
 		incomeIPVSService.BalanceType,
 		convertedProtocol,
 		convertedApplicationServers,
 		incomeIPVSService.Id,
-	)
+	); err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcIpvsName,
+			"event id": incomeIPVSService.Id,
+		}).Errorf("failed job new ipvs service %v", incomeIPVSService)
+		return &transport.EmptyIpvsData{}, err
+	}
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("completed job new ipvs service %v", incomeIPVSService)
+	return &transport.EmptyIpvsData{}, nil
 }
 
 // AddIPVSApplicationServersForService implements portadapter.AddIPVSApplicationServersForService
 func (gs *GrpcServer) AddIPVSApplicationServersForService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("got job add application servers to ipvs service %v", incomeIPVSService)
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
-	return &transport.EmptyIpvsData{}, gs.facade.AddIPVSApplicationServersForService(incomeIPVSService.Vip,
+
+	if err := gs.facade.AddIPVSApplicationServersForService(incomeIPVSService.Vip,
 		convertedPort,
 		incomeIPVSService.RoutingType,
 		incomeIPVSService.BalanceType,
 		convertedProtocol,
 		convertedApplicationServers,
 		incomeIPVSService.Id,
-	)
+	); err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcIpvsName,
+			"event id": incomeIPVSService.Id,
+		}).Errorf("failed job add application servers to ipvs service %v", incomeIPVSService)
+		return &transport.EmptyIpvsData{}, err
+	}
+
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("completed job add application servers to ipvs service %v", incomeIPVSService)
+	return &transport.EmptyIpvsData{}, nil
 }
 
 // RemoveIPVSService implements portadapter.RemoveIPVSService
 func (gs *GrpcServer) RemoveIPVSService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("got job remove ipvs service %v", incomeIPVSService)
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
-	return &transport.EmptyIpvsData{}, gs.facade.RemoveIPVSService(incomeIPVSService.Vip,
+
+	if err := gs.facade.RemoveIPVSService(incomeIPVSService.Vip,
 		convertedPort,
 		convertedProtocol,
 		incomeIPVSService.Id,
-	)
+	); err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcIpvsName,
+			"event id": incomeIPVSService.Id,
+		}).Errorf("failed job remove ipvs service %v", incomeIPVSService)
+		return &transport.EmptyIpvsData{}, err
+	}
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("completed job remove ipvs service %v", incomeIPVSService)
+
+	return &transport.EmptyIpvsData{}, nil
 }
 
 // RemoveIPVSApplicationServersFromService implements portadapter.RemoveIPVSApplicationServersFromService
 func (gs *GrpcServer) RemoveIPVSApplicationServersFromService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.EmptyIpvsData, error) {
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("got job remove application servers from ipvs service %v", incomeIPVSService)
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
-	return &transport.EmptyIpvsData{}, gs.facade.RemoveIPVSApplicationServersFromService(incomeIPVSService.Vip,
+
+	if err := gs.facade.RemoveIPVSApplicationServersFromService(incomeIPVSService.Vip,
 		convertedPort,
 		incomeIPVSService.RoutingType,
 		incomeIPVSService.BalanceType,
 		convertedProtocol,
 		convertedApplicationServers,
 		incomeIPVSService.Id,
-	)
+	); err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcIpvsName,
+			"event id": incomeIPVSService.Id,
+		}).Errorf("failed job remove application servers from ipvs service %v", incomeIPVSService)
+		return &transport.EmptyIpvsData{}, err
+	}
+
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("completed job remove application servers from ipvs service %v", incomeIPVSService)
+	return &transport.EmptyIpvsData{}, nil
 }
 
 // IsIPVSApplicationServerInService implements portadapter.IsIPVSApplicationServerInService
 func (gs *GrpcServer) IsIPVSApplicationServerInService(ctx context.Context, incomeIPVSService *transport.PbIPVSServices) (*transport.BoolData, error) {
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("got job is application server in ipvs service %v", incomeIPVSService)
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
 	isIn, err := gs.facade.IsIPVSApplicationServerInService(
@@ -105,14 +178,40 @@ func (gs *GrpcServer) IsIPVSApplicationServerInService(ctx context.Context, inco
 		incomeIPVSService.Id,
 	)
 	if err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcIpvsName,
+			"event id": incomeIPVSService.Id,
+		}).Errorf("failed job is application server in ipvs service %v", incomeIPVSService)
 		return &transport.BoolData{IsIn: isIn}, err
 	}
+
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Infof("completed job is application server in ipvs service %v", incomeIPVSService)
 	return &transport.BoolData{IsIn: isIn}, nil
 }
 
 // IPVSFlush implements portadapter.IPVSFlush
 func (gs *GrpcServer) IPVSFlush(ctx context.Context, incomeIPVSService *transport.EmptyIpvsData) (*transport.EmptyIpvsData, error) {
-	return &transport.EmptyIpvsData{}, gs.facade.IPVSFlush()
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Info("got job flush ipvs")
+
+	if err := gs.facade.IPVSFlush(); err != nil {
+		gs.facade.Logging.WithFields(logrus.Fields{
+			"entity":   grpcIpvsName,
+			"event id": incomeIPVSService.Id,
+		}).Error("failed job flush ipvs")
+		return &transport.EmptyIpvsData{}, err
+	}
+
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcIpvsName,
+		"event id": incomeIPVSService.Id,
+	}).Info("completed job flush ipvs")
+	return &transport.EmptyIpvsData{}, nil
 }
 
 func (grpcServer *GrpcServer) StartServer() error {

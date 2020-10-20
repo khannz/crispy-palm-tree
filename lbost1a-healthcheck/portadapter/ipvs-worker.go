@@ -165,10 +165,10 @@ func (ipvsWorker *IPVSWorkerEntity) IsIPVSApplicationServerInService(serviceIP s
 	return isIn.IsIn, nil
 }
 
-func (ipvsWorker *IPVSWorkerEntity) IPVSFlush() error {
+func (ipvsWorker *IPVSWorkerEntity) IPVSFlush(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err := ipvsWorker.ipvsWokerClient.IPVSFlush(ctx, &transport.EmptyIpvsData{})
+	_, err := ipvsWorker.ipvsWokerClient.IPVSFlush(ctx, &transport.EmptyIpvsData{Id: id})
 	return err
 }
 

@@ -57,7 +57,7 @@ var rootCmd = &cobra.Command{
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't connect: %v", err)
 		}
 		defer ipvsadmSender.DisconnectFromIPVS()
-		if err := ipvsadmSender.IPVSFlush(); err != nil {
+		if err := ipvsadmSender.IPVSFlush(idForRootProcess); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("IPVSADM can't flush data at start: %v", err)
 		}
 		// ipvsadmSender end

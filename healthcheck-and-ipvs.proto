@@ -2,6 +2,7 @@ syntax = "proto3";
 package transport;
 
 message EmptyIpvsData {
+  string id = 1;
 }
 
 message PbIPVSServices {
