@@ -14,24 +14,24 @@ type Locker struct {
 // HCService ...
 type HCService struct {
 	sync.RWMutex          `json:"-"`
-	Address               string                 `json:"address"`
-	IP                    string                 `json:"ip"`
-	Port                  string                 `json:"port"`
-	IsUp                  bool                   `json:"isUp"`
-	BalanceType           string                 `json:"balanceType"`
-	RoutingType           string                 `json:"routingType"`
-	Protocol              string                 `json:"protocol"`
-	AlivedAppServersForUp int                    `json:"alivedAppServersForUp"`
-	HCType                string                 `json:"hcType"`
-	HCRepeat              time.Duration          `json:"hcRepeat"`
-	HCTimeout             time.Duration          `json:"hcTimeout"`
-	HCNearFieldsMode      bool                   `json:"hcNearFieldsMode,omitempty"`
-	HCUserDefinedData     map[string]string      `json:"hcUserDefinedData,omitempty"`
-	HCRetriesForUP        int                    `json:"hcRetriesForUP"`
-	HCRetriesForDown      int                    `json:"hcRetriesForDown"`
-	HCApplicationServers  []*HCApplicationServer `json:"ApplicationServers"`
-	HCStop                chan struct{}          `json:"-"`
-	HCStopped             chan struct{}          `json:"-"`
+	Address               string                          `json:"address"`
+	IP                    string                          `json:"ip"`
+	Port                  string                          `json:"port"`
+	IsUp                  bool                            `json:"isUp"`
+	BalanceType           string                          `json:"balanceType"`
+	RoutingType           string                          `json:"routingType"`
+	Protocol              string                          `json:"protocol"`
+	AlivedAppServersForUp int                             `json:"alivedAppServersForUp"`
+	HCType                string                          `json:"hcType"`
+	HCRepeat              time.Duration                   `json:"hcRepeat"`
+	HCTimeout             time.Duration                   `json:"hcTimeout"`
+	HCNearFieldsMode      bool                            `json:"hcNearFieldsMode,omitempty"`
+	HCUserDefinedData     map[string]string               `json:"hcUserDefinedData,omitempty"`
+	HCRetriesForUP        int                             `json:"hcRetriesForUP"`
+	HCRetriesForDown      int                             `json:"hcRetriesForDown"`
+	HCApplicationServers  map[string]*HCApplicationServer `json:"ApplicationServers"`
+	HCStop                chan struct{}                   `json:"-"`
+	HCStopped             chan struct{}                   `json:"-"`
 }
 
 type HCApplicationServer struct {
@@ -57,7 +57,7 @@ type InternalHC struct {
 	UserDefinedData  map[string]string
 }
 
-// Release stringer interface for print/log data in []*ApplicationServer
+// Release stringer interface for print/log data in map[string]*ApplicationServer
 func (hcApplicationServer *HCApplicationServer) String() string {
 	return fmt.Sprintf("applicationServer{Address:%s, IsUp:%v, HCAddress:%v, HCType:%v, HCTimeout:%v, RetriesForUP:%v, RetriesForDown:%v, LastIndexForUp:%v, LastIndexForDown:%v, NearFieldsMode:%v, UserDefinedData:%v}",
 		hcApplicationServer.Address,

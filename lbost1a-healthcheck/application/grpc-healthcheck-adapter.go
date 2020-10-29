@@ -35,8 +35,8 @@ func pbServiceToDomainHCService(pbService *transport.PbService) *domain.HCServic
 	}
 }
 
-func pbApplicationServersToDomainApplicationServers(pbApplicationServers []*transport.PbService_PbApplicationServer) []*domain.HCApplicationServer {
-	domainApplicationServers := make([]*domain.HCApplicationServer, len(pbApplicationServers))
+func pbApplicationServersToDomainApplicationServers(pbApplicationServers map[string]*transport.PbService_PbApplicationServer) map[string]*domain.HCApplicationServer {
+	domainApplicationServers := make(map[string]*domain.HCApplicationServer, len(pbApplicationServers))
 	for i := range pbApplicationServers {
 		domainApplicationServers[i] = &domain.HCApplicationServer{
 			Address:   pbApplicationServers[i].Address,
@@ -71,8 +71,8 @@ func domainHCServiceToPbService(domainHCService *domain.HCService) *transport.Pb
 	}
 }
 
-func domainApplicationServersToPbApplicationServers(domainApplicationServers []*domain.HCApplicationServer) []*transport.PbService_PbApplicationServer {
-	pbApplicationServer := make([]*transport.PbService_PbApplicationServer, len(domainApplicationServers))
+func domainApplicationServersToPbApplicationServers(domainApplicationServers map[string]*domain.HCApplicationServer) map[string]*transport.PbService_PbApplicationServer {
+	pbApplicationServer := make(map[string]*transport.PbService_PbApplicationServer, len(domainApplicationServers))
 	for i := range domainApplicationServers {
 		pbApplicationServer[i] = &transport.PbService_PbApplicationServer{
 			Address:   domainApplicationServers[i].Address,

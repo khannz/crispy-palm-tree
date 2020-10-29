@@ -52,7 +52,7 @@ message PbService {
     string hcAddress = 5;
   }
 
-  repeated PbApplicationServer pbApplicationServers = 16;
+  map<string, PbApplicationServer> pbApplicationServers = 16;
 
   string id = 17;
 }
