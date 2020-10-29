@@ -1,0 +1,82 @@
+@startuml LBOS Service model
+
+entity "LBOS Controller"
+control "T1 controller"
+entity "T1 tunnel"
+entity "T1 route"
+database "Database (will be removed)"
+entity "T1 healthcheck"
+
+"LBOS Controller" -> "T1 controller" : New service request
+"T1 controller" -> "T1 controller" : Validate request
+
+alt valid request
+
+    opt tunnels required
+    
+        "T1 controller" -> "T1 tunnel" : Create tunnels
+        alt tunnels created
+
+            "T1 tunnel" --> "T1 controller" : Tunnels created
+        
+        else tunnels not created
+
+        "T1 tunnel" --> "T1 controller" : Can't create tunnels
+        "T1 controller" --> "LBOS Controller" : Can't create tunnels
+
+        end
+            
+    end
+    
+
+    "T1 controller" -> "T1 route" : Create routes
+    
+    alt routes created
+
+        "T1 route" --> "T1 controller" : Routes created
+    
+    else routes not created
+
+        "T1 route" --> "T1 controller" : Can't create routes
+        "T1 controller" --> "LBOS Controller" : Can't create routes
+   
+    end
+
+
+    "T1 controller" -> "Database" : Save service
+    
+    alt service is saved in the database
+
+        "Database" --> "T1 controller" : Service saved
+
+    else service is not saved in the database
+
+        "Database" --> "T1 controller" : Service not saved
+        "T1 controller" --> "LBOS Controller" : Service not saved
+
+    end
+
+
+    "T1 controller" -> "T1 healthcheck" : Add service to healthcheck
+
+    alt service at healthcheck
+
+        "T1 healthcheck" --> "T1 controller" : Service at healthcheck
+
+    else service not saved to database
+
+        "T1 healthcheck" --> "T1 controller" : Can't add service to healthcheck
+        "T1 controller" --> "LBOS Controller" : Can't add service to healthcheck
+
+    end
+
+
+    "T1 controller" --> "LBOS Controller" : Service created
+
+else invalid request
+
+    "T1 controller" --> "LBOS Controller" : Validate service error
+
+end
+
+@enduml

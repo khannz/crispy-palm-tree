@@ -1,0 +1,30 @@
+@startuml LBOS Service model
+class Service << (S,Lime) >> {
+    + Address string
+    + IP string
+    + Port string
+    + IsUp bool
+    + BalanceType string
+    + RoutingType string
+    + Protocol string
+    + AlivedAppServersForUp int
+    + HCType string
+    + HCRepeat time.Duration
+    + HCTimeout time.Duration
+    + HCNearFieldsMode bool
+    + HCUserDefinedData map[string]string
+    + HCRetriesForUP int
+    + HCRetriesForDown int
+    + ApplicationServers map[string]ApplicationServer
+}
+
+class ApplicationServer << (A,Lime) >> {
+    + IP string
+    + Port string
+    + IsUp bool
+    + HCAddress string
+    + ExampleBashCommands string
+}
+
+Service "1..*" ..> "1..*" ApplicationServer : application servers
+@enduml
