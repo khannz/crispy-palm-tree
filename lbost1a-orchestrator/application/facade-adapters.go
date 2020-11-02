@@ -24,7 +24,7 @@ func convertDomainServiceInfoToRestService(domainServiceInfo *domain.ServiceInfo
 }
 
 func convertDomainApplicationServersToRestApplicationServers(domainApplicationServers map[string]*domain.ApplicationServer) []*ApplicationServer {
-	preparedApplicationServers := make([]*ApplicationServer, len(domainApplicationServers))
+	preparedApplicationServers := make([]*ApplicationServer, 0, len(domainApplicationServers))
 	for _, domainApplicationServer := range domainApplicationServers {
 		preparedApplicationServer := &ApplicationServer{}
 		preparedApplicationServer.IP = domainApplicationServer.IP
