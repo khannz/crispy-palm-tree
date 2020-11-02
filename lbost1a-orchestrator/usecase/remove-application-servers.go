@@ -127,8 +127,8 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 	}
 
 	logTryRemoveServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
-	if err = removeApplicationServers.hc.RemoveServiceFromHealtchecks(updatedServiceInfo, removeApplicationServersID); err != nil {
-		return updatedServiceInfo, fmt.Errorf("application server removed, butan error occurred when removing it from the healtchecks: %v", err)
+	if _, err = removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo, removeApplicationServersID); err != nil {
+		return updatedServiceInfo, fmt.Errorf("application server removed, but an error occurred when removing it from healtchecks: %v", err)
 	}
 	logRemovedServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
 
