@@ -196,6 +196,7 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.HCServi
 		<-hc.runningHeathchecks[updateIndex].HCStopped
 		hc.logging.Tracef("healthchecks stopped for update service job %v", hcService.Address)
 		hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[updateIndex].IsUp) // lock hcService
+		// FIXME: bug. update != remove, that is change
 		applicationServersForRemove := formApplicationServersForRemove(hcService.HCApplicationServers, currentApplicationServers)
 		if len(applicationServersForRemove) != 0 {
 			for _, k := range applicationServersForRemove {
