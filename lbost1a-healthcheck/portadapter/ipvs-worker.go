@@ -110,7 +110,7 @@ func (ipvsWorker *IPVSWorkerEntity) RemoveIPVSService(vip string,
 	defer cancel()
 	_, err := ipvsWorker.ipvsWokerClient.RemoveIPVSService(ctx, pbServiceInfo)
 	if err != nil {
-		return fmt.Errorf("can't add new service to ipvs: %v", err)
+		return fmt.Errorf("can't remove service at ipvs: %v", err)
 	}
 	return nil
 }
@@ -137,7 +137,7 @@ func (ipvsWorker *IPVSWorkerEntity) RemoveIPVSApplicationServersFromService(vip 
 	defer cancel()
 	_, err := ipvsWorker.ipvsWokerClient.RemoveIPVSApplicationServersFromService(ctx, pbServiceInfo)
 	if err != nil {
-		return fmt.Errorf("can't add new service to ipvs: %v", err)
+		return fmt.Errorf("can't remove application servers from service at ipvs: %v", err)
 	}
 	return nil
 }
@@ -159,7 +159,7 @@ func (ipvsWorker *IPVSWorkerEntity) IsIPVSApplicationServerInService(serviceIP s
 
 	isIn, err := ipvsWorker.ipvsWokerClient.IsIPVSApplicationServerInService(ctx, pbServiceInfo)
 	if err != nil {
-		return false, fmt.Errorf("can't add new service to ipvs: %v", err)
+		return false, fmt.Errorf("can't check application server is in service at ipvs: %v", err)
 	}
 
 	return isIn.IsIn, nil
