@@ -152,7 +152,7 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.HCSer
 		hc.runningHeathchecks = append(hc.runningHeathchecks[:indexForRemove], hc.runningHeathchecks[indexForRemove+1:]...)
 		hc.Unlock()
 		if err := hc.removeServiceFromIPVS(hcService, id); err != nil {
-			return fmt.Errorf("can't add srvice to IPVS: %v", err)
+			return fmt.Errorf("can't remove service from IPVS: %v", err)
 		}
 		hc.logging.Tracef("get checks stopped from service %v", hcService.Address)
 		return nil
@@ -196,8 +196,8 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.HCServi
 		<-hc.runningHeathchecks[updateIndex].HCStopped
 		hc.logging.Tracef("healthchecks stopped for update service job %v", hcService.Address)
 		hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[updateIndex].IsUp) // lock hcService
-		// FIXME: bug. update != remove, that is change
-		applicationServersForRemove := formApplicationServersForRemove(hcService.HCApplicationServers, currentApplicationServers)
+		// do not include new app servers here!
+		_, _, applicationServersForRemove := formDiffApplicationServers(hcService.HCApplicationServers, currentApplicationServers)
 		if len(applicationServersForRemove) != 0 {
 			for _, k := range applicationServersForRemove {
 				if hc.isApplicationServerInIPSVService(hcService.IP,
@@ -227,14 +227,25 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.HCServi
 		hcService.Address)
 }
 
-func formApplicationServersForRemove(newApplicationServers map[string]*domain.HCApplicationServer, oldApplicationServers map[string]*domain.HCApplicationServer) []string {
-	applicationServersForRemove := []string{}
+func formDiffApplicationServers(newApplicationServers map[string]*domain.HCApplicationServer, oldApplicationServers map[string]*domain.HCApplicationServer) ([]string, []string, []string) {
+	applicationServersForAdd := make([]string, 0)
+	applicationServersForRemove := make([]string, 0)
+	applicationServersAlreadyIN := make([]string, 0)
+	for k := range newApplicationServers {
+		if _, isFinded := oldApplicationServers[k]; isFinded {
+			applicationServersAlreadyIN = append(applicationServersAlreadyIN, k)
+			continue
+		}
+		applicationServersForAdd = append(applicationServersForAdd, k)
+	}
+
 	for k := range oldApplicationServers {
-		if _, isFinded := newApplicationServers[k]; isFinded {
+		if _, isFinded := newApplicationServers[k]; !isFinded {
 			applicationServersForRemove = append(applicationServersForRemove, k)
 		}
 	}
-	return applicationServersForRemove
+
+	return applicationServersAlreadyIN, applicationServersForAdd, applicationServersForRemove
 }
 
 func getCopyOfApplicationServersFromService(serviceInfo *domain.HCService) map[string]*domain.HCApplicationServer {
