@@ -126,11 +126,17 @@ func (removeApplicationServers *RemoveApplicationServers) RemoveApplicationServe
 		}
 	}
 
-	logTryRemoveServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
+	removeApplicationServers.logging.WithFields(logrus.Fields{
+		"entity":   removeApplicationServersName,
+		"event id": removeApplicationServersID,
+	}).Infof("try update(remove) application servers at service in healtchecks: %v", updatedServiceInfo)
 	if _, err = removeApplicationServers.hc.UpdateServiceAtHealtchecks(updatedServiceInfo, removeApplicationServersID); err != nil {
-		return updatedServiceInfo, fmt.Errorf("application server removed, but an error occurred when removing it from healtchecks: %v", err)
+		return updatedServiceInfo, fmt.Errorf("application server removed from service %v, but an error occurred when removing it from healtchecks: %v", updatedServiceInfo, err)
 	}
-	logRemovedServiceAtHealtchecks(removeApplicationServersName, removeApplicationServersID, removeApplicationServers.logging)
+	removeApplicationServers.logging.WithFields(logrus.Fields{
+		"entity":   removeApplicationServersName,
+		"event id": removeApplicationServersID,
+	}).Infof("successfully update(remove) application servers at service in healtchecks: %v", updatedServiceInfo)
 
 	return updatedServiceInfo, nil
 }
