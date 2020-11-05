@@ -14,7 +14,9 @@ lbost1ao
 lbost1ah
 lbost1ai
 lbost1ad
+lbost1at
 *.pb.go
 *.txt
 *.tar.gz
 *.rpm
+*goreleaser.yml
