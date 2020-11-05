@@ -52,6 +52,8 @@ var rootCmd = &cobra.Command{
 			"id type":                   viperConfig.GetString(idTypeName),
 			"hc address":                viperConfig.GetString(hcAddressName),
 			"hc timeout":                viperConfig.GetDuration(hcTimeoutName),
+			"tun address":               viperConfig.GetString(tunSockAddrName),
+			"tun timeout":               viperConfig.GetDuration(tunTimeoutName),
 		}).Info("")
 
 		// FIXME: uncomment
@@ -78,9 +80,13 @@ var rootCmd = &cobra.Command{
 			syscall.SIGQUIT)
 
 		// tunnel maker start
-		tunnelMaker := portadapter.NewTunnelFileMaker(viperConfig.GetString(sysctlConfigsPathName), // TODO: refactor. tunnels, routes and sysctl config maker
-			viperConfig.GetBool(mockMode),
+		tunnelMaker := portadapter.NewTunnelEntity(viperConfig.GetString(tunSockAddrName),
+			viperConfig.GetDuration(tunTimeoutName),
 			logging)
+		if err := tunnelMaker.ConnectToTunnel(); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("can't connect to tunnel: %v", err)
+		}
+		defer tunnelMaker.DisconnectFromTunnel()
 		// tunnel maker end
 
 		//  healthchecks start

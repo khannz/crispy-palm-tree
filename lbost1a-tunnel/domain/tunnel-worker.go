@@ -10,10 +10,10 @@ type TunnelForApplicationServer struct {
 	ServicesToTunnelCount int    `json:"servicesToTunnelCount"`
 }
 
-// TunnelMaker ...
-type TunnelMaker interface {
-	CreateTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
-	RemoveTunnels([]*TunnelForApplicationServer, string) ([]*TunnelForApplicationServer, error)
+// TunnelWorker ...
+type TunnelWorker interface {
+	CreateTunnels([]*TunnelForApplicationServer, string) error
+	RemoveTunnels([]*TunnelForApplicationServer, string) error
 	RemoveAllTunnels([]*TunnelForApplicationServer, string) error
 }
 

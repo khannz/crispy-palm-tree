@@ -40,6 +40,9 @@ const (
 
 	defaultHCAddress = "127.0.0.1:7001"
 	defaultHCTimeout = 2 * time.Second
+
+	defaultTunSockAddr = "/var/run/lbost1at.sock"
+	defaultTunTimeout  = 2 * time.Second
 )
 
 var defaultCredentials = map[string]string{}
@@ -73,6 +76,9 @@ const (
 
 	hcAddressName = "hc-address"
 	hcTimeoutName = "hc-timeout"
+
+	tunSockAddrName = "tun-sock-addr"
+	tunTimeoutName  = "tun-timeout"
 )
 
 // // For builds with ldflags
@@ -126,6 +132,9 @@ func init() {
 
 	pflag.String(hcAddressName, defaultHCAddress, "Healthcheck address. Example:'127.0.0.1:7000'")
 	pflag.Duration(hcTimeoutName, defaultHCTimeout, "Healthcheck request timeout")
+
+	pflag.String(tunSockAddrName, defaultTunSockAddr, "tunnel address. Example:'/var/run/lbost1at.sock'")
+	pflag.Duration(tunTimeoutName, defaultTunTimeout, "tunnel request timeout")
 
 	pflag.Parse()
 	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {

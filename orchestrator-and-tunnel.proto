@@ -1,0 +1,28 @@
+syntax = "proto3";
+package transport;
+
+
+service TunnelsCreate {
+  rpc CreateTunnels (PbTunnelsInfo) returns (PbTunnelsInfo) {}
+}
+
+service TunnelsRemove{
+  rpc RemoveTunnels (PbTunnelsInfo) returns (PbTunnelsInfo) {}
+  rpc RemoveAllTunnels (PbTunnelsInfo) returns (EmptyTunnelData) {}
+}
+
+message EmptyTunnelData {
+  string id = 1;
+}
+
+message PbTunnelsInfo {
+  repeated PbTunnelInfo pbTunnelInfo = 1;
+  string id = 2;
+}
+
+message PbTunnelInfo {
+    string ip = 1;
+    string sysctlConfFile = 2;
+    string tunnelName = 3;
+    int32 servicesToTunnelCount = 4;
+}

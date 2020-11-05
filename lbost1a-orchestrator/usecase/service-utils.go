@@ -29,7 +29,7 @@ func formNewApplicationServersMap(currentApplicattionServers, applicattionServer
 	newApplicationServersMap := map[string]*domain.ApplicationServer{}
 	for k := range currentApplicattionServers {
 		if _, isFinded := applicattionServersForRemove[k]; !isFinded {
-			copyOfAppSrv := *currentApplicattionServers[k]
+			copyOfAppSrv := *currentApplicattionServers[k] // TODO: don't copy lock
 			newApplicationServersMap[k] = &copyOfAppSrv
 		}
 	}
@@ -116,16 +116,6 @@ func copyApplicationServers(applicationServers map[string]*domain.ApplicationSer
 	return newApplicationServers
 }
 
-func containForRemove(tsIn *domain.ApplicationServer, toRemASs map[string]*domain.ApplicationServer) bool {
-	for _, tr := range toRemASs {
-		if tsIn.IP == tr.IP &&
-			tsIn.Port == tr.Port {
-			return true
-		}
-	}
-	return false
-}
-
 // FormTunnelsFilesInfo ...
 func FormTunnelsFilesInfo(applicationServers map[string]*domain.ApplicationServer, cacheStorage domain.StorageActions) []*domain.TunnelForApplicationServer {
 	tunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
@@ -134,6 +124,8 @@ func FormTunnelsFilesInfo(applicationServers map[string]*domain.ApplicationServe
 		if tunnelFilesInfo == nil {
 			tunnelFilesInfo = &domain.TunnelForApplicationServer{
 				ApplicationServerIP:   applicationServer.IP,
+				SysctlConfFile:        "",
+				TunnelName:            "",
 				ServicesToTunnelCount: 0,
 			}
 		}

@@ -21,7 +21,6 @@ require (
 	github.com/swaggo/gin-swagger v1.2.0
 	github.com/swaggo/swag v1.6.3
 	github.com/thevan4/logrus-wrapper v1.0.0
-	github.com/vishvananda/netlink v1.1.0
 	google.golang.org/grpc v1.32.0
 	google.golang.org/protobuf v1.25.0
 )

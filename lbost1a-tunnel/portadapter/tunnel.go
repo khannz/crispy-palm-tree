@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/khannz/crispy-palm-tree/lbost1a-orchestrator/domain"
+	"github.com/khannz/crispy-palm-tree/lbost1a-tunnel/domain"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
@@ -40,27 +40,21 @@ func NewTunnelFileMaker(sysctlConfFilePath string,
 
 // CreateTunnels ...
 func (tunnelFileMaker *TunnelFileMaker) CreateTunnels(tunnelsFilesInfo []*domain.TunnelForApplicationServer,
-	createTunnelID string) ([]*domain.TunnelForApplicationServer, error) {
+	createTunnelID string) error {
 	tunnelFileMaker.logging.WithFields(logrus.Fields{
 		"entity":   tunnelFileMakerEntityName,
 		"event id": createTunnelID,
 	}).Tracef("starting create tunnels: %v", tunnelsFilesInfo)
-	newTunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		if tunnelFilesInfo.ServicesToTunnelCount == 0 {
 			if err := tunnelFileMaker.CreateTunnel(tunnelFilesInfo, createTunnelID); err != nil {
-				return nil, fmt.Errorf("can't create tunnel: %v", err)
+				return fmt.Errorf("can't create tunnel: %v", err)
 			}
 		}
-		newTunnelFilesInfo := &domain.TunnelForApplicationServer{
-			ApplicationServerIP:   tunnelFilesInfo.ApplicationServerIP,
-			SysctlConfFile:        tunnelFilesInfo.SysctlConfFile,
-			TunnelName:            tunnelFilesInfo.TunnelName,
-			ServicesToTunnelCount: tunnelFilesInfo.ServicesToTunnelCount + 1,
-		}
-		newTunnelsFilesInfo = append(newTunnelsFilesInfo, newTunnelFilesInfo)
+		tunnelFilesInfo.ServicesToTunnelCount++
 	}
-	return newTunnelsFilesInfo, nil
+
+	return nil
 }
 
 // CreateTunnel ...
@@ -84,7 +78,7 @@ func (tunnelFileMaker *TunnelFileMaker) CreateTunnel(tunnelFilesInfo *domain.Tun
 	tunnelFilesInfo.TunnelName = sNewTunnelName
 	tunnelFilesInfo.SysctlConfFile = newSysctlConfFileFullPath
 
-	if err := tunnelFileMaker.writeNewTunnelFile(tunnelFilesInfo, // TODO: remove that
+	if err := tunnelFileMaker.writeNewTunnelFile(tunnelFilesInfo, // TODO: remove that?
 		createTunnelID); err != nil {
 		return fmt.Errorf("can't write new tunnel files: %v", err)
 	}
@@ -215,8 +209,7 @@ func (tunnelFileMaker *TunnelFileMaker) downAndRemoveOldLink(tunnelName string) 
 
 // RemoveTunnels ...
 func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(tunnelsFilesInfo []*domain.TunnelForApplicationServer,
-	removeTunnelID string) ([]*domain.TunnelForApplicationServer, error) {
-	newTunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
+	removeTunnelID string) error {
 	for _, tunnelFilesInfo := range tunnelsFilesInfo {
 		tunnelFileMaker.logging.WithFields(logrus.Fields{
 			"entity":   tunnelFileMakerEntityName,
@@ -225,14 +218,12 @@ func (tunnelFileMaker *TunnelFileMaker) RemoveTunnels(tunnelsFilesInfo []*domain
 
 		if tunnelFilesInfo.ServicesToTunnelCount == 1 {
 			if err := tunnelFileMaker.RemoveTunnel(tunnelFilesInfo, removeTunnelID); err != nil {
-				return nil, fmt.Errorf("can't remove tunnel files: %v", err)
+				return fmt.Errorf("can't remove tunnel files: %v", err)
 			}
 		}
-		tunnelFilesInfo.ServicesToTunnelCount = tunnelFilesInfo.ServicesToTunnelCount - 1
-		newTunnelFilesInfo := *tunnelFilesInfo
-		newTunnelsFilesInfo = append(newTunnelsFilesInfo, &newTunnelFilesInfo)
+		tunnelFilesInfo.ServicesToTunnelCount--
 	}
-	return newTunnelsFilesInfo, nil
+	return nil
 }
 
 // RemoveAllTunnels remove tunnels whithout any checks

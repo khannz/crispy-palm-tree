@@ -2,6 +2,7 @@ package main
 
 //go:generate swag init -g application/rest-main.go
 //go:generate protoc --go_out=./grpc-transport/ --proto_path=../ --go-grpc_out=./grpc-transport/ --proto_path=../ orchestrator-and-healthcheck.proto
+//go:generate protoc --go_out=./grpc-transport/ --proto_path=../ --go-grpc_out=./grpc-transport/ --proto_path=../ orchestrator-and-tunnel.proto
 
 import run "github.com/khannz/crispy-palm-tree/lbost1a-orchestrator/cmd"
 
