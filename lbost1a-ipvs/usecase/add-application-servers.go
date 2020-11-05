@@ -17,5 +17,11 @@ func (addApplicationServersEntity *AddApplicationServersEntity) AddIPVSApplicati
 	protocol uint16,
 	applicationServers map[string]uint16,
 	id string) error {
-	return nil
+	return addApplicationServersEntity.ipvs.AddIPVSApplicationServersForService(vip,
+		port,
+		routingType,
+		balanceType,
+		protocol,
+		applicationServers,
+		id)
 }
