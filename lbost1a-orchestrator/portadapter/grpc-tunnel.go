@@ -55,9 +55,9 @@ func (tun *TunnelEntity) DisconnectFromTunnel() {
 }
 
 func (tun *TunnelEntity) CreateTunnels(tunnelInfo []*domain.TunnelForApplicationServer, id string) ([]*domain.TunnelForApplicationServer, error) {
+	outPbTunInfo := convertDomainTunnelsInfoToIncomePbTunnelsInfo(tunnelInfo, id)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	outPbTunInfo := convertDomainTunnelsInfoToIncomePbTunnelsInfo(tunnelInfo, id)
 	updatedPbTunnelInfo, err := tun.tunCreateClient.CreateTunnels(ctx, outPbTunInfo)
 	if err != nil {
 		return tunnelInfo, fmt.Errorf("can't create tunnels, tun service error: %v", err)
