@@ -114,7 +114,7 @@ func (gs *UdsGrpcServer) RemoveAllTunnels(ctx context.Context, incomeRemoveAllTu
 }
 
 func convertIncomePbTunnelsInfoToDomainTunnelsInfo(pbTunnelsInfo *transport.PbTunnelsInfo) []*domain.TunnelForApplicationServer {
-	domainTunnelsInfo := make([]*domain.TunnelForApplicationServer, 0, len(pbTunnelsInfo.PbTunnelInfo))
+	domainTunnelsInfo := make([]*domain.TunnelForApplicationServer, len(pbTunnelsInfo.PbTunnelInfo))
 	for i, pbTunnel := range pbTunnelsInfo.PbTunnelInfo {
 		domainTunnelInfo := &domain.TunnelForApplicationServer{
 			ApplicationServerIP:   pbTunnel.Ip,
@@ -128,7 +128,7 @@ func convertIncomePbTunnelsInfoToDomainTunnelsInfo(pbTunnelsInfo *transport.PbTu
 }
 
 func convertDomainTunnelsInfoToIncomePbTunnelsInfo(tunnelsInfo []*domain.TunnelForApplicationServer, id string) *transport.PbTunnelsInfo {
-	pbTunnelsInfo := make([]*transport.PbTunnelInfo, 0, len(tunnelsInfo))
+	pbTunnelsInfo := make([]*transport.PbTunnelInfo, len(tunnelsInfo))
 	for i, domainTunnel := range tunnelsInfo {
 		pbTunnelInfo := &transport.PbTunnelInfo{
 			Ip:                    domainTunnel.ApplicationServerIP,

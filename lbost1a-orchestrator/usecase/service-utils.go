@@ -118,7 +118,7 @@ func copyApplicationServers(applicationServers map[string]*domain.ApplicationSer
 
 // FormTunnelsFilesInfo ...
 func FormTunnelsFilesInfo(applicationServers map[string]*domain.ApplicationServer, cacheStorage domain.StorageActions) []*domain.TunnelForApplicationServer {
-	tunnelsFilesInfo := []*domain.TunnelForApplicationServer{}
+	tunnelsFilesInfo := make([]*domain.TunnelForApplicationServer, 0, len(applicationServers))
 	for _, applicationServer := range applicationServers {
 		tunnelFilesInfo := cacheStorage.ReadTunnelInfoForApplicationServer(applicationServer.IP)
 		if tunnelFilesInfo == nil {
