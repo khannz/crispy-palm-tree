@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	transport "github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/grpc-transport"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-const grpcJobName = "healthcheck grpc job"
+const (
+	grpcJobName = "healthcheck grpc job"
+	protocol    = "unix"
+)
 
 // GrpcServer is used to implement portadapter.HCGetService.
 type GrpcServer struct {
@@ -157,7 +161,11 @@ func (gs *GrpcServer) HCRemovePbService(ctx context.Context, incomePbService *tr
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
-	lis, err := net.Listen("tcp", grpcServer.address)
+	if err := grpcServer.cleanup(); err != nil {
+		return fmt.Errorf("failed to cleanup socket info: %v", err)
+	}
+
+	lis, err := net.Listen(protocol, grpcServer.address)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
@@ -166,6 +174,15 @@ func (grpcServer *GrpcServer) StartServer() error {
 	transport.RegisterHCNewServer(grpcServer.grpcSrv, grpcServer)
 	transport.RegisterHCUpdateServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.Serve(lis)
+	return nil
+}
+
+func (grpcServer *GrpcServer) cleanup() error {
+	if _, err := os.Stat(grpcServer.address); err == nil {
+		if err := os.RemoveAll(grpcServer.address); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

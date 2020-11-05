@@ -44,7 +44,7 @@ func (tun *TunnelEntity) initGRPC() error {
 	return nil
 }
 
-func (tun *TunnelEntity) ConnectToTunnel() error { // FIXME: do not connect for UDS
+func (tun *TunnelEntity) ConnectToTunnel() error { // FIXME: always connected for UDS - so bad
 	return tun.initGRPC()
 }
 

@@ -38,7 +38,7 @@ const (
 	defaultExpireTokenForRefreshTime = 96 * time.Hour
 	defaultIDType                    = "nanoid"
 
-	defaultHCAddress = "127.0.0.1:7001"
+	defaultHCAddress = "/var/run/lbost1ah.sock"
 	defaultHCTimeout = 2 * time.Second
 
 	defaultTunSockAddr = "/var/run/lbost1at.sock"

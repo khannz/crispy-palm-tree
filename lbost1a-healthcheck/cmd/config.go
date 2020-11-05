@@ -24,7 +24,7 @@ const (
 	defaultTechInterface = "" // required
 	defaultIDType        = "nanoid"
 
-	defaultHCAddress = "127.0.0.1:7001"
+	defaultHCAddress = "/var/run/lbost1ah.sock"
 	defaultHCTimeout = 2 * time.Second
 
 	defaultIPVSAddressName = "127.0.0.1:7002"

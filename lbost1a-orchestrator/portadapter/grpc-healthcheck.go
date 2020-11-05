@@ -3,6 +3,7 @@ package portadapter
 import (
 	context "context"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/khannz/crispy-palm-tree/lbost1a-orchestrator/domain"
@@ -26,10 +27,13 @@ func NewHeathcheckEntity(address string, grpcTimeout time.Duration, logging *log
 }
 
 func (hc *HeathcheckEntity) initGRPC() error {
+	dialer := func(addr string, t time.Duration) (net.Conn, error) {
+		return net.Dial(protocolUdsName, addr)
+	}
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	hc.conn, err = grpc.DialContext(ctx, hc.address, grpc.WithInsecure(), grpc.WithBlock())
+	hc.conn, err = grpc.DialContext(ctx, hc.address, grpc.WithInsecure(), grpc.WithDialer(dialer)) // TODO: use context dialer
 	if err != nil {
 		return fmt.Errorf("did not connect to grpc server: %v", err)
 	}
@@ -112,7 +116,7 @@ func (hc *HeathcheckEntity) GetServicesState(id string) ([]*domain.ServiceInfo, 
 	return domainUpdatedServicesInfo, nil
 }
 
-func (hc *HeathcheckEntity) ConnectToHealtchecks() error {
+func (hc *HeathcheckEntity) ConnectToHealtchecks() error { // FIXME: always connected for UDS - so bad
 	return hc.initGRPC()
 }
 func (hc *HeathcheckEntity) DisconnectFromHealtchecks() {

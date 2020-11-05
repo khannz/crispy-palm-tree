@@ -99,7 +99,6 @@ var rootCmd = &cobra.Command{
 
 		// up grpc api
 
-		// grpcServer := application.NewGrpcServer(viperConfig.GetString(hcAddressName), facade, logging) // gorutine inside
 		grpcServer := application.NewGrpcServer(viperConfig.GetString(hcAddressName), facade, logging) // gorutine inside
 		if err := grpcServer.StartServer(); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)
