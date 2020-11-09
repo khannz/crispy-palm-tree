@@ -9,6 +9,11 @@ import (
 	"github.com/thevan4/go-billet/executor"
 )
 
+const (
+	fallbackFlag uint32 = 8
+	shPort       uint32 = 16
+)
+
 // IPVSADMEntity ...
 type IPVSADMEntity struct {
 	sync.Mutex
@@ -40,8 +45,9 @@ func (ipvsadmEntity *IPVSADMEntity) NewService(vip string,
 	}
 	defer ipvs.Exit()
 
+	flags := chooseFlags(balanceType)
 	// AddService for IPv4
-	err = ipvs.AddService(vip, port, protocol, balanceType)
+	err = ipvs.AddServiceWithFlags(vip, port, protocol, balanceType, flags)
 	if err != nil {
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
@@ -53,6 +59,17 @@ func (ipvsadmEntity *IPVSADMEntity) NewService(vip string,
 	}
 
 	return nil
+}
+
+func chooseFlags(balanceType string) []byte {
+	switch balanceType {
+	case "mhf":
+		return gnl2go.U32ToBinFlags(fallbackFlag)
+	case "mhp":
+		return gnl2go.U32ToBinFlags(fallbackFlag | shPort)
+	default:
+		return nil
+	}
 }
 
 func ipvsInit() (*gnl2go.IpvsClient, error) {
