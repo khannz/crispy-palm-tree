@@ -91,7 +91,8 @@ func validateServiceBalanceType(balanceType string) error {
 	case "wlc":
 	case "lblc":
 	case "sh":
-	case "mh":
+	case "mhf":
+	case "mhp":
 	case "dh":
 	case "fo":
 	case "ovf":
