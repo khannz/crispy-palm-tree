@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	fallbackFlag uint32 = 8
-	shPort       uint32 = 16
+	fallbackFlag           uint32 = 8
+	fallbackAndshPortFlags uint32 = 24 // Bitwise OR fallbackFlag(8) | shPortFlag(16)
 )
 
 // IPVSADMEntity ...
@@ -66,7 +66,7 @@ func chooseFlags(balanceType string) []byte {
 	case "mhf":
 		return gnl2go.U32ToBinFlags(fallbackFlag)
 	case "mhp":
-		return gnl2go.U32ToBinFlags(fallbackFlag | shPort)
+		return gnl2go.U32ToBinFlags(fallbackAndshPortFlags)
 	default:
 		return nil
 	}
