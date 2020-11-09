@@ -40,7 +40,7 @@ func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 	}
 	defer ipvs.Exit()
 
-	// AddService for IPv4
+	// AddService for IPv4 FIXME: don't forget update AddService func to AddServiceWithFlags before release! (also need to fix all models)
 	err = ipvs.AddService(vip, port, protocol, balanceType)
 	if err != nil {
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
