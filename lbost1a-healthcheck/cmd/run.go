@@ -38,8 +38,7 @@ var rootCmd = &cobra.Command{
 			"dummy address": viperConfig.GetString(dummyAddressName),
 			"dummy timeout": viperConfig.GetDuration(dummyTimeoutName),
 
-			"tech interface": viperConfig.GetString(techInterfaceName),
-			"id type":        viperConfig.GetString(idTypeName),
+			"id type": viperConfig.GetString(idTypeName),
 		}).Info("")
 
 		locker := &domain.Locker{}
@@ -82,7 +81,6 @@ var rootCmd = &cobra.Command{
 
 		hc := portadapter.NewHeathcheckEntity(memDB,
 			ipvsadmSender,
-			viperConfig.GetString(techInterfaceName),
 			locker,
 			false,
 			dw,

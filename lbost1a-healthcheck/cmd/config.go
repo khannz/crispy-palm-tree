@@ -21,8 +21,7 @@ const (
 	defaultSystemLogTag     = ""
 	defaultLogEventLocation = true
 
-	defaultTechInterface = "" // required
-	defaultIDType        = "nanoid"
+	defaultIDType = "nanoid"
 
 	defaultHCAddress = "/var/run/lbost1ah.sock"
 	defaultHCTimeout = 2 * time.Second
@@ -52,8 +51,7 @@ const (
 	dummyAddressName = "dummy-address"
 	dummyTimeoutName = "dummy-timeout"
 
-	techInterfaceName = "tech-interface"
-	idTypeName        = "id-type"
+	idTypeName = "id-type"
 )
 
 // // For builds with ldflags
@@ -91,8 +89,6 @@ func init() {
 	pflag.String(dummyAddressName, defaultDummyAddress, "dummy address")
 	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy timeout")
 
-	pflag.String(techInterfaceName, defaultTechInterface, "tech interface")
-
 	pflag.String(idTypeName, defaultIDType, "ID type(nanoid|uuid4)")
 
 	pflag.Parse()
@@ -119,11 +115,6 @@ func init() {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-	}
-
-	// required values are set
-	if viperConfig.GetString(techInterfaceName) == "" {
-		logging.Fatalf("tech interface must be set")
 	}
 
 	switch viperConfig.GetString(idTypeName) {

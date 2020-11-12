@@ -2,11 +2,11 @@ package portadapter
 
 import (
 	"fmt"
-	"net"
 	"sync"
 	"time"
 
 	domain "github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/domain"
+	checks "github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/portadapter/healthchecks"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +25,6 @@ type HeathcheckEntity struct {
 	runningHeathchecks []*domain.HCService
 	cacheStorage       domain.StorageActions
 	ipvsadm            domain.IPVSWorker
-	techInterface      *net.TCPAddr
 	locker             *domain.Locker
 	dw                 domain.DummyWorker
 	isMockMode         bool
@@ -37,19 +36,16 @@ type HeathcheckEntity struct {
 // NewHeathcheckEntity ...
 func NewHeathcheckEntity(cacheStorage *StorageEntity,
 	ipvsadm domain.IPVSWorker,
-	rawTechInterface string,
 	locker *domain.Locker,
 	isMockMode bool,
 	dw domain.DummyWorker,
 	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *HeathcheckEntity {
-	ti, _, _ := net.ParseCIDR(rawTechInterface + "/32")
 
 	return &HeathcheckEntity{
 		runningHeathchecks: []*domain.HCService{}, // need for append
 		cacheStorage:       cacheStorage,
 		ipvsadm:            ipvsadm,
-		techInterface:      &net.TCPAddr{IP: ti},
 		locker:             locker,
 		dw:                 dw,
 		isMockMode:         isMockMode,
@@ -57,12 +53,6 @@ func NewHeathcheckEntity(cacheStorage *StorageEntity,
 		logging:            logging,
 		announcedServices:  make(map[string]int),
 	}
-}
-
-// UnknownDataStruct used for trying to get an unknown json or array of json's
-type UnknownDataStruct struct {
-	UnknowMap         map[string]string
-	UnknowArrayOfMaps []map[string]string
 }
 
 func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) {
@@ -450,26 +440,44 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.HCService
 	fs *failedApplicationServers,
 	applicationServerInfoKey string,
 	id string) bool {
+	// FIXME: set fwmark
+	fwmark := 1
 	switch hcService.HCType {
 	case "tcp":
-		return hc.tcpCheckOk(hcService.HCApplicationServers[applicationServerInfoKey].HCAddress,
+		return checks.TcpCheckOk(hcService.HCApplicationServers[applicationServerInfoKey].HCAddress,
 			hcService.HCTimeout,
-			id)
-	case "http":
-		return hc.httpCheckOk(hcService.HCApplicationServers[applicationServerInfoKey].HCAddress,
+			fwmark,
+			id,
+			hc.logging)
+	case "http": // FIXME: https checks here, no support for http
+		return checks.HttpsCheckOk(hcService.HCApplicationServers[applicationServerInfoKey].HCAddress,
 			hcService.HCTimeout,
-			id)
+			fwmark,
+			id,
+			hc.logging)
 	case "http-advanced":
-		return hc.httpAdvancedCheckOk(hcService.HCType,
+		return checks.HttpAdvancedCheckOk(hcService.HCType,
 			hcService.HCApplicationServers[applicationServerInfoKey].HCAddress,
 			hcService.HCNearFieldsMode,
 			hcService.HCUserDefinedData,
 			hcService.HCTimeout,
-			id)
+			fwmark,
+			id,
+			hc.logging)
 	case "icmp":
-		return hc.icmpCheckOk(hcService.HCApplicationServers[applicationServerInfoKey].HCAddress,
+		seq := 1
+		// 	echoRequestSeqId.Lock() // FIXME: select sequence
+		// if echoRequestSeqId.seq == 65535 {
+		// 	echoRequestSeqId.seq = 1
+		// } else {
+		// 	echoRequestSeqId.seq++
+		// }
+		return checks.IcmpCheckOk(hcService.HCApplicationServers[applicationServerInfoKey].HCAddress,
+			seq,
 			hcService.HCTimeout,
-			id)
+			fwmark,
+			id,
+			hc.logging)
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
