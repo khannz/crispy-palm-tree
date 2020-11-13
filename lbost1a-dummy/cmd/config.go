@@ -24,6 +24,9 @@ const (
 	defaultDummyInterface = "dummy0" // required
 	defaultIDType         = "nanoid"
 
+	defaultHCAddress = "/var/run/lbost1ah.sock"
+	defaultHCTimeout = 2 * time.Second
+
 	defaultDummyAddress = "127.0.0.1:7003"
 	defaultDummyTimeout = 2 * time.Second
 )
@@ -36,6 +39,9 @@ const (
 	logFormatName        = "log-format"
 	syslogTagName        = "syslog-tag"
 	logEventLocationName = "log-event-location"
+
+	hcAddressName = "hc-address"
+	hcTimeoutName = "hc-timeout"
 
 	dummyAddressName = "dummy-address"
 	dummyTimeoutName = "dummy-timeout"
@@ -71,6 +77,9 @@ func init() {
 	pflag.String(logFormatName, defaultLogFormat, "Log format. Example values: 'text', 'json'")
 	pflag.String(syslogTagName, defaultSystemLogTag, "Syslog tag. Example: 'trac-dgen'")
 	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
+
+	pflag.String(hcAddressName, defaultHCAddress, "hc address")
+	pflag.Duration(hcTimeoutName, defaultHCTimeout, "hc timeout")
 
 	pflag.String(dummyAddressName, defaultDummyAddress, "dummy address")
 	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy address")

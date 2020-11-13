@@ -31,6 +31,8 @@ var rootCmd = &cobra.Command{
 			"log output":       viperConfig.GetString(logOutputName),
 			"syslog tag":       viperConfig.GetString(syslogTagName),
 
+			"hc address":      viperConfig.GetString(hcAddressName),
+			"hc timeout":      viperConfig.GetDuration(hcTimeoutName),
 			"dummy address":   viperConfig.GetString(dummyAddressName),
 			"dummy timeout":   viperConfig.GetDuration(dummyTimeoutName),
 			"dummy interface": viperConfig.GetString(dummyInterfaceName),
@@ -48,14 +50,24 @@ var rootCmd = &cobra.Command{
 		dummyConfigurator := portadapter.NewDummyEntity(viperConfig.GetString(dummyInterfaceName), logging)
 		// dummyConfigurator end
 
+		// healthcheckWorker start
+		hw := portadapter.NewHealthcheckWorkerEntity(viperConfig.GetString(hcAddressName),
+			viperConfig.GetDuration(hcTimeoutName),
+			logging)
+		// healthcheckWorker end
+
 		// init config end
 
 		facade := application.NewDummyFacade(dummyConfigurator,
+			hw,
 			idGenerator,
 			logging)
 
-		// up grpc api
+		// try to sendruntime config
+		idForSendRuntimeConfig := idGenerator.NewID()
+		go facade.TryToSendRuntimeConfig(idForSendRuntimeConfig)
 
+		// up grpc api
 		grpcServer := application.NewGrpcServer(viperConfig.GetString(dummyAddressName), facade, logging) // gorutine inside
 		if err := grpcServer.StartServer(); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)

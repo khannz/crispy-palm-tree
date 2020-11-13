@@ -35,7 +35,6 @@ func (dummyEntity *DummyEntity) AddToDummy(serviceIP string, id string) error {
 		if incomeIPAndMask == addr.String() {
 			addrIsFounded = true
 			break
-
 		}
 	}
 	if !addrIsFounded {
@@ -45,6 +44,7 @@ func (dummyEntity *DummyEntity) AddToDummy(serviceIP string, id string) error {
 	}
 	return nil
 }
+
 func (dummyEntity *DummyEntity) RemoveFromDummy(serviceIP string, id string) error {
 	dummyEntity.Lock()
 	defer dummyEntity.Unlock()
@@ -113,4 +113,21 @@ func (dummyEntity *DummyEntity) addAddr(addrForAdd string) error {
 		return err
 	}
 	return nil
+}
+
+func (dummyEntity *DummyEntity) GetRuntimeConfig(id string) (map[string]struct{}, error) {
+	dummyEntity.Lock()
+	defer dummyEntity.Unlock()
+
+	addrs, err := dummyEntity.getDummyAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	rc := make(map[string]struct{}, len(addrs))
+
+	for _, addr := range addrs {
+		rc[addr.String()] = struct{}{}
+	}
+	return rc, nil
 }

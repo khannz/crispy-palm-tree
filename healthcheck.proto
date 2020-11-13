@@ -61,3 +61,16 @@ message PbServices {
     map<string, PbService> services = 1;
     string Id = 2;
 }
+
+service SendRuntime {
+  rpc SendDummyRuntime (DummyRuntime) returns (EmptyData) {}
+  // rpc HCRemovePbService (PbService) returns (EmptyHcData) {}
+}
+
+message DummyRuntime {
+  map<string, EmptyData> services = 1;
+  string Id = 2;
+}
+
+message EmptyData {
+}
