@@ -1,0 +1,9 @@
+openapi: 3.0.0
+info:
+  title: LBOS Controller API
+  description: API Контроллера Сервиса "Балансировка нагрузки" типа Open Source
+  version: v1.0.0
+servers:
+  - url: 'http://localhost:8080'
+paths:
+  
