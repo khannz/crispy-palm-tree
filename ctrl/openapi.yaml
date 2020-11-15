@@ -1,0 +1,223 @@
+openapi: 3.0.3
+info:
+  title: LBOS Controller API
+  description: |
+    API Контроллера Сервиса "Больше, чем Балансировка Нагрузки" типа Open Source
+  # termsOfService: http://localhost
+  contact:
+    name: бот Иван
+    email: lbos@sber.ru
+    # url: http://localhost
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 'v1.0.0'
+# externalDocs:
+#   description: Узнать больше о сервисе
+#   url: http://wiki
+# servers:
+#   - url: 'http://localhost:8080'
+tags:
+  - name: Balancing Services
+    # description: adszxch
+    # externalDocs:
+    #   description: zzz
+    #   url: http://wiki
+# - name: Orders
+#   description: adszxch
+paths:
+  /balancingService:
+    post:
+      tags:
+        - Balancing Services
+      # summary: gtyhjnm
+      requestBody:
+        # description: rjyjyrjhetfbd
+        content:
+          '*/*':
+            schema:
+              $ref: '#/components/schemas/BalancingService'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalancingService'
+        400:
+          description: Invalid Order
+          content: {}
+  # /order:
+  #   get:
+  #     tags:
+  #     - Orders
+  #     summary: asd
+  #     responses:
+  #       default:
+  #         description: asd
+  #         content: {}
+  #     security:
+  #     - api_key: []
+  #   post:
+  #     tags:
+  #     - Orders
+  #     summary: asd
+  #     requestBody:
+  #       description: asdasd
+  #       content:
+  #         '*/*':
+  #           schema:
+  #             $ref: '#/components/schemas/Order'
+  #     responses:
+  #       200:
+  #         description: asd
+  #         content:
+  #           application/json:
+  #             schema:
+  #             $ref: '#/components/schemas/Order'
+  #       400:
+  #         description: Invalid Order
+  #         content: {}
+  #     security:
+  #     - api_key: []
+
+components:
+  schemas:
+    BalancingService:
+      required:
+        - something
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        cluster:
+          $ref: '#/components/schemas/Cluster'
+        order:
+          $ref: '#/components/schemas/Order'
+        vips:
+          type: array
+          items:
+            $ref: '#/components/schemas/Vip'
+
+    Vip:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        proto:
+          type: string
+          enum: [tcp, udp]
+        address:
+          type: string
+          format: ipv4
+        port:
+          type: number
+        routingType:
+          type: string
+          enum: [nat, tunnel, gre-tunnel]
+        balancingType:
+          type: string
+          enum: [round-robin, source-ip, source-ip-port, least-connection, uri, url-param, hdr, random, rdp-cookie]
+        reals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Real'
+        healthchecks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Healthcheck'
+        # security_zone:
+        #   $ref: '#/components/schemas/SecurityZone'
+
+    Healthcheck:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        config:
+          type: string
+        helloTimer:
+          type: number
+        responseTimer:
+          type: number
+        aliveTreshold:
+          type: number
+        deadTreshold:
+          type: number
+        quorum:
+          type: number
+        hysteresis:
+          type: number
+
+    Real:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        security_zone:
+          $ref: '#/components/schemas/SecurityZone'
+        address:
+          type: string
+          format: ipv4
+        port:
+          type: number
+
+    SecurityZone:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          enum: [eAZ, eBZ, eMZ, ePZ, eDZ]
+
+    Cluster:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          readOnly: true
+        security_zone:
+          $ref: '#/components/schemas/SecurityZone'
+        utilisation:
+          type: number
+          readOnly: true
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        typeId:
+          type: string
+          readOnly: true
+          enum: [create, delete, update]
+        createdAt:
+          readOnly: true
+          type: string
+          format: date-time
+        source:
+          type: string
+          format: hostanme
+        raw:
+          type: string
+          format: uuid
+          readOnly: true
+        serviceManagerId:
+          type: string

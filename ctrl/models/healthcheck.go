@@ -4,10 +4,10 @@ type Healthcheck struct {
 	HealthcheckID       string
 	BalancingServiceID  string
 	HealthcheckConfigID string
-	hello_timer         int
-	response_timer      int
-	dead_threshold      int
-	alive_threshold     int
-	quorum              int
-	hysteresis          int
+	HelloTimer          int
+	ResponseTimer       int
+	DeadThreshold       int
+	AliveThreshold      int
+	Quorum              int
+	Hysteresis          int
 }
