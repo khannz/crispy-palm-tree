@@ -72,5 +72,5 @@ message DummySendRuntimeData {
 }
 
 message EmptySendData {
-  
+  string id = 1;
 }
