@@ -27,7 +27,7 @@ const (
 	defaultHCAddress = "/var/run/lbost1ah.sock"
 	defaultHCTimeout = 2 * time.Second
 
-	defaultDummyAddress = "127.0.0.1:7003"
+	defaultDummyAddress = "/var/run/lbost1ad.sock"
 	defaultDummyTimeout = 2 * time.Second
 )
 
