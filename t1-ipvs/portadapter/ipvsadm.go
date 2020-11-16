@@ -10,8 +10,6 @@ import (
 	"github.com/thevan4/go-billet/executor"
 )
 
-// FIXME: internal map of runtime, for exclude job errors
-
 const (
 	fallbackFlag           uint32 = 8
 	fallbackAndshPortFlags uint32 = 24 // Bitwise OR fallbackFlag(8) | shPortFlag(16)
@@ -40,6 +38,15 @@ func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 	protocol uint16,
 	applicationServers map[string]uint16,
 	id string) error {
+
+	isServiceExist, _, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
+	if err != nil {
+		return fmt.Errorf("can't check service at ipvsadm: %v", err)
+	}
+	if isServiceExist {
+		return nil
+	}
+
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -55,7 +62,7 @@ func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
 
-	if applicationServers != nil {
+	if applicationServers != nil { // TODO: maybe don't add app srvs when create service
 		if err = ipvsadmEntity.addApplicationServersToService(ipvs, vip, port, protocol, routingType, applicationServers); err != nil {
 			return fmt.Errorf("cant add application server to service: %v", err)
 		}
@@ -83,6 +90,15 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSService(vip string,
 	port uint16,
 	protocol uint16,
 	id string) error {
+
+	isServiceExist, _, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
+	if err != nil {
+		return fmt.Errorf("can't check service at ipvsadm: %v", err)
+	}
+	if !isServiceExist {
+		return nil
+	}
+
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -145,6 +161,20 @@ func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip stri
 	protocol uint16,
 	applicationServers map[string]uint16,
 	id string) error {
+
+	isServiceExist, pool, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
+	if err != nil {
+		return fmt.Errorf("can't check service at ipvsadm: %v", err)
+	}
+	if !isServiceExist {
+		return fmt.Errorf("service %v:%v not exist, can't add application servers", vip, port)
+	}
+
+	_, notExistingApplicationServers := ipvsadmEntity.diffApplicationServersInService(applicationServers, pool) // no lock
+	if len(notExistingApplicationServers) == 0 {
+		return nil
+	}
+
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -153,7 +183,7 @@ func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip stri
 	}
 	defer ipvs.Exit()
 
-	if err = ipvsadmEntity.addApplicationServersToService(ipvs, vip, port, protocol, routingType, applicationServers); err != nil {
+	if err = ipvsadmEntity.addApplicationServersToService(ipvs, vip, port, protocol, routingType, notExistingApplicationServers); err != nil {
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 
@@ -168,6 +198,19 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSApplicationServersFromService(vip 
 	protocol uint16,
 	applicationServers map[string]uint16,
 	id string) error {
+	isServiceExist, pool, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
+	if err != nil {
+		return fmt.Errorf("can't check service at ipvsadm: %v", err)
+	}
+	if !isServiceExist {
+		return fmt.Errorf("service %v:%v not exist, can't add application servers", vip, port)
+	}
+
+	existingApplicationServers, _ := ipvsadmEntity.diffApplicationServersInService(applicationServers, pool) // no lock
+	if len(existingApplicationServers) == 0 {
+		return nil
+	}
+
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -176,7 +219,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSApplicationServersFromService(vip 
 	}
 	defer ipvs.Exit()
 
-	if err = ipvsadmEntity.removeIPVSApplicationServersFromService(ipvs, vip, port, protocol, applicationServers); err != nil {
+	if err = ipvsadmEntity.removeIPVSApplicationServersFromService(ipvs, vip, port, protocol, existingApplicationServers); err != nil {
 		return fmt.Errorf("cant remove application servers from service: %v", err)
 	}
 
@@ -185,15 +228,7 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSApplicationServersFromService(vip 
 
 // GetIPVSRuntime ...
 func (ipvsadmEntity *IPVSADMEntity) GetIPVSRuntime(id string) (map[string]map[string]uint16, error) {
-	ipvsadmEntity.Lock()
-	defer ipvsadmEntity.Unlock()
-	ipvs, err := ipvsInit()
-	if err != nil {
-		return nil, fmt.Errorf("can't ipvs Init: %v", err)
-	}
-	defer ipvs.Exit()
-
-	pools, err := ipvs.GetPools()
+	pools, err := ipvsadmEntity.getPools() // lock inside
 	if err != nil {
 		return nil, fmt.Errorf("can't read actual config: %v", err)
 	}
@@ -209,6 +244,17 @@ func (ipvsadmEntity *IPVSADMEntity) GetIPVSRuntime(id string) (map[string]map[st
 	return poolsMap, nil
 }
 
+func (ipvsadmEntity *IPVSADMEntity) getPools() ([]gnl2go.Pool, error) {
+	ipvsadmEntity.Lock()
+	defer ipvsadmEntity.Unlock()
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return nil, fmt.Errorf("can't ipvs Init: %v", err)
+	}
+	defer ipvs.Exit()
+	return ipvs.GetPools()
+}
+
 func chooseFlags(balanceType string) []byte {
 	switch balanceType {
 	case "mhf":
@@ -218,4 +264,35 @@ func chooseFlags(balanceType string) []byte {
 	default:
 		return nil
 	}
+}
+
+func (ipvsadmEntity *IPVSADMEntity) isServiceExist(vip string, port uint16) (bool, gnl2go.Pool, error) {
+	var pool gnl2go.Pool
+	pools, err := ipvsadmEntity.getPools() // lock inside
+	if err != nil {
+		return false, pool, fmt.Errorf("can't read actual config: %v", err)
+	}
+
+	for _, pool := range pools {
+		if pool.Service.VIP == vip &&
+			pool.Service.Port == port {
+			return true, pool, nil
+		}
+	}
+	return false, pool, nil
+}
+
+func (ipvsadmEntity *IPVSADMEntity) diffApplicationServersInService(applicationServers map[string]uint16, pool gnl2go.Pool) (map[string]uint16, map[string]uint16) {
+	existingApplicationServers := make(map[string]uint16)
+	notExistingApplicationServers := make(map[string]uint16)
+
+	for _, dest := range pool.Dests { // maybe faster iterate over map?
+		port, ok := applicationServers[dest.IP]
+		if ok {
+			existingApplicationServers[dest.IP] = port
+			continue
+		}
+		notExistingApplicationServers[dest.IP] = port
+	}
+	return existingApplicationServers, notExistingApplicationServers
 }
