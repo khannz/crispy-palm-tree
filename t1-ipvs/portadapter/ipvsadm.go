@@ -30,6 +30,20 @@ func NewIPVSADMEntity(logging *logrus.Logger) (*IPVSADMEntity, error) {
 	return &IPVSADMEntity{logging: logging}, nil
 }
 
+func ipvsInit() (*gnl2go.IpvsClient, error) {
+	ipvs := new(gnl2go.IpvsClient)
+	err := ipvs.Init()
+	if err != nil {
+		return ipvs, fmt.Errorf("cant initialize ipvs client, error is %v", err)
+	}
+	_, err = ipvs.GetPools()
+	if err != nil {
+		return ipvs, fmt.Errorf("error while running ipvs GetPools method %v", err)
+	}
+
+	return ipvs, nil
+}
+
 // NewIPVSService ...
 func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 	port uint16,
@@ -62,27 +76,7 @@ func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
 
-	if applicationServers != nil { // TODO: maybe don't add app srvs when create service
-		if err = ipvsadmEntity.addApplicationServersToService(ipvs, vip, port, protocol, routingType, applicationServers); err != nil {
-			return fmt.Errorf("cant add application server to service: %v", err)
-		}
-	}
-
 	return nil
-}
-
-func ipvsInit() (*gnl2go.IpvsClient, error) {
-	ipvs := new(gnl2go.IpvsClient)
-	err := ipvs.Init()
-	if err != nil {
-		return ipvs, fmt.Errorf("cant initialize ipvs client, error is %v", err)
-	}
-	_, err = ipvs.GetPools()
-	if err != nil {
-		return ipvs, fmt.Errorf("error while running ipvs GetPools method %v", err)
-	}
-
-	return ipvs, nil
 }
 
 // RemoveIPVSService ...
@@ -115,44 +109,6 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSService(vip string,
 	return nil
 }
 
-func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(ipvs *gnl2go.IpvsClient,
-	serviceIP string, servicePort uint16, protocol uint16, routingType uint32,
-	applicationServers map[string]uint16) error {
-	for ip, port := range applicationServers {
-		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
-			port, protocol, 10, routingType)
-		if err != nil {
-			return fmt.Errorf("cant add application server %v:%v to service %v:%v, protocol: %v, FWDMethod(routingType):%v",
-				ip,
-				port,
-				serviceIP,
-				servicePort,
-				protocol,
-				routingType)
-		}
-	}
-	return nil
-}
-
-func (ipvsadmEntity *IPVSADMEntity) removeIPVSApplicationServersFromService(ipvs *gnl2go.IpvsClient,
-	serviceIP string, servicePort uint16, protocol uint16,
-	applicationServers map[string]uint16) error {
-	for ip, port := range applicationServers {
-		err := ipvs.DelDestPort(serviceIP, servicePort, ip,
-			port, protocol)
-		if err != nil {
-			return fmt.Errorf("cant remove application server %v:%v from service %v:%v, protocol: %v",
-				ip,
-				port,
-				serviceIP,
-				servicePort,
-				protocol)
-		}
-		ipvsadmEntity.logging.Debugf("at service %v:%v application server %v:%v removed from ipvs", serviceIP, servicePort, ip, port)
-	}
-	return nil
-}
-
 // AddIPVSApplicationServersForService ...
 func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip string,
 	port uint16,
@@ -175,6 +131,15 @@ func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip stri
 		return nil
 	}
 
+	if err = ipvsadmEntity.addApplicationServersToService(vip, port, protocol, routingType, notExistingApplicationServers); err != nil { // lock inside
+		return fmt.Errorf("cant add application server to service: %v", err)
+	}
+
+	return nil
+}
+
+func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(serviceIP string, servicePort uint16, protocol uint16, routingType uint32,
+	applicationServers map[string]uint16) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -183,10 +148,19 @@ func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip stri
 	}
 	defer ipvs.Exit()
 
-	if err = ipvsadmEntity.addApplicationServersToService(ipvs, vip, port, protocol, routingType, notExistingApplicationServers); err != nil {
-		return fmt.Errorf("cant add application server to service: %v", err)
+	for ip, port := range applicationServers {
+		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
+			port, protocol, 10, routingType)
+		if err != nil {
+			return fmt.Errorf("cant add application server %v:%v to service %v:%v, protocol: %v, FWDMethod(routingType):%v",
+				ip,
+				port,
+				serviceIP,
+				servicePort,
+				protocol,
+				routingType)
+		}
 	}
-
 	return nil
 }
 
@@ -211,6 +185,15 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSApplicationServersFromService(vip 
 		return nil
 	}
 
+	if err = ipvsadmEntity.removeIPVSApplicationServersFromService(vip, port, protocol, existingApplicationServers); err != nil { // lock inside
+		return fmt.Errorf("cant remove application servers from service: %v", err)
+	}
+
+	return nil
+}
+
+func (ipvsadmEntity *IPVSADMEntity) removeIPVSApplicationServersFromService(serviceIP string, servicePort uint16, protocol uint16,
+	applicationServers map[string]uint16) error {
 	ipvsadmEntity.Lock()
 	defer ipvsadmEntity.Unlock()
 	ipvs, err := ipvsInit()
@@ -219,10 +202,19 @@ func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSApplicationServersFromService(vip 
 	}
 	defer ipvs.Exit()
 
-	if err = ipvsadmEntity.removeIPVSApplicationServersFromService(ipvs, vip, port, protocol, existingApplicationServers); err != nil {
-		return fmt.Errorf("cant remove application servers from service: %v", err)
+	for ip, port := range applicationServers {
+		err := ipvs.DelDestPort(serviceIP, servicePort, ip,
+			port, protocol)
+		if err != nil {
+			return fmt.Errorf("cant remove application server %v:%v from service %v:%v, protocol: %v",
+				ip,
+				port,
+				serviceIP,
+				servicePort,
+				protocol)
+		}
+		ipvsadmEntity.logging.Debugf("at service %v:%v application server %v:%v removed from ipvs", serviceIP, servicePort, ip, port)
 	}
-
 	return nil
 }
 
