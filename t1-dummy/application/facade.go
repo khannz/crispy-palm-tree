@@ -42,16 +42,16 @@ func (dummyFacade *DummyFacade) RemoveFromDummy(ip string, id string) error {
 	return newAddToDummyEntity.RemoveFromDummy(ip, id)
 }
 
-func (dummyFacade *DummyFacade) GetRuntimeConfig(id string) (map[string]struct{}, error) {
+func (dummyFacade *DummyFacade) GetDummyRuntimeConfig(id string) (map[string]struct{}, error) {
 	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(dummyFacade.DummyWorker)
-	return newGetRuntimeConfigEntity.GetRuntimeConfig(id)
+	return newGetRuntimeConfigEntity.GetDummyRuntimeConfig(id)
 }
 
 func (dummyFacade *DummyFacade) TryToSendRuntimeConfig(id string) {
 	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(dummyFacade.DummyWorker)
 	newHealthcheckSenderEntity := usecase.NewHealthcheckSenderEntity(dummyFacade.HealthcheckWorker)
 	for {
-		currentConfig, err := newGetRuntimeConfigEntity.GetRuntimeConfig(id)
+		currentConfig, err := newGetRuntimeConfigEntity.GetDummyRuntimeConfig(id)
 		if err != nil {
 			dummyFacade.Logging.WithFields(logrus.Fields{
 				"entity":   sendRuntimeConfigName,

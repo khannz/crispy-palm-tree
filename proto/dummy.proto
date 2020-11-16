@@ -3,9 +3,9 @@ package transport;
 
 
 service DummyGetWorker {
-  rpc AddToDummy (IpData) returns (EmptyGetData) {}
-  rpc RemoveFromDummy (IpData) returns (EmptyGetData) {}
-  rpc DummyGetRuntime(EmptyGetData) returns (DummyGetRuntimeData) {}
+  rpc AddToDummy (IpData) returns (EmptyGetDummyData) {}
+  rpc RemoveFromDummy (IpData) returns (EmptyGetDummyData) {}
+  rpc GetDummyRuntime(EmptyGetDummyData) returns (GetDummyRuntimeData) {}
 }
 
 message IpData {
@@ -13,11 +13,11 @@ message IpData {
   string id = 2;
 }
 
-message DummyGetRuntimeData {
-  map<string, EmptyGetData> services = 1;
+message GetDummyRuntimeData {
+  map<string, EmptyGetDummyData> services = 1;
   string id = 2;
 }
 
-message EmptyGetData {
+message EmptyGetDummyData {
   string id = 1;
 }

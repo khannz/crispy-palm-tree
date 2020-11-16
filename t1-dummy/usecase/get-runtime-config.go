@@ -10,6 +10,6 @@ func NewGetRuntimeConfigEntity(dummyWorker domain.DummyWorker) *GetRuntimeConfig
 	return &GetRuntimeConfigEntity{dummyWorker: dummyWorker}
 }
 
-func (getRuntimeConfigEntity *GetRuntimeConfigEntity) GetRuntimeConfig(id string) (map[string]struct{}, error) {
-	return getRuntimeConfigEntity.dummyWorker.GetRuntimeConfig(id)
+func (getRuntimeConfigEntity *GetRuntimeConfigEntity) GetDummyRuntimeConfig(id string) (map[string]struct{}, error) {
+	return getRuntimeConfigEntity.dummyWorker.GetDummyRuntimeConfig(id)
 }

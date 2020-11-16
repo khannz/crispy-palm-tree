@@ -2,5 +2,5 @@ package domain
 
 // HealthcheckWorker ...
 type HealthcheckWorker interface {
-	SendRuntimeConfig(map[string]struct{}, string) error
+	SendDummyRuntimeConfig(map[string]struct{}, string) error
 }

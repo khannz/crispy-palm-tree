@@ -115,7 +115,7 @@ func (dummyEntity *DummyEntity) addAddr(addrForAdd string) error {
 	return nil
 }
 
-func (dummyEntity *DummyEntity) GetRuntimeConfig(id string) (map[string]struct{}, error) {
+func (dummyEntity *DummyEntity) GetDummyRuntimeConfig(id string) (map[string]struct{}, error) {
 	dummyEntity.Lock()
 	defer dummyEntity.Unlock()
 

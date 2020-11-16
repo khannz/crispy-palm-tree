@@ -62,15 +62,15 @@ package transport;
 //     string Id = 2;
 // }
 
-service SendRuntime {
-  rpc DummySendRuntime (DummySendRuntimeData) returns (EmptySendData) {}
+service SendDummyRuntime {
+  rpc SendDummyRuntime (SendDummyRuntimeData) returns (EmptySendDummyData) {}
 }
 
-message DummySendRuntimeData {
-  map<string, EmptySendData> services = 1;
+message SendDummyRuntimeData {
+  map<string, EmptySendDummyData> services = 1;
   string id = 2;
 }
 
-message EmptySendData {
+message EmptySendDummyData {
   string id = 1;
 }

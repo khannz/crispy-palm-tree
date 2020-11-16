@@ -26,7 +26,7 @@ func NewHealthcheckWorkerEntity(address string, grpcTimeout time.Duration, loggi
 	}
 }
 
-func (healthcheckWorker *HealthcheckWorkerEntity) SendRuntimeConfig(runtimeConfig map[string]struct{},
+func (healthcheckWorker *HealthcheckWorkerEntity) SendDummyRuntimeConfig(runtimeConfig map[string]struct{},
 	id string) error {
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer dialCancel()
@@ -35,24 +35,24 @@ func (healthcheckWorker *HealthcheckWorkerEntity) SendRuntimeConfig(runtimeConfi
 		return fmt.Errorf("did not connect to grpc server: %v", err)
 	}
 	defer conn.Close()
-	healthcheckClient := transport.NewSendRuntimeClient(conn)
+	healthcheckClient := transport.NewSendDummyRuntimeClient(conn)
 
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
 	pbRuntimeConfig := convertRuntimeConfigToPbRuntimeConfig(runtimeConfig, id)
-	_, err = healthcheckClient.DummySendRuntime(sendCtx, pbRuntimeConfig)
+	_, err = healthcheckClient.SendDummyRuntime(sendCtx, pbRuntimeConfig)
 	return err
 }
 
-func convertRuntimeConfigToPbRuntimeConfig(runtimeConfig map[string]struct{}, id string) *transport.DummySendRuntimeData {
-	ed := &transport.EmptySendData{}
-	pbMap := make(map[string]*transport.EmptySendData)
+func convertRuntimeConfigToPbRuntimeConfig(runtimeConfig map[string]struct{}, id string) *transport.SendDummyRuntimeData {
+	ed := &transport.EmptySendDummyData{}
+	pbMap := make(map[string]*transport.EmptySendDummyData)
 	for k := range runtimeConfig {
 		pbMap[k] = ed
 	}
 
-	return &transport.DummySendRuntimeData{
+	return &transport.SendDummyRuntimeData{
 		Services: pbMap,
 		Id:       id,
 	}
