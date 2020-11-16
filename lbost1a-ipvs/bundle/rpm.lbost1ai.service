@@ -1,0 +1,20 @@
+[Unit]
+Description=Software network load balancer service
+ConditionPathExists=/opt/lbost1ai/lbost1ai
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+LimitNOFILE=1024
+Restart=on-failure
+RestartSec=10
+WorkingDirectory=/opt/lbost1ai
+ExecStartPre=mkdir -p /run/lbost1ai
+ExecStart=/opt/lbost1ai/lbost1ai run
+KillSignal=SIGINT
+SendSIGKILL=no
+PermissionsStartOnly=true
+[Install]
+WantedBy=multi-user.target

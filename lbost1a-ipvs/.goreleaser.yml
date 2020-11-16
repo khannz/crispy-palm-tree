@@ -1,0 +1,51 @@
+env:
+  - GO111MODULE=on
+before:
+  hooks:
+    - go mod download
+builds:
+  - env:
+    - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+    targets:
+      - linux_amd64
+    main: .
+    binary: "lbost1ai"
+
+nfpms:
+  -
+    id: 1
+    package_name: lbost1ai
+    file_name_template: "lbost1ai_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+    vendor: thevan4
+    homepage: https://github.com/khannz/crispy-palm-tree/lbost1a-ipvs
+    maintainer: SDN <sdn@*.com>
+    description: lbost1ai
+    license: Apache-2.0
+    formats:
+        - rpm
+    bindir: /opt/lbost1ai
+    overrides:
+      rpm:
+        replacements:
+          amd64: x86_64
+        dependencies:
+          - ipvsadm
+        files:
+          "bundle/rpm.lbost1ai.service": "/lib/systemd/system/lbost1ai.service"
+        # empty_folders:
+        #   - /bootflash/lbost1ai
+        scripts:
+          preinstall: "bundle/rpm.preinstall.sh"
+          postinstall: "bundle/rpm.postinstall.sh"
+          preremove: "bundle/rpm.preremove.sh"
+          postremove: "bundle/rpm.postremove.sh"
+
+archives:
+  - name_template: 'lbost1ai_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    replacements:
+      amd64: x86_64

@@ -1,0 +1,39 @@
+syntax = "proto3";
+package transport;
+
+message EmptyGetIPVSData {
+  string id = 1;
+}
+
+message PbGetIPVSRawServicesData {
+  map<string, PbGetRawIPVSServiceData> rawServicesData = 1;
+  string id = 2;
+}
+
+message PbGetRawIPVSServiceData {
+  map<string, uint32> rawServiceData = 1;
+  string id = 2;
+}
+
+message PbGetIPVSServicesData {
+  map<string, PbGetIPVSServiceData> services = 1; // string - vip+port
+  string id = 2;
+}
+
+message PbGetIPVSServiceData {
+  string vip = 1;
+  uint32 port = 2; // uint16
+  uint32 routingType = 3;
+  string balanceType = 4;
+  uint32 protocol = 5; // uint16
+  map<string, uint32> applicationServers = 6;
+  string id = 7;
+}
+
+service IPVSGetWoker {
+  rpc NewIPVSService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc AddIPVSApplicationServersForService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc RemoveIPVSService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc RemoveIPVSApplicationServersFromService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc GetIPVSRuntime(EmptyGetIPVSData) returns (PbGetIPVSRawServicesData) {}
+}
