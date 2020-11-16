@@ -18,3 +18,4 @@ build-bin:
 clean:
 	rm -rf dist
 	rm -rf grpc-transport
+	rm -f lbost1ad
