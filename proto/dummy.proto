@@ -2,7 +2,7 @@ syntax = "proto3";
 package transport;
 
 
-service DummyGetWoker {
+service DummyGetWorker {
   rpc AddToDummy (IpData) returns (EmptyGetData) {}
   rpc RemoveFromDummy (IpData) returns (EmptyGetData) {}
   rpc DummyGetRuntime(EmptyGetData) returns (DummyGetRuntimeData) {}

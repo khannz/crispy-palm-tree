@@ -19,7 +19,7 @@ type GrpcServer struct {
 	facade  *DummyFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	transport.UnimplementedDummyGetWokerServer
+	transport.UnimplementedDummyGetWorkerServer
 }
 
 func NewGrpcServer(port string,
@@ -94,7 +94,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	transport.RegisterDummyGetWokerServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterDummyGetWorkerServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.Serve(lis)
 	return nil
 }
