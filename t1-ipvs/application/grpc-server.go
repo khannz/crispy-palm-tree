@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	transport "github.com/khannz/crispy-palm-tree/lbost1a-ipvs/grpc-transport"
 	"github.com/sirupsen/logrus"
@@ -15,18 +16,18 @@ const grpcIpvsName = "ipvs grpc"
 
 // GrpcServer is used to implement portadapter.HCGetService.
 type GrpcServer struct {
-	address string
+	addr    string
 	facade  *IPVSFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
 	transport.UnimplementedIPVSGetWokerServer
 }
 
-func NewGrpcServer(address string,
+func NewGrpcServer(addr string,
 	facade *IPVSFacade,
 	logging *logrus.Logger) *GrpcServer {
 	return &GrpcServer{
-		address: address,
+		addr:    addr,
 		facade:  facade,
 		logging: logging,
 	}
@@ -211,17 +212,21 @@ func (gs *GrpcServer) GetIPVSRuntime(ctx context.Context, emptyIPVSService *tran
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
-	lis, err := net.Listen("tcp", grpcServer.address)
+	if err := grpcServer.cleanup(); err != nil {
+		return fmt.Errorf("failed to cleanup socket info: %v", err)
+	}
+
+	lis, err := net.Listen("tcp", grpcServer.addr)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
 	transport.RegisterIPVSGetWokerServer(grpcServer.grpcSrv, grpcServer)
-	go grpcServer.Serve(lis)
+	go grpcServer.serve(lis)
 	return nil
 }
 
-func (grpcServer *GrpcServer) Serve(lis net.Listener) {
+func (grpcServer *GrpcServer) serve(lis net.Listener) {
 	if err := grpcServer.grpcSrv.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
@@ -229,4 +234,18 @@ func (grpcServer *GrpcServer) Serve(lis net.Listener) {
 
 func (grpcServer *GrpcServer) CloseServer() {
 	grpcServer.grpcSrv.Stop()
+	if err := grpcServer.cleanup(); err != nil {
+		grpcServer.logging.WithFields(logrus.Fields{
+			"entity": sendRuntimeConfigName,
+		}).Errorf("failed to cleanup grpc: %v", err)
+	}
+}
+
+func (grpcServer *GrpcServer) cleanup() error {
+	if _, err := os.Stat(grpcServer.addr); err == nil {
+		if err := os.RemoveAll(grpcServer.addr); err != nil {
+			return err
+		}
+	}
+	return nil
 }
