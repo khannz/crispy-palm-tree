@@ -15,7 +15,7 @@ import (
 // Default values
 const (
 	defaultConfigFilePath   = "./lbost1ai.yaml"
-	defaultLogOutput        = "syslog"
+	defaultLogOutput        = "stdout"
 	defaultLogLevel         = "trace"
 	defaultLogFormat        = "text"
 	defaultSystemLogTag     = ""
@@ -97,7 +97,6 @@ func init() {
 	viperConfig.SetConfigFile(viperConfig.GetString(configFilePathName))
 	if err := viperConfig.ReadInConfig(); err != nil {
 		fmt.Println(err)
-		os.Exit(1)
 	}
 
 	// init logs
