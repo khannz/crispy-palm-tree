@@ -37,7 +37,6 @@ func (ipvsFacade *IPVSFacade) NewIPVSService(vip string,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
-	applicationServers map[string]uint16,
 	id string) error {
 	newNewIPVSServiceEntity := usecase.NewNewIPVSServiceEntity(ipvsFacade.IPVSWorker)
 	return newNewIPVSServiceEntity.NewIPVSService(vip,
@@ -45,7 +44,6 @@ func (ipvsFacade *IPVSFacade) NewIPVSService(vip string,
 		routingType,
 		balanceType,
 		protocol,
-		applicationServers,
 		id)
 }
 

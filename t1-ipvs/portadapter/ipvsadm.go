@@ -52,7 +52,6 @@ func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
-	applicationServers map[string]uint16,
 	id string) error {
 
 	isServiceExist, _, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside

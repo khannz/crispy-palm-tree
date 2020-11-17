@@ -72,14 +72,12 @@ func (gs *GrpcServer) NewIPVSService(ctx context.Context, incomeIPVSService *tra
 	}).Infof("got job new ipvs service %v", incomeIPVSService)
 	convertedPort := uint16(incomeIPVSService.Port)
 	convertedProtocol := uint16(incomeIPVSService.Protocol)
-	convertedApplicationServers := convertPbApplicationServersToInternal(incomeIPVSService.ApplicationServers)
 
 	if err := gs.facade.NewIPVSService(incomeIPVSService.Vip,
 		convertedPort,
 		incomeIPVSService.RoutingType,
 		incomeIPVSService.BalanceType,
 		convertedProtocol,
-		convertedApplicationServers,
 		incomeIPVSService.Id,
 	); err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
