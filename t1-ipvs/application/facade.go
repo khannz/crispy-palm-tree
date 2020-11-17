@@ -115,7 +115,7 @@ func (ipvsFacade *IPVSFacade) TryToSendRuntimeConfig(id string) {
 			ipvsFacade.Logging.WithFields(logrus.Fields{
 				"entity":   sendRuntimeConfigName,
 				"event id": id,
-			}).Warnf("failed to send runtime config: %v", err)
+			}).Debugf("failed to send runtime config: %v", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
