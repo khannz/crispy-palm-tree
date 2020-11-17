@@ -70,9 +70,9 @@ func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
 	}
 	defer ipvs.Exit()
 
-	flags := chooseFlags(balanceType)
+	newBalanceType, flags := chooseFlags(balanceType)
 	// AddService for IPv4
-	err = ipvs.AddServiceWithFlags(vip, port, protocol, balanceType, flags)
+	err = ipvs.AddServiceWithFlags(vip, port, protocol, newBalanceType, flags)
 	if err != nil {
 		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
 	}
@@ -256,14 +256,14 @@ func (ipvsadmEntity *IPVSADMEntity) getPools() ([]gnl2go.Pool, error) {
 	return ipvs.GetPools()
 }
 
-func chooseFlags(balanceType string) []byte {
+func chooseFlags(balanceType string) (string, []byte) {
 	switch balanceType {
 	case "mhf":
-		return gnl2go.U32ToBinFlags(fallbackFlag)
+		return "mh", gnl2go.U32ToBinFlags(fallbackFlag)
 	case "mhp":
-		return gnl2go.U32ToBinFlags(fallbackAndshPortFlags)
+		return "mh", gnl2go.U32ToBinFlags(fallbackAndshPortFlags)
 	default:
-		return nil
+		return balanceType, nil
 	}
 }
 
