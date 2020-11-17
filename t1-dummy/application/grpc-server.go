@@ -75,8 +75,8 @@ func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeDummyData *tran
 	return &transport.EmptyGetDummyData{}, nil
 }
 
-// DummyGetRuntime ...
-func (gs *GrpcServer) DummyGetRuntime(ctx context.Context, incomeEmptyData *transport.EmptyGetDummyData) (*transport.GetDummyRuntimeData, error) {
+// GetDummyRuntime ...
+func (gs *GrpcServer) GetDummyRuntime(ctx context.Context, incomeEmptyData *transport.EmptyGetDummyData) (*transport.GetDummyRuntimeData, error) {
 	currentConfig, err := gs.facade.GetDummyRuntimeConfig(incomeEmptyData.Id)
 	if err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
@@ -95,6 +95,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 	}
 
 	lis, err := net.Listen("unix", grpcServer.addr)
+	// lis, err := net.Listen("tcp", "127.0.0.1:9000")
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
