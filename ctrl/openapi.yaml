@@ -3,11 +3,11 @@ info:
   title: LBOS Controller API
   description: |
     API Контроллера Сервиса "Больше, чем Балансировка Нагрузки" типа Open Source
-  # termsOfService: http://localhost
+#  termsOfService: http://localhost
   contact:
     name: бот Иван
     email: lbos@sber.ru
-    # url: http://localhost
+#    url: http://localhost
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -19,20 +19,22 @@ info:
 #   - url: 'http://localhost:8080'
 tags:
   - name: Balancing Services
-    # description: adszxch
-    # externalDocs:
-    #   description: zzz
-    #   url: http://wiki
-# - name: Orders
-#   description: adszxch
+#    description: adszxch
+#    externalDocs:
+#      description: zzz
+#      url: http://wiki
+#  - name: Clusters
+#  - name: Orders
+#    description:
 paths:
-  /balancingService:
+  # TODO: кластер балансировки t1 может не существовать момент заказа
+  /balancingServices:
     post:
       tags:
         - Balancing Services
-      # summary: gtyhjnm
+      # summary:
       requestBody:
-        # description: rjyjyrjhetfbd
+        # description:
         content:
           '*/*':
             schema:
@@ -47,6 +49,15 @@ paths:
         400:
           description: Invalid Order
           content: {}
+#  /clusters:
+#    get:
+#      tags:
+#      - Clusters
+#      summary: Получить список всех Кластеров
+#      responses:
+#        default:
+#          description: asd
+#          content: {}
   # /order:
   #   get:
   #     tags:
@@ -101,6 +112,7 @@ components:
           items:
             $ref: '#/components/schemas/Vip'
 
+    # TODO: rip seczone for VIP
     Vip:
       type: object
       properties:
@@ -116,10 +128,10 @@ components:
           format: ipv4
         port:
           type: number
-        routingType:
+        routingType: # TODO: move routingType to ORDER level
           type: string
           enum: [nat, tunnel, gre-tunnel]
-        balancingType:
+        balancingType: # TODO: discuss supportive field for b_type
           type: string
           enum: [round-robin, source-ip, source-ip-port, least-connection, uri, url-param, hdr, random, rdp-cookie]
         reals:
@@ -130,8 +142,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Healthcheck'
-        # security_zone:
-        #   $ref: '#/components/schemas/SecurityZone'
+#        security_zone:
+#          $ref: '#/components/schemas/SecurityZone'
 
     Healthcheck:
       type: object
@@ -162,6 +174,8 @@ components:
           type: string
           format: uuid
           readOnly: true
+        datacenter:
+          type: string
         security_zone:
           $ref: '#/components/schemas/SecurityZone'
         address:
@@ -188,6 +202,11 @@ components:
         id:
           type: string
           format: uuid
+        datacenter:
+          type: array
+          items:
+            type: string
+            enum: [SKO, MCOD, AWS, GCR, Azure]
         name:
           type: string
           readOnly: true
@@ -219,5 +238,5 @@ components:
           type: string
           format: uuid
           readOnly: true
-        serviceManagerId:
+        serviceManagerId: # TODO: SM ID создаётся постфактум - нужно иметь возможность апдейтить со стороны API
           type: string
