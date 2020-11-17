@@ -31,11 +31,10 @@ var rootCmd = &cobra.Command{
 			"log output":       viperConfig.GetString(logOutputName),
 			"syslog tag":       viperConfig.GetString(syslogTagName),
 
-			"hc address":     viperConfig.GetString(hcAddressName),
-			"hc timeout":     viperConfig.GetDuration(hcTimeoutName),
-			"ipvs address":   viperConfig.GetString(ipvsAddressName),
-			"tech interface": viperConfig.GetString(techInterfaceName),
-			"id type":        viperConfig.GetString(idTypeName),
+			"hc address":   viperConfig.GetString(hcAddressName),
+			"hc timeout":   viperConfig.GetDuration(hcTimeoutName),
+			"ipvs address": viperConfig.GetString(ipvsAddressName),
+			"id type":      viperConfig.GetString(idTypeName),
 		}).Info("")
 
 		// more about signals: https://en.wikipedia.org/wiki/Signal_(IPC)
