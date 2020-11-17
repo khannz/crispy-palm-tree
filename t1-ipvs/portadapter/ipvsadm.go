@@ -15,6 +15,8 @@ const (
 	fallbackAndshPortFlags uint32 = 24 // Bitwise OR fallbackFlag(8) | shPortFlag(16)
 )
 
+const ipvsadmName = "ipvsadm"
+
 // IPVSADMEntity ...
 type IPVSADMEntity struct {
 	sync.Mutex
@@ -128,6 +130,10 @@ func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip stri
 
 	_, notExistingApplicationServers := ipvsadmEntity.diffApplicationServersInService(applicationServers, pool) // no lock
 	if len(notExistingApplicationServers) == 0 {
+		ipvsadmEntity.logging.WithFields(logrus.Fields{
+			"entity":   ipvsadmName,
+			"event id": id,
+		}).Infof("not new servers (at map %v) for add to service %v:%v", applicationServers, vip, port)
 		return nil
 	}
 
@@ -135,6 +141,10 @@ func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip stri
 		return fmt.Errorf("cant add application server to service: %v", err)
 	}
 
+	ipvsadmEntity.logging.WithFields(logrus.Fields{
+		"entity":   ipvsadmName,
+		"event id": id,
+	}).Infof("new servers (at map %v) at  service %v:%v", notExistingApplicationServers, vip, port)
 	return nil
 }
 
@@ -278,13 +288,20 @@ func (ipvsadmEntity *IPVSADMEntity) diffApplicationServersInService(applicationS
 	existingApplicationServers := make(map[string]uint16)
 	notExistingApplicationServers := make(map[string]uint16)
 
-	for _, dest := range pool.Dests { // maybe faster iterate over map?
-		port, ok := applicationServers[dest.IP]
-		if ok {
-			existingApplicationServers[dest.IP] = port
-			continue
+	for ip, port := range applicationServers {
+		var isAppSrvFound bool
+		for _, dest := range pool.Dests {
+			if ip == dest.IP &&
+				port == dest.Port {
+				isAppSrvFound = true
+				existingApplicationServers[ip] = port
+				break
+			}
 		}
-		notExistingApplicationServers[dest.IP] = port
+		if !isAppSrvFound {
+			notExistingApplicationServers[ip] = port
+		}
 	}
+
 	return existingApplicationServers, notExistingApplicationServers
 }
