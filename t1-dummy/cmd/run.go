@@ -50,11 +50,11 @@ var rootCmd = &cobra.Command{
 		dummyConfigurator := portadapter.NewDummyEntity(viperConfig.GetString(dummyInterfaceName), logging)
 		// dummyConfigurator end
 
-		// healthcheckWorker start
-		hw := portadapter.NewHealthcheckWorkerEntity(viperConfig.GetString(hcAddressName),
+		// OrchestratorWorker start
+		hw := portadapter.NewOrchestratorWorkerEntity(viperConfig.GetString(hcAddressName),
 			viperConfig.GetDuration(hcTimeoutName),
 			logging)
-		// healthcheckWorker end
+		// OrchestratorWorker end
 
 		// init config end
 

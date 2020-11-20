@@ -12,23 +12,23 @@ const sendRuntimeConfigName = "send runtime config"
 
 // DummyFacade struct
 type DummyFacade struct {
-	DummyWorker       domain.DummyWorker
-	HealthcheckWorker domain.HealthcheckWorker
-	IDgenerator       domain.IDgenerator
-	Logging           *logrus.Logger
+	DummyWorker        domain.DummyWorker
+	OrchestratorWorker domain.OrchestratorWorker
+	IDgenerator        domain.IDgenerator
+	Logging            *logrus.Logger
 }
 
 // NewDummyFacade ...
 func NewDummyFacade(dummyWorker domain.DummyWorker,
-	healthcheckWorker domain.HealthcheckWorker,
+	OrchestratorWorker domain.OrchestratorWorker,
 	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *DummyFacade {
 
 	return &DummyFacade{
-		DummyWorker:       dummyWorker,
-		HealthcheckWorker: healthcheckWorker,
-		IDgenerator:       idGenerator,
-		Logging:           logging,
+		DummyWorker:        dummyWorker,
+		OrchestratorWorker: OrchestratorWorker,
+		IDgenerator:        idGenerator,
+		Logging:            logging,
 	}
 }
 
@@ -49,7 +49,7 @@ func (dummyFacade *DummyFacade) GetDummyRuntimeConfig(id string) (map[string]str
 
 func (dummyFacade *DummyFacade) TryToSendRuntimeConfig(id string) {
 	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(dummyFacade.DummyWorker)
-	newHealthcheckSenderEntity := usecase.NewHealthcheckSenderEntity(dummyFacade.HealthcheckWorker)
+	newHealthcheckSenderEntity := usecase.NewHealthcheckSenderEntity(dummyFacade.OrchestratorWorker)
 	for {
 		currentConfig, err := newGetRuntimeConfigEntity.GetDummyRuntimeConfig(id)
 		if err != nil {

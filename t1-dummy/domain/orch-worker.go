@@ -1,6 +1,6 @@
 package domain
 
-// HealthcheckWorker ...
-type HealthcheckWorker interface {
+// OrchestratorWorker ...
+type OrchestratorWorker interface {
 	SendDummyRuntimeConfig(map[string]struct{}, string) error
 }
