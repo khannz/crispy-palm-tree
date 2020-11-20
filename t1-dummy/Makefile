@@ -5,9 +5,10 @@ dl-mods:
 	go mod download
 
 grpc:
-	mkdir -p grpc-transport
-	protoc -I ../proto/ --go_out=./grpc-transport/ --go-grpc_out=./grpc-transport/ ../proto/dummy.proto
-	protoc -I ../proto/ --go_out=./grpc-transport/ --go-grpc_out=./grpc-transport/ ../proto/t1-orch.proto
+	mkdir -p grpc-dummy
+	mkdir -p grpc-orch
+	protoc -I ../proto/ --go_out=./grpc-dummy/ --go-grpc_out=./grpc-dummy/ ../proto/dummy.proto
+	protoc -I ../proto/ --go_out=./grpc-orch/ --go-grpc_out=./grpc-orch/ ../proto/t1-orch.proto
 
 # TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
 build-rpm-snapshot:
@@ -17,5 +18,4 @@ build-bin:
 
 clean:
 	rm -rf dist
-	rm -rf grpc-transport
 	rm -f lbost1ad

@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	transport "github.com/khannz/crispy-palm-tree/lbost1a-dummy/grpc-transport"
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-dummy/grpc-orch"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )

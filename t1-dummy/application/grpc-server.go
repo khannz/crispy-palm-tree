@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 
-	transport "github.com/khannz/crispy-palm-tree/lbost1a-dummy/grpc-transport"
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-dummy/grpc-dummy"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
