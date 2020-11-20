@@ -27,13 +27,13 @@ func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logg
 	}
 }
 
-func (OrchestratorWorker *OrchestratorWorkerEntity) SendDummyRuntimeConfig(runtimeConfig map[string]struct{},
+func (orchestratorWorker *OrchestratorWorkerEntity) SendDummyRuntimeConfig(runtimeConfig map[string]struct{},
 	id string) error {
-	withContextDialer := makeDialer(OrchestratorWorker.address, 2*time.Second)
+	withContextDialer := makeDialer(orchestratorWorker.address, 2*time.Second)
 
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, OrchestratorWorker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
+	conn, err := grpc.DialContext(dialCtx, orchestratorWorker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
 	if err != nil {
 		return fmt.Errorf("can't connect to grpc uds server: %v", err)
 	}
