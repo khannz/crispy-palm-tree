@@ -65,7 +65,7 @@ func (dummyFacade *DummyFacade) TryToSendRuntimeConfig(id string) {
 			dummyFacade.Logging.WithFields(logrus.Fields{
 				"entity":   sendRuntimeConfigName,
 				"event id": id,
-			}).Warnf("failed to send runtime config: %v", err)
+			}).Debugf("failed to send runtime config: %v", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
