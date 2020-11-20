@@ -1,0 +1,16 @@
+syntax = "proto3";
+package lbos.t1.orch;
+
+
+service SendDummyRuntime {
+  rpc SendDummyRuntime (SendDummyRuntimeData) returns (EmptySendDummyData) {}
+}
+
+message SendDummyRuntimeData {
+  map<string, EmptySendDummyData> services = 1;
+  string id = 2;
+}
+
+message EmptySendDummyData {
+  string id = 1;
+}
