@@ -18,3 +18,16 @@ message PbSendRawIPVSServiceData {
   map<string, uint32> rawServiceData = 1;
   string id = 2;
 }
+
+service SendDummyRuntime {
+  rpc SendDummyRuntime (SendDummyRuntimeData) returns (EmptySendDummyData) {}
+}
+
+message SendDummyRuntimeData {
+  map<string, EmptySendDummyData> services = 1;
+  string id = 2;
+}
+
+message EmptySendDummyData {
+  string id = 1;
+}
