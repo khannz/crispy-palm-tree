@@ -163,6 +163,7 @@ github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7V
 github.com/khannz/crispy-palm-tree v0.0.0-20201007121114-86df7dd567d8 h1:I7mKRZNZ54+3EgM4zMtP2VAEsJH3Uyn5nd4nqdpWUmo=
 github.com/khannz/crispy-palm-tree v0.0.0-20201007121114-86df7dd567d8/go.mod h1:bGkSMq1IVlebhe1iSiaIpQgX49Y3Dz/PXAmwhpHI8ms=
 github.com/khannz/crispy-palm-tree v0.0.0-20201114004239-596c817ef4c7 h1:9PAIgHSACI2XIauC9efLlOL+970D7/ZDNGN6tN1r2s4=
+github.com/khannz/crispy-palm-tree v0.0.0-20201120090958-f2f5940dfa73 h1:tldq0q/lncQoXjvkBmXkCjkDlN6Dv7HeUh2uyIzNnvk=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=

@@ -6,12 +6,12 @@ import (
 	"net"
 	"time"
 
-	transport "github.com/khannz/crispy-palm-tree/lbost1a-ipvs/grpc-transport"
+	transport "github.com/khannz/crispy-palm-tree/lbost1a-ipvs/grpc-orch"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-type HealthcheckWorkerEntity struct {
+type OrchestratorWorkerEntity struct {
 	address     string
 	grpcTimeout time.Duration // TODO: somehow use tickers?
 	// conn          *grpc.ClientConn
@@ -19,21 +19,21 @@ type HealthcheckWorkerEntity struct {
 	logging *logrus.Logger
 }
 
-func NewHealthcheckWorkerEntity(address string, grpcTimeout time.Duration, logging *logrus.Logger) *HealthcheckWorkerEntity {
-	return &HealthcheckWorkerEntity{
+func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logging *logrus.Logger) *OrchestratorWorkerEntity {
+	return &OrchestratorWorkerEntity{
 		address:     address,
 		grpcTimeout: grpcTimeout,
 		logging:     logging,
 	}
 }
 
-func (healthcheckWorker *HealthcheckWorkerEntity) SendIPVSRuntime(runtimeConfig map[string]map[string]uint16,
+func (orchestratorWorker *OrchestratorWorkerEntity) SendIPVSRuntime(runtimeConfig map[string]map[string]uint16,
 	id string) error {
-	withContextDialer := makeDialer(healthcheckWorker.address, 2*time.Second)
+	withContextDialer := makeDialer(orchestratorWorker.address, 2*time.Second)
 
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, healthcheckWorker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
+	conn, err := grpc.DialContext(dialCtx, orchestratorWorker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
 	if err != nil {
 		return fmt.Errorf("can't connect to grpc uds server: %v", err)
 	}

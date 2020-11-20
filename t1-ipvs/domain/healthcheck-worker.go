@@ -1,6 +1,6 @@
 package domain
 
-// HealthcheckWorker ...
-type HealthcheckWorker interface {
+// OrchestratorWorker ...
+type OrchestratorWorker interface {
 	SendIPVSRuntime(map[string]map[string]uint16, string) error
 }

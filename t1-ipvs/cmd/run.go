@@ -51,11 +51,11 @@ var rootCmd = &cobra.Command{
 		}
 		// ipvsadmConfigurator end
 
-		// healthcheckWorker start
-		hw := portadapter.NewHealthcheckWorkerEntity(viperConfig.GetString(hcAddressName),
+		// orchestratorWorker start
+		hw := portadapter.NewOrchestratorWorkerEntity(viperConfig.GetString(hcAddressName),
 			viperConfig.GetDuration(hcTimeoutName),
 			logging)
-		// healthcheckWorker end
+		// orchestratorWorker end
 
 		// init config end
 

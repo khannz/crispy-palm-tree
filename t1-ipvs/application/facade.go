@@ -12,23 +12,23 @@ const sendRuntimeConfigName = "send runtime config"
 
 // IPVSFacade struct
 type IPVSFacade struct {
-	IPVSWorker        domain.IPVSWorker
-	HealthcheckWorker domain.HealthcheckWorker
-	IDgenerator       domain.IDgenerator
-	Logging           *logrus.Logger
+	IPVSWorker         domain.IPVSWorker
+	OrchestratorWorker domain.OrchestratorWorker
+	IDgenerator        domain.IDgenerator
+	Logging            *logrus.Logger
 }
 
 // NewIPVSFacade ...
 func NewIPVSFacade(ipvsWorker domain.IPVSWorker,
-	healthcheckWorker domain.HealthcheckWorker,
+	orchestratorWorker domain.OrchestratorWorker,
 	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *IPVSFacade {
 
 	return &IPVSFacade{
-		IPVSWorker:        ipvsWorker,
-		HealthcheckWorker: healthcheckWorker,
-		IDgenerator:       idGenerator,
-		Logging:           logging,
+		IPVSWorker:         ipvsWorker,
+		OrchestratorWorker: orchestratorWorker,
+		IDgenerator:        idGenerator,
+		Logging:            logging,
 	}
 }
 
@@ -99,7 +99,7 @@ func (ipvsFacade *IPVSFacade) GetIPVSRuntime(id string) (map[string]map[string]u
 
 func (ipvsFacade *IPVSFacade) TryToSendRuntimeConfig(id string) {
 	newGetRuntimeConfigEntity := usecase.NewGetIPVSRuntimeEntity(ipvsFacade.IPVSWorker)
-	newHealthcheckSenderEntity := usecase.NewHealthcheckSenderEntity(ipvsFacade.HealthcheckWorker)
+	newOrchestratorSenderEntity := usecase.NewOrchestratorSenderEntity(ipvsFacade.OrchestratorWorker)
 	for {
 		currentConfig, err := newGetRuntimeConfigEntity.GetIPVSRuntime(id)
 		if err != nil {
@@ -111,7 +111,7 @@ func (ipvsFacade *IPVSFacade) TryToSendRuntimeConfig(id string) {
 			continue
 		}
 
-		if err := newHealthcheckSenderEntity.SendToHC(currentConfig, id); err != nil {
+		if err := newOrchestratorSenderEntity.SendToOrch(currentConfig, id); err != nil {
 			ipvsFacade.Logging.WithFields(logrus.Fields{
 				"entity":   sendRuntimeConfigName,
 				"event id": id,
