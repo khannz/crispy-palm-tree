@@ -54,13 +54,13 @@ func (gs *GrpcServer) AddRoute(ctx context.Context, incomeRouteData *transport.R
 	return &transport.EmptyRouteData{}, nil
 }
 
-// RemoveFromRoute ...
-func (gs *GrpcServer) RemoveFromRoute(ctx context.Context, incomeRouteData *transport.RouteData) (*transport.EmptyRouteData, error) {
+// RemoveRoute ...
+func (gs *GrpcServer) RemoveRoute(ctx context.Context, incomeRouteData *transport.RouteData) (*transport.EmptyRouteData, error) {
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcRouteName,
 		"event id": incomeRouteData.Id,
 	}).Infof("got job remove from route service %v", incomeRouteData)
-	if err := gs.facade.RemoveRoute(incomeRouteData.HcDestIP, incomeRouteData.HcTunDestIP, incomeRouteData.Id); err != nil {
+	if err := gs.facade.RemoveRoute(incomeRouteData.HcDestIP, incomeRouteData.HcTunDestIP, incomeRouteData.NeedRemoveTunnel, incomeRouteData.Id); err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
 			"entity":   grpcRouteName,
 			"event id": incomeRouteData.Id,
@@ -75,8 +75,8 @@ func (gs *GrpcServer) RemoveFromRoute(ctx context.Context, incomeRouteData *tran
 	return &transport.EmptyRouteData{}, nil
 }
 
-// GetRouteRuntime ...
-func (gs *GrpcServer) GetRouteRuntime(ctx context.Context, incomeEmptyData *transport.EmptyRouteData) (*transport.GetAllRoutesData, error) {
+// GetRouteRuntimeConfig ...
+func (gs *GrpcServer) GetRouteRuntimeConfig(ctx context.Context, incomeEmptyData *transport.EmptyRouteData) (*transport.GetAllRoutesData, error) {
 	currentConfig, err := gs.facade.GetRouteRuntimeConfig(incomeEmptyData.Id)
 	if err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{

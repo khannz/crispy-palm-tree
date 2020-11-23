@@ -16,6 +16,8 @@ import (
 
 const routeName = "route worker"
 
+// TODO: much more logs
+
 const ( // TODO: optimize regex
 	regexRuleForGetAllLinks     = `tun\d*\b`
 	regexRuleForGetRawAllRoutes = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}(\sdev\stun\d*\s)`
@@ -39,7 +41,7 @@ func (routeEntity *RouteEntity) AddRoute(hcDestIP string, hcTunDestIP string, id
 	defer routeEntity.Unlock()
 
 	mask := "/32"
-	realNetIP, _, err := net.ParseCIDR(hcTunDestIP + mask)
+	hcTunDestNetIP, _, err := net.ParseCIDR(hcTunDestIP + mask)
 	if err != nil {
 		routeEntity.logging.WithFields(logrus.Fields{
 			"entity":   routeName,
@@ -57,10 +59,14 @@ func (routeEntity *RouteEntity) AddRoute(hcDestIP string, hcTunDestIP string, id
 		return err
 	}
 
-	tun := IP4toInt(realNetIP)
+	tun := IP4toInt(hcTunDestNetIP)
 	table := int(tun)
 	rawTunnelName := strconv.FormatInt(tun, 10)
 	tunnelName := "tun" + rawTunnelName
+	routeEntity.logging.WithFields(logrus.Fields{
+		"entity":   routeName,
+		"event id": id,
+	}).Tracef("tunnel name: %v", rawTunnelName)
 
 	links, err := getAllLinks()
 	if err != nil {
@@ -70,14 +76,14 @@ func (routeEntity *RouteEntity) AddRoute(hcDestIP string, hcTunDestIP string, id
 		}).Errorf("get all links fail: %v", err)
 		return err
 	}
-	if err := addAndUpLink(realNetIP, tunnelName, links); err != nil {
+	if err := routeEntity.addAndUpLink(hcTunDestNetIP, tunnelName, links, id); err != nil {
 		routeEntity.logging.WithFields(logrus.Fields{
 			"entity":   routeName,
 			"event id": id,
 		}).Errorf("add and up link fail: %v", err)
 		return err
 	}
-	if err := createRoute(hcDestNetIP, hcDestNetIPNet, rawTunnelName, tunnelName, table); err != nil {
+	if err := routeEntity.createRoute(hcDestNetIP, hcDestNetIPNet, rawTunnelName, tunnelName, table, id); err != nil {
 		routeEntity.logging.WithFields(logrus.Fields{
 			"entity":   routeName,
 			"event id": id,
@@ -102,14 +108,18 @@ func IP4toInt(IPv4Address net.IP) int64 {
 	return IPv4Int.Int64()
 }
 
-func addAndUpLink(realNetIP net.IP, tunnelName string, links map[string]struct{}) error {
+func (routeEntity *RouteEntity) addAndUpLink(hcTunDestNetIP net.IP, tunnelName string, links map[string]struct{}, id string) error {
 	_, inMap := links[tunnelName]
 	if inMap {
+		routeEntity.logging.WithFields(logrus.Fields{
+			"entity":   routeName,
+			"event id": id,
+		}).Tracef("tunnel name %v already in links: %v", tunnelName, links)
 		return nil
 	}
 
 	linkNew := &netlink.Iptun{LinkAttrs: netlink.LinkAttrs{Name: tunnelName},
-		Remote: realNetIP}
+		Remote: hcTunDestNetIP}
 	if err := netlink.LinkAdd(linkNew); err != nil {
 		return fmt.Errorf("can't LinkAdd for tunnel %v: %v", tunnelName, err)
 	}
@@ -119,11 +129,15 @@ func addAndUpLink(realNetIP net.IP, tunnelName string, links map[string]struct{}
 	return nil
 }
 
-func createRoute(hcDestNetIP net.IP, hcDestNetIPNet *net.IPNet, rawTunnelName, tunnelName string, table int) error {
+func (routeEntity *RouteEntity) createRoute(hcDestNetIP net.IP, hcDestNetIPNet *net.IPNet, rawTunnelName, tunnelName string, table int, id string) error {
 	isRouteExist, err := isRouteExist(hcDestNetIP.String(), rawTunnelName)
 	if err != nil {
 		return err
 	} else if isRouteExist {
+		routeEntity.logging.WithFields(logrus.Fields{
+			"entity":   routeName,
+			"event id": id,
+		}).Infof("route %v for table %v already exist", hcDestNetIP.String(), rawTunnelName)
 		return nil
 	}
 
@@ -150,27 +164,37 @@ func addIPRuleFwmark(tableAndMark int) error {
 func isRouteExist(hcDestIP string, rawTunnelName string) (bool, error) {
 	args := []string{"route", "show", hcDestIP, "table", rawTunnelName}
 	stdout, _, exitCode, err := executor.Execute("ip", "", args)
-	if err != nil || exitCode != 0 {
-		return false, fmt.Errorf("error when execute command: route show %v table %v: %v; exit code: %v",
+	if err != nil {
+		return false, fmt.Errorf("error when execute command: ip route show %v table %v: %v; exit code: %v",
 			hcDestIP,
 			rawTunnelName,
 			err,
 			exitCode)
 	}
-
-	// TODO: regex check here
-	if strings.Contains(string(stdout), hcDestIP) && strings.Contains(string(stdout), rawTunnelName) {
-		return true, nil
+	fmt.Println("ip route", "show", hcDestIP, "table", rawTunnelName)
+	switch exitCode {
+	case 0:
+		// TODO: regex check here
+		if strings.Contains(string(stdout), hcDestIP) && strings.Contains(string(stdout), rawTunnelName) {
+			return true, nil
+		}
+	case 2:
+		return false, nil
+	default:
+		return false, fmt.Errorf("exit code when execute command: ip route show %v table %v: %v",
+			hcDestIP,
+			rawTunnelName,
+			exitCode)
 	}
 	return false, nil
 }
 
-func (routeEntity *RouteEntity) RemoveRoute(hcDestIP string, hcTunDestIP string, id string) error {
+func (routeEntity *RouteEntity) RemoveRoute(hcDestIP string, hcTunDestIP string, needRemoveTunnel bool, id string) error {
 	routeEntity.Lock()
 	defer routeEntity.Unlock()
 
 	mask := "/32"
-	realNetIP, _, err := net.ParseCIDR(hcTunDestIP + mask)
+	hcTunDestNetIP, _, err := net.ParseCIDR(hcTunDestIP + mask)
 	if err != nil {
 		routeEntity.logging.WithFields(logrus.Fields{
 			"entity":   routeName,
@@ -188,7 +212,7 @@ func (routeEntity *RouteEntity) RemoveRoute(hcDestIP string, hcTunDestIP string,
 		return err
 	}
 
-	tun := IP4toInt(realNetIP)
+	tun := IP4toInt(hcTunDestNetIP)
 	table := int(tun)
 	rawTunnelName := strconv.FormatInt(tun, 10)
 	tunnelName := "tun" + rawTunnelName
@@ -201,7 +225,7 @@ func (routeEntity *RouteEntity) RemoveRoute(hcDestIP string, hcTunDestIP string,
 		}).Errorf("get all links fail: %v", err)
 		return err
 	}
-	if err := removeRoute(hcDestNetIPNet, table, rawTunnelName, tunnelName); err != nil {
+	if err := routeEntity.removeRoute(hcDestNetIPNet, table, rawTunnelName, tunnelName, id); err != nil {
 		routeEntity.logging.WithFields(logrus.Fields{
 			"entity":   routeName,
 			"event id": id,
@@ -209,12 +233,14 @@ func (routeEntity *RouteEntity) RemoveRoute(hcDestIP string, hcTunDestIP string,
 		return err
 	}
 
-	if err := downAndRemoveOldLink(tunnelName, links); err != nil {
-		routeEntity.logging.WithFields(logrus.Fields{
-			"entity":   routeName,
-			"event id": id,
-		}).Errorf("down and remove link fail: %v", err)
-		return err
+	if needRemoveTunnel {
+		if err := routeEntity.downAndRemoveOldLink(tunnelName, links, id); err != nil {
+			routeEntity.logging.WithFields(logrus.Fields{
+				"entity":   routeName,
+				"event id": id,
+			}).Errorf("down and remove link fail: %v", err)
+			return err
+		}
 	}
 
 	if err := delIPRuleFwmark(table); err != nil {
@@ -227,9 +253,13 @@ func (routeEntity *RouteEntity) RemoveRoute(hcDestIP string, hcTunDestIP string,
 	return nil
 }
 
-func downAndRemoveOldLink(tunnelName string, links map[string]struct{}) error {
+func (routeEntity *RouteEntity) downAndRemoveOldLink(tunnelName string, links map[string]struct{}, id string) error {
 	_, inMap := links[tunnelName]
 	if !inMap {
+		routeEntity.logging.WithFields(logrus.Fields{
+			"entity":   routeName,
+			"event id": id,
+		}).Tracef("tunnel name %v not in links: %v", tunnelName, links)
 		return nil
 	}
 
@@ -248,11 +278,15 @@ func downAndRemoveOldLink(tunnelName string, links map[string]struct{}) error {
 	return nil
 }
 
-func removeRoute(hcDestNetIPNet *net.IPNet, table int, rawTunnelName, tunnelName string) error {
-	isRouteExist, err := isRouteExist(hcDestNetIPNet.String(), rawTunnelName)
+func (routeEntity *RouteEntity) removeRoute(hcDestNetIPNet *net.IPNet, table int, rawTunnelName, tunnelName string, id string) error {
+	isRouteExist, err := isRouteExist(hcDestNetIPNet.IP.String(), rawTunnelName)
 	if err != nil {
 		return err
 	} else if !isRouteExist {
+		routeEntity.logging.WithFields(logrus.Fields{
+			"entity":   routeName,
+			"event id": id,
+		}).Info("route already not exist")
 		return nil
 	}
 

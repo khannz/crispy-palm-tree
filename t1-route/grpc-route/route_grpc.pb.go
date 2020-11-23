@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 type RouteGetWorkerClient interface {
 	AddRoute(ctx context.Context, in *RouteData, opts ...grpc.CallOption) (*EmptyRouteData, error)
 	RemoveRoute(ctx context.Context, in *RouteData, opts ...grpc.CallOption) (*EmptyRouteData, error)
-	GetAllRoutesRuntime(ctx context.Context, in *EmptyRouteData, opts ...grpc.CallOption) (*GetAllRoutesData, error)
+	GetRouteRuntimeConfig(ctx context.Context, in *EmptyRouteData, opts ...grpc.CallOption) (*GetAllRoutesData, error)
 }
 
 type routeGetWorkerClient struct {
@@ -48,9 +48,9 @@ func (c *routeGetWorkerClient) RemoveRoute(ctx context.Context, in *RouteData, o
 	return out, nil
 }
 
-func (c *routeGetWorkerClient) GetAllRoutesRuntime(ctx context.Context, in *EmptyRouteData, opts ...grpc.CallOption) (*GetAllRoutesData, error) {
+func (c *routeGetWorkerClient) GetRouteRuntimeConfig(ctx context.Context, in *EmptyRouteData, opts ...grpc.CallOption) (*GetAllRoutesData, error) {
 	out := new(GetAllRoutesData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.route.RouteGetWorker/GetAllRoutesRuntime", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lbos.t1.route.RouteGetWorker/GetRouteRuntimeConfig", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *routeGetWorkerClient) GetAllRoutesRuntime(ctx context.Context, in *Empt
 type RouteGetWorkerServer interface {
 	AddRoute(context.Context, *RouteData) (*EmptyRouteData, error)
 	RemoveRoute(context.Context, *RouteData) (*EmptyRouteData, error)
-	GetAllRoutesRuntime(context.Context, *EmptyRouteData) (*GetAllRoutesData, error)
+	GetRouteRuntimeConfig(context.Context, *EmptyRouteData) (*GetAllRoutesData, error)
 	mustEmbedUnimplementedRouteGetWorkerServer()
 }
 
@@ -77,8 +77,8 @@ func (UnimplementedRouteGetWorkerServer) AddRoute(context.Context, *RouteData) (
 func (UnimplementedRouteGetWorkerServer) RemoveRoute(context.Context, *RouteData) (*EmptyRouteData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveRoute not implemented")
 }
-func (UnimplementedRouteGetWorkerServer) GetAllRoutesRuntime(context.Context, *EmptyRouteData) (*GetAllRoutesData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAllRoutesRuntime not implemented")
+func (UnimplementedRouteGetWorkerServer) GetRouteRuntimeConfig(context.Context, *EmptyRouteData) (*GetAllRoutesData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRouteRuntimeConfig not implemented")
 }
 func (UnimplementedRouteGetWorkerServer) mustEmbedUnimplementedRouteGetWorkerServer() {}
 
@@ -129,20 +129,20 @@ func _RouteGetWorker_RemoveRoute_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RouteGetWorker_GetAllRoutesRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _RouteGetWorker_GetRouteRuntimeConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EmptyRouteData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RouteGetWorkerServer).GetAllRoutesRuntime(ctx, in)
+		return srv.(RouteGetWorkerServer).GetRouteRuntimeConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.route.RouteGetWorker/GetAllRoutesRuntime",
+		FullMethod: "/lbos.t1.route.RouteGetWorker/GetRouteRuntimeConfig",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RouteGetWorkerServer).GetAllRoutesRuntime(ctx, req.(*EmptyRouteData))
+		return srv.(RouteGetWorkerServer).GetRouteRuntimeConfig(ctx, req.(*EmptyRouteData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -160,8 +160,8 @@ var _RouteGetWorker_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RouteGetWorker_RemoveRoute_Handler,
 		},
 		{
-			MethodName: "GetAllRoutesRuntime",
-			Handler:    _RouteGetWorker_GetAllRoutesRuntime_Handler,
+			MethodName: "GetRouteRuntimeConfig",
+			Handler:    _RouteGetWorker_GetRouteRuntimeConfig_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

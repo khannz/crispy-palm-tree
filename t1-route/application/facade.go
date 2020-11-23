@@ -37,9 +37,9 @@ func (routeFacade *RouteFacade) AddRoute(hcDestIP, hcTunDestIP string, id string
 	return newAddToRouteEntity.AddRoute(hcDestIP, hcTunDestIP, id)
 }
 
-func (routeFacade *RouteFacade) RemoveRoute(hcDestIP, hcTunDestIP string, id string) error {
+func (routeFacade *RouteFacade) RemoveRoute(hcDestIP, hcTunDestIP string, needRemoveTunnel bool, id string) error {
 	newAddToRouteEntity := usecase.NewRemoveRouteEntity(routeFacade.RouteWorker)
-	return newAddToRouteEntity.RemoveRoute(hcDestIP, hcTunDestIP, id)
+	return newAddToRouteEntity.RemoveRoute(hcDestIP, hcTunDestIP, needRemoveTunnel, id)
 }
 
 func (routeFacade *RouteFacade) GetRouteRuntimeConfig(id string) ([]string, error) {

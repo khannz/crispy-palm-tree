@@ -5,13 +5,14 @@ package lbos.t1.route;
 service RouteGetWorker {
   rpc AddRoute (RouteData) returns (EmptyRouteData) {}
   rpc RemoveRoute (RouteData) returns (EmptyRouteData) {}
-  rpc GetAllRoutesRuntime(EmptyRouteData) returns (GetAllRoutesData) {}
+  rpc GetRouteRuntimeConfig(EmptyRouteData) returns (GetAllRoutesData) {}
 }
 
 message RouteData {
   string hcDestIP = 1;
   string hcTunDestIP = 2;
-  string id = 3;
+  bool needRemoveTunnel = 3;
+  string id = 4;
 }
 
 message GetAllRoutesData {
