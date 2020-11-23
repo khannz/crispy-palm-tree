@@ -14,3 +14,16 @@ message SendDummyRuntimeData {
 message EmptySendDummyData {
   string id = 1;
 }
+
+service SendRouteRuntime {
+  rpc SendRouteRuntime (SendAllRoutesRuntimeData) returns (EmptySendRouteData) {}
+}
+
+message SendAllRoutesRuntimeData {
+  repeated string routeData = 1;
+  string id = 2;
+}
+
+message EmptySendRouteData {
+  string id = 1;
+}

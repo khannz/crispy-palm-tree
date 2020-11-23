@@ -1,0 +1,24 @@
+syntax = "proto3";
+package lbos.t1.route;
+
+
+service RouteGetWorker {
+  rpc AddRoute (RouteData) returns (EmptyRouteData) {}
+  rpc RemoveRoute (RouteData) returns (EmptyRouteData) {}
+  rpc GetAllRoutesRuntime(EmptyRouteData) returns (GetAllRoutesData) {}
+}
+
+message RouteData {
+  string hcDestIP = 1;
+  string hcTunDestIP = 2;
+  string id = 3;
+}
+
+message GetAllRoutesData {
+  repeated string routeData = 1;
+  string id = 2;
+} 
+
+message EmptyRouteData {
+  string id = 1;
+}
