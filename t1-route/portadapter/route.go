@@ -137,7 +137,7 @@ func (routeEntity *RouteEntity) createRoute(hcDestNetIP net.IP, hcDestNetIPNet *
 		routeEntity.logging.WithFields(logrus.Fields{
 			"entity":   routeName,
 			"event id": id,
-		}).Infof("route %v for table %v already exist", hcDestNetIP.String(), rawTunnelName)
+		}).Tracef("route %v for table %v already exist", hcDestNetIP.String(), rawTunnelName)
 		return nil
 	}
 
@@ -286,7 +286,7 @@ func (routeEntity *RouteEntity) removeRoute(hcDestNetIPNet *net.IPNet, table int
 		routeEntity.logging.WithFields(logrus.Fields{
 			"entity":   routeName,
 			"event id": id,
-		}).Info("route already not exist")
+		}).Tracef("route already not exist")
 		return nil
 	}
 
