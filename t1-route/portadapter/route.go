@@ -155,6 +155,18 @@ func (routeEntity *RouteEntity) createRoute(hcDestNetIP net.IP, hcDestNetIPNet *
 }
 
 func addIPRuleFwmark(tableAndMark int) error {
+	family := 2 // ipv4 hardcoded
+	rules, err := netlink.RuleList(family)
+	if err != nil {
+		return fmt.Errorf("can't get current rules: %v", err)
+	}
+	for _, r := range rules {
+		if r.Mark == tableAndMark &&
+			r.Table == tableAndMark {
+			return nil // rule exist
+		}
+	}
+
 	rule := netlink.NewRule()
 	rule.Mark = tableAndMark
 	rule.Table = tableAndMark
@@ -308,10 +320,26 @@ func (routeEntity *RouteEntity) removeRoute(hcDestNetIPNet *net.IPNet, table int
 }
 
 func delIPRuleFwmark(tableAndMark int) error {
-	rule := netlink.NewRule()
-	rule.Mark = tableAndMark
-	rule.Table = tableAndMark
-	return netlink.RuleDel(rule)
+	family := 2 // ipv4 hardcoded
+	rules, err := netlink.RuleList(family)
+	if err != nil {
+		return fmt.Errorf("can't get current rules: %v", err)
+	}
+	var ruleExist bool
+	for _, r := range rules {
+		if r.Mark == tableAndMark &&
+			r.Table == tableAndMark {
+			ruleExist = true // rule exist
+		}
+	}
+
+	if ruleExist {
+		rule := netlink.NewRule()
+		rule.Mark = tableAndMark
+		rule.Table = tableAndMark
+		return netlink.RuleDel(rule)
+	}
+	return nil
 }
 
 func getAllLinks() (map[string]struct{}, error) {
