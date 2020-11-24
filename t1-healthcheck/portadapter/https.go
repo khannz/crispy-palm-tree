@@ -55,6 +55,10 @@ func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
 	// Both DSR and TUN mode requires socket marks
 	conn, err := dialTCP(network, ip, port, timeout, fwmark)
 	if err != nil {
+		httpsEntity.logging.WithFields(logrus.Fields{
+			"entity":   httpsHealthcheckName,
+			"event id": id,
+		}).Debugf("can't connect from %v: %v", healthcheckAddress, err)
 		return false
 	}
 	defer conn.Close()
