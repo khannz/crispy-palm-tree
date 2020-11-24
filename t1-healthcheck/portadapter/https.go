@@ -34,11 +34,6 @@ func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
 	}
 	u.Scheme = "https"
 
-	// FIXME: need to fix hc models
-	u.Host = healthcheckAddress
-	// if u.Host == "" {
-	// 	u.Host = ipS + ":" + port
-	// }
 	ip, port, err := net.SplitHostPort(healthcheckAddress)
 	if err != nil {
 		httpsEntity.logging.WithFields(logrus.Fields{
@@ -47,6 +42,12 @@ func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
 		}).Errorf("https can't SplitHostPort from %v: %v", healthcheckAddress, err)
 		return false
 	}
+
+	// FIXME: need to fix hc models
+	u.Host = ip
+	// if u.Host == "" {
+	// 	u.Host = ipS + ":" + port
+	// }
 
 	// proxy := (func(*http.Request) (*url.URL, error))(nil)
 
