@@ -3,7 +3,6 @@ module github.com/khannz/crispy-palm-tree/lbost1a-healthcheck
 go 1.15
 
 require (
-	github.com/dgraph-io/badger/v2 v2.0.3
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/golang/protobuf v1.4.2
 	github.com/matoous/go-nanoid v1.4.1
@@ -13,7 +12,6 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/thevan4/logrus-wrapper v1.0.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc v1.33.0
 	google.golang.org/protobuf v1.25.0
 )
