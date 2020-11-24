@@ -12,8 +12,11 @@ type IcmpCheckEntity struct {
 	logging      *logrus.Logger
 }
 
-func NewIcmpCheckEntity(logging *logrus.Logger) *IcmpCheckEntity {
-	return &IcmpCheckEntity{logging: logging}
+func NewIcmpCheckEntity(hcICMPWorker domain.ICMPWorker, logging *logrus.Logger) *IcmpCheckEntity {
+	return &IcmpCheckEntity{
+		hcICMPWorker: hcICMPWorker,
+		logging:      logging,
+	}
 }
 
 func (icmpCheckEntity *IcmpCheckEntity) IsIcmpCheckOk(ipS string,

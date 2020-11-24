@@ -43,7 +43,7 @@ func (hcFacade *HCFacade) IsHttpAdvancedCheckOk(hcType string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	newhttpAdvancedCheckEntity := usecase.NewhttpAdvancedCheckEntity(hcFacade.Logging)
+	newhttpAdvancedCheckEntity := usecase.NewhttpAdvancedCheckEntity(hcFacade.HttpAdvancedWorker, hcFacade.Logging)
 	return newhttpAdvancedCheckEntity.IsHttpAdvancedCheckOk(hcType,
 		healthcheckAddress,
 		nearFieldsMode,
@@ -57,7 +57,7 @@ func (hcFacade *HCFacade) IsHttpsCheckOk(healthcheckAddress string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	newhttpsCheckEntity := usecase.NewhttpsCheckEntity(hcFacade.Logging)
+	newhttpsCheckEntity := usecase.NewhttpsCheckEntity(hcFacade.HttpsWorker, hcFacade.Logging)
 	return newhttpsCheckEntity.IsHttpsCheckOk(healthcheckAddress,
 		timeout,
 		fwmark,
@@ -69,7 +69,7 @@ func (hcFacade *HCFacade) IsIcmpCheckOk(ipS string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	newIcmpCheckEntity := usecase.NewIcmpCheckEntity(hcFacade.Logging)
+	newIcmpCheckEntity := usecase.NewIcmpCheckEntity(hcFacade.IcmpWorker, hcFacade.Logging)
 	return newIcmpCheckEntity.IsIcmpCheckOk(ipS,
 		seq,
 		timeout,
@@ -81,7 +81,7 @@ func (hcFacade *HCFacade) IsTcpCheckOk(healthcheckAddress string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	updateServiceEntity := usecase.NewTcpCheckEntity(hcFacade.Logging)
+	updateServiceEntity := usecase.NewTcpCheckEntity(hcFacade.TcpWorker, hcFacade.Logging)
 	return updateServiceEntity.IsTcpCheckOk(healthcheckAddress,
 		timeout,
 		fwmark,

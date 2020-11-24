@@ -12,8 +12,11 @@ type TcpCheckEntity struct {
 	logging     *logrus.Logger
 }
 
-func NewTcpCheckEntity(logging *logrus.Logger) *TcpCheckEntity {
-	return &TcpCheckEntity{logging: logging}
+func NewTcpCheckEntity(hcTCPWorker domain.TCPWorker, logging *logrus.Logger) *TcpCheckEntity {
+	return &TcpCheckEntity{
+		hcTCPWorker: hcTCPWorker,
+		logging:     logging,
+	}
 }
 
 func (tcpCheckEntity *TcpCheckEntity) IsTcpCheckOk(healthcheckAddress string,

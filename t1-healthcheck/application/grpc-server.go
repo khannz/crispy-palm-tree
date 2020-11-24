@@ -121,7 +121,7 @@ func (gs *GrpcServer) IsTcpCheckOk(ctx context.Context, incomeTcpCheck *transpor
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcJobName,
 		"event id": id,
-	}).Infof("got job icmp check server %v", incomeTcpCheck)
+	}).Infof("got job tcp check server %v", incomeTcpCheck)
 
 	timeout, _ := ptypes.Duration(incomeTcpCheck.Timeout)
 	isOk := gs.facade.IsTcpCheckOk(
@@ -137,7 +137,7 @@ func (gs *GrpcServer) IsTcpCheckOk(ctx context.Context, incomeTcpCheck *transpor
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcJobName,
 		"event id": id,
-	}).Infof("completed job icmp check server %v", incomeTcpCheck)
+	}).Infof("completed job tcp check server %v", incomeTcpCheck)
 
 	return outPbData, nil
 }

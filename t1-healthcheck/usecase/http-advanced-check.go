@@ -12,8 +12,11 @@ type HttpAdvancedCheckEntity struct {
 	logging              *logrus.Logger
 }
 
-func NewhttpAdvancedCheckEntity(logging *logrus.Logger) *HttpAdvancedCheckEntity {
-	return &HttpAdvancedCheckEntity{logging: logging}
+func NewhttpAdvancedCheckEntity(hcHTTPAdvancedWorker domain.HTTPAdvancedWorker, logging *logrus.Logger) *HttpAdvancedCheckEntity {
+	return &HttpAdvancedCheckEntity{
+		hcHTTPAdvancedWorker: hcHTTPAdvancedWorker,
+		logging:              logging,
+	}
 }
 
 func (httpAdvancedCheckEntity *HttpAdvancedCheckEntity) IsHttpAdvancedCheckOk(hcType string,

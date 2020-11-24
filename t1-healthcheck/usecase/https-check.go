@@ -12,8 +12,11 @@ type HttpsCheckEntity struct {
 	logging       *logrus.Logger
 }
 
-func NewhttpsCheckEntity(logging *logrus.Logger) *HttpsCheckEntity {
-	return &HttpsCheckEntity{logging: logging}
+func NewhttpsCheckEntity(hcHTTPSWorker domain.HTTPSWorker, logging *logrus.Logger) *HttpsCheckEntity {
+	return &HttpsCheckEntity{
+		hcHTTPSWorker: hcHTTPSWorker,
+		logging:       logging,
+	}
 }
 
 func (httpsCheckEntity *HttpsCheckEntity) IsHttpsCheckOk(healthcheckAddress string,
