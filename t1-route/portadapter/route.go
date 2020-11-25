@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/thevan4/go-billet/executor"
@@ -99,6 +100,14 @@ func (routeEntity *RouteEntity) AddRoute(hcDestIP string, hcTunDestIP string, id
 		return err
 	}
 
+	if err := newRpFilter(tunnelName); err != nil {
+		routeEntity.logging.WithFields(logrus.Fields{
+			"entity":   routeName,
+			"event id": id,
+		}).Errorf("ne rp filter fail: %v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -173,6 +182,21 @@ func addIPRuleFwmark(tableAndMark int) error {
 	return netlink.RuleAdd(rule)
 }
 
+func newRpFilter(tunnelName string) error {
+	time.Sleep(time.Duration(100 * time.Millisecond)) // TODO: what until tun up and syscall add that
+	args := []string{"-w", "net.ipv4.conf." + tunnelName + ".rp_filter=0"}
+	_, _, exitCode, err := executor.Execute("sysctl", "", args)
+
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("error when execute command: sysctl -w net.ipv4.conf.%v.rp_filter=0: %v; exit code: %v",
+			tunnelName,
+			err,
+			exitCode)
+	}
+
+	return nil
+}
+
 func isRouteExist(hcDestIP string, rawTunnelName string) (bool, error) {
 	args := []string{"route", "show", hcDestIP, "table", rawTunnelName}
 	stdout, _, exitCode, err := executor.Execute("ip", "", args)
@@ -183,7 +207,7 @@ func isRouteExist(hcDestIP string, rawTunnelName string) (bool, error) {
 			err,
 			exitCode)
 	}
-	fmt.Println("ip route", "show", hcDestIP, "table", rawTunnelName)
+
 	switch exitCode {
 	case 0:
 		// TODO: regex check here
