@@ -1,0 +1,20 @@
+[Unit]
+Description=Software network load balancer orchestrator service
+ConditionPathExists=/opt/lbost1ao/lbost1ao
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+LimitNOFILE=1024
+Restart=on-failure
+RestartSec=10
+WorkingDirectory=/opt/lbost1ao
+ExecStartPre=mkdir -p /run/lbost1ao
+ExecStart=/opt/lbost1ao/lbost1ao run
+KillSignal=SIGINT
+SendSIGKILL=no
+PermissionsStartOnly=true
+[Install]
+WantedBy=multi-user.target
