@@ -20,3 +20,21 @@ dummy-bin:
 dummy-clean:
 	rm -rf ./t1-dummy/dist
 	rm -f ./t1-dummy/lbost1ad
+
+orch-dl-mods:
+	cd t1-orch && go mod download
+
+orch-grpc:
+	mkdir -p ./t1-orch/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-orch/ --go-grpc_out=./t1-orch/grpc-orch/ ./proto/dummy.proto
+
+# TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
+orch-rpm-snapshot:
+	cd t1-orch && goreleaser --snapshot --skip-publish --rm-dist
+
+orch-bin:
+	cd t1-orch && CGO_ENABLED=0 go build -o lbost1ao
+
+orch-clean:
+	rm -rf ./t1-orch/dist
+	rm -f ./t1-orch/lbost1ao
