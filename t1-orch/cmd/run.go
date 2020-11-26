@@ -37,11 +37,13 @@ var rootCmd = &cobra.Command{
 			"t1 orch id":            viperConfig.GetString(t1OrchIDName),
 			"healthcheck interface": viperConfig.GetString(hlckInterfaceName),
 
-			"id type":     viperConfig.GetString(idTypeName),
-			"hc address":  viperConfig.GetString(hcAddressName),
-			"hc timeout":  viperConfig.GetDuration(hcTimeoutName),
-			"tun address": viperConfig.GetString(tunSockAddrName),
-			"tun timeout": viperConfig.GetDuration(tunTimeoutName),
+			"id type":       viperConfig.GetString(idTypeName),
+			"hc address":    viperConfig.GetString(hcAddressName),
+			"hc timeout":    viperConfig.GetDuration(hcTimeoutName),
+			"route address": viperConfig.GetString(routeAddrName),
+			"route timeout": viperConfig.GetDuration(routeTimeoutName),
+			"dummy address": viperConfig.GetString(dummyAddressName),
+			"dummy timeout": viperConfig.GetDuration(dummyTimeoutName),
 		}).Info("")
 
 		gracefulShutdown := &domain.GracefulShutdown{}
@@ -58,7 +60,7 @@ var rootCmd = &cobra.Command{
 
 		ipvsWorker := portadapter.NewIpvsEntity()
 
-		dummyWorker := portadapter.NewDummyEntity()
+		dummyWorker := portadapter.NewDummyWorker(viperConfig.GetString(dummyAddressName), viperConfig.GetDuration(dummyTimeoutName), logging)
 
 		// db and caches init
 		memoryWorker := &portadapter.MemoryWorker{

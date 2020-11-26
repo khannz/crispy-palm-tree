@@ -27,14 +27,15 @@ const (
 	defaultIDType = "nanoid"
 
 	// FIXME: 100500 addresses
-	defaultHCAddress = "/var/run/lbost1ah.sock"
-	defaultHCTimeout = 2 * time.Second
+	defaultDummyAddress = "/var/run/lbost1ad.sock" // not ready
+	defaultDummyTimeout = 2 * time.Second
+	//
+	defaultHCAddress = "/var/run/lbost1ah.sock" // FIXME: not ready
+	defaultHCTimeout = 2 * time.Second          // not ready
 
-	defaultTunSockAddr = "/var/run/lbost1at.sock"
-	defaultTunTimeout  = 2 * time.Second
+	defaultRouteAddr  = "/var/run/lbost1ar.sock" // not ready
+	defaultTunTimeout = 2 * time.Second          // not ready
 )
-
-var defaultCredentials = map[string]string{}
 
 // Config names
 const (
@@ -55,8 +56,13 @@ const (
 	hcAddressName = "hc-address"
 	hcTimeoutName = "hc-timeout"
 
-	tunSockAddrName = "tun-sock-addr"
-	tunTimeoutName  = "tun-timeout"
+	//
+	dummyAddressName = "dummy-addr" // not ready
+	dummyTimeoutName = "dummy-timeout"
+
+	//
+	routeAddrName    = "route-addr"
+	routeTimeoutName = "route-timeout"
 )
 
 // // For builds with ldflags
@@ -96,8 +102,10 @@ func init() {
 	pflag.String(hcAddressName, defaultHCAddress, "Healthcheck address. Example:'127.0.0.1:7000'")
 	pflag.Duration(hcTimeoutName, defaultHCTimeout, "Healthcheck request timeout")
 
-	pflag.String(tunSockAddrName, defaultTunSockAddr, "tunnel address. Example:'/var/run/lbost1at.sock'")
-	pflag.Duration(tunTimeoutName, defaultTunTimeout, "tunnel request timeout")
+	pflag.String(dummyAddressName, defaultDummyAddress, "dummy address. Example:'/var/run/lbost1ad.sock'")
+	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy request timeout")
+	pflag.String(routeAddrName, defaultRouteAddr, "tunnel address. Example:'/var/run/lbost1at.sock'")
+	pflag.Duration(routeTimeoutName, defaultTunTimeout, "tunnel request timeout")
 
 	pflag.Parse()
 	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {
