@@ -13,7 +13,7 @@ const newServiceName = "new service"
 // NewServiceEntity ...
 type NewServiceEntity struct {
 	memoryWorker     domain.MemoryWorker
-	routeMaker       domain.RouteMaker
+	routeMaker       domain.RouteWorker
 	hc               *healthcheck.HeathcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
@@ -21,7 +21,7 @@ type NewServiceEntity struct {
 
 // NewNewServiceEntity ... // TODO: naming
 func NewNewServiceEntity(memoryWorker domain.MemoryWorker,
-	routeMaker domain.RouteMaker,
+	routeMaker domain.RouteWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *NewServiceEntity {

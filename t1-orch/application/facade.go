@@ -9,7 +9,7 @@ import (
 // T1OrchFacade struct
 type T1OrchFacade struct {
 	MemoryWorker     domain.MemoryWorker
-	RouteMaker       domain.RouteMaker
+	RouteWorker      domain.RouteWorker
 	HeathcheckEntity *healthcheck.HeathcheckEntity
 	GracefulShutdown *domain.GracefulShutdown
 	IDgenerator      domain.IDgenerator
@@ -17,16 +17,16 @@ type T1OrchFacade struct {
 }
 
 // NewT1OrchFacade ...
-func NewT1OrchFacade(MemoryWorker domain.MemoryWorker,
-	RouteMaker domain.RouteMaker,
+func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
+	routeWorker domain.RouteWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *T1OrchFacade {
 
 	return &T1OrchFacade{
-		MemoryWorker:     MemoryWorker,
-		RouteMaker:       RouteMaker,
+		MemoryWorker:     memoryWorker,
+		RouteWorker:      routeWorker,
 		HeathcheckEntity: hc,
 		GracefulShutdown: gracefulShutdown,
 		IDgenerator:      idGenerator,

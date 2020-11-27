@@ -40,7 +40,7 @@ var rootCmd = &cobra.Command{
 			"id type":       viperConfig.GetString(idTypeName),
 			"hc address":    viperConfig.GetString(hcAddressName),
 			"hc timeout":    viperConfig.GetDuration(hcTimeoutName),
-			"route address": viperConfig.GetString(routeAddrName),
+			"route address": viperConfig.GetString(routeAddressName),
 			"route timeout": viperConfig.GetDuration(routeTimeoutName),
 			"dummy address": viperConfig.GetString(dummyAddressName),
 			"dummy timeout": viperConfig.GetDuration(dummyTimeoutName),
@@ -56,7 +56,7 @@ var rootCmd = &cobra.Command{
 			syscall.SIGQUIT)
 
 		// Workers start
-		routeWorker := portadapter.NewRouteEntity()
+		routeWorker := portadapter.NewRouteWorker(viperConfig.GetString(routeAddressName), viperConfig.GetDuration(routeTimeoutName), logging)
 
 		ipvsWorker := portadapter.NewIpvsEntity()
 

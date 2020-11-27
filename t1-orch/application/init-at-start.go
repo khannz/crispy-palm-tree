@@ -15,7 +15,7 @@ func (t1OrchFacade *T1OrchFacade) InitConfigAtStart(agentID, id string) error {
 		return fmt.Errorf("can't init config: get current config fail: %v", err)
 	}
 
-	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteMaker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
+	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
 	for _, currentService := range currentServices {
 		enrichKVServiceDataToDomainServiceInfo(currentService) // add data logic data fields
 		if err := t1OrchFacade.MemoryWorker.AddService(currentService); err != nil {

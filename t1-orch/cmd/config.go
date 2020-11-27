@@ -26,15 +26,15 @@ const (
 
 	defaultIDType = "nanoid"
 
-	// FIXME: 100500 addresses
-	defaultDummyAddress = "/var/run/lbost1ad.sock" // not ready
+	defaultDummyAddress = "/var/run/lbost1ad.sock"
 	defaultDummyTimeout = 2 * time.Second
+	defaultRouteAddress = "/var/run/lbost1ar.sock"
+	defaultTunTimeout   = 2 * time.Second
+	// FIXME: 100500 addresses
 	//
 	defaultHCAddress = "/var/run/lbost1ah.sock" // FIXME: not ready
 	defaultHCTimeout = 2 * time.Second          // not ready
 
-	defaultRouteAddr  = "/var/run/lbost1ar.sock" // not ready
-	defaultTunTimeout = 2 * time.Second          // not ready
 )
 
 // Config names
@@ -59,10 +59,10 @@ const (
 	//
 	dummyAddressName = "dummy-addr" // not ready
 	dummyTimeoutName = "dummy-timeout"
+	routeAddressName = "route-addr"
+	routeTimeoutName = "route-timeout"
 
 	//
-	routeAddrName    = "route-addr"
-	routeTimeoutName = "route-timeout"
 )
 
 // // For builds with ldflags
@@ -104,7 +104,7 @@ func init() {
 
 	pflag.String(dummyAddressName, defaultDummyAddress, "dummy address. Example:'/var/run/lbost1ad.sock'")
 	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy request timeout")
-	pflag.String(routeAddrName, defaultRouteAddr, "tunnel address. Example:'/var/run/lbost1at.sock'")
+	pflag.String(routeAddressName, defaultRouteAddress, "tunnel address. Example:'/var/run/lbost1at.sock'")
 	pflag.Duration(routeTimeoutName, defaultTunTimeout, "tunnel request timeout")
 
 	pflag.Parse()
