@@ -71,7 +71,6 @@ func (dummyWorker *DummyWorker) RemoveFromDummy(ip string, id string) error {
 }
 
 func (dummyWorker *DummyWorker) GetDummyRuntimeConfig(id string) (map[string]struct{}, error) {
-	// not implemented
 	withContextDialer := makeDialer(dummyWorker.address, 2*time.Second)
 
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)

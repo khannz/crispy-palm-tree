@@ -44,6 +44,8 @@ var rootCmd = &cobra.Command{
 			"route timeout": viperConfig.GetDuration(routeTimeoutName),
 			"dummy address": viperConfig.GetString(dummyAddressName),
 			"dummy timeout": viperConfig.GetDuration(dummyTimeoutName),
+			"ipvs address":  viperConfig.GetString(ipvsAddressName),
+			"ipvs timeout":  viperConfig.GetDuration(ipvsTimeoutName),
 		}).Info("")
 
 		gracefulShutdown := &domain.GracefulShutdown{}
@@ -58,7 +60,7 @@ var rootCmd = &cobra.Command{
 		// Workers start
 		routeWorker := portadapter.NewRouteWorker(viperConfig.GetString(routeAddressName), viperConfig.GetDuration(routeTimeoutName), logging)
 
-		ipvsWorker := portadapter.NewIpvsEntity()
+		ipvsWorker := portadapter.NewIpvsWorker(viperConfig.GetString(ipvsAddressName), viperConfig.GetDuration(ipvsTimeoutName), logging)
 
 		dummyWorker := portadapter.NewDummyWorker(viperConfig.GetString(dummyAddressName), viperConfig.GetDuration(dummyTimeoutName), logging)
 

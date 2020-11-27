@@ -29,6 +29,8 @@ orch-grpc:
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-dummy/ --go-grpc_out=./t1-orch/grpc-dummy/ ./proto/dummy.proto
 	mkdir -p ./t1-orch/grpc-route
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-route/ --go-grpc_out=./t1-orch/grpc-route/ ./proto/route.proto
+	mkdir -p ./t1-orch/grpc-ipvs
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-ipvs/ --go-grpc_out=./t1-orch/grpc-ipvs/ ./proto/t1-ipvs.proto
 
 # TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
 orch-rpm-snapshot:
