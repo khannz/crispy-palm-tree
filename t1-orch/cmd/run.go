@@ -46,6 +46,11 @@ var rootCmd = &cobra.Command{
 			"dummy timeout": viperConfig.GetDuration(dummyTimeoutName),
 			"ipvs address":  viperConfig.GetString(ipvsAddressName),
 			"ipvs timeout":  viperConfig.GetDuration(ipvsTimeoutName),
+
+			"etcd endpoints": viperConfig.GetStringSlice(etcdEndpointsName),
+			"etcd timeout":   viperConfig.GetDuration(etcdTimeoutName),
+
+			"t1 id": viperConfig.GetString(t1IdName),
 		}).Info("")
 
 		gracefulShutdown := &domain.GracefulShutdown{}
@@ -90,6 +95,18 @@ var rootCmd = &cobra.Command{
 			gracefulShutdown,
 			idGenerator,
 			logging)
+
+		// etcd worker start
+
+		etcdWorker, err := application.NewEtcdWorker(facade,
+			viperConfig.GetStringSlice(etcdEndpointsName),
+			viperConfig.GetDuration(etcdTimeoutName),
+			viperConfig.GetString(t1IdName))
+		if err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to etcd fail: %v", err)
+		}
+		defer etcdWorker.EtcdClient.Close()
+		go etcdWorker.EtcdConfigWatch()
 
 		if err := facade.InitConfigAtStart("FIXME: agent id here", idForRootProcess); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("initialize runtime settings fail: %v", err)

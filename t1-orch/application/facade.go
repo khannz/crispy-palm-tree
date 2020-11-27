@@ -33,3 +33,7 @@ func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
 		Logging:          logging,
 	}
 }
+
+func (t1OrchFacade *T1OrchFacade) ApplyNewConfig() {
+
+}

@@ -33,9 +33,15 @@ const (
 	defaultIpvsAddress  = "/var/run/lbost1ai.sock"
 	defaultIpvsTimeout  = 2 * time.Second
 
-	defaultHCAddress = "/var/run/lbost1ah.sock" // FIXME:
+	defaultHCAddress = "/var/run/lbost1ah.sock"
 	defaultHCTimeout = 2 * time.Second
+
+	defaultEtcdTimeout = 5 * time.Second
+
+	defaultT1Id = ""
 )
+
+var defaultEtcdEndpoints = []string{"http://127.0.0.1:2379"}
 
 // Config names
 const (
@@ -56,12 +62,17 @@ const (
 	hcAddressName = "hc-address"
 	hcTimeoutName = "hc-timeout"
 
-	dummyAddressName = "dummy-addr" // not ready
+	dummyAddressName = "dummy-addr"
 	dummyTimeoutName = "dummy-timeout"
 	routeAddressName = "route-addr"
 	routeTimeoutName = "route-timeout"
 	ipvsAddressName  = "ipvs-addr"
 	ipvsTimeoutName  = "ipvs-timeout"
+
+	etcdEndpointsName = "etcd-endpoints"
+	etcdTimeoutName   = "etcd-timeout"
+
+	t1IdName = "t1-id"
 )
 
 // // For builds with ldflags
@@ -108,6 +119,11 @@ func init() {
 	pflag.String(ipvsAddressName, defaultIpvsAddress, "ipvs address. Example:'/var/run/lbost1ai.sock'")
 	pflag.Duration(ipvsTimeoutName, defaultIpvsTimeout, "ipvs request timeout")
 
+	pflag.StringArray(etcdEndpointsName, defaultEtcdEndpoints, "etcd endpoints")
+	pflag.Duration(etcdTimeoutName, defaultEtcdTimeout, "etcd timeout")
+
+	pflag.String(t1IdName, defaultT1Id, "t1 id. Watch key id in etcd")
+
 	pflag.Parse()
 	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {
 		fmt.Println(err)
@@ -140,6 +156,10 @@ func init() {
 	// if viperConfig.GetString(t1OrchIDName) == "" {
 	// 	logging.Fatalf("t1 orch id must be set")
 	// }
+
+	if viperConfig.GetString(t1IdName) == "" {
+		logging.Fatalf("t1 id must be set")
+	}
 
 	switch viperConfig.GetString(idTypeName) {
 	case "nanoid":
