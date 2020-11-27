@@ -1,0 +1,48 @@
+syntax = "proto3";
+package lbos.t1.dummy;
+
+import "google/protobuf/duration.proto";
+
+
+service HealthcheckWorker {
+  rpc IsHttpAdvancedCheckOk (HttpAdvancedData) returns (IsOk) {}
+  rpc IsHttpsCheckOk (HttpsData) returns (IsOk) {}
+  rpc IsIcmpCheckOk (IcmpData) returns (IsOk) {}
+  rpc IsTcpCheckOk (TcpData) returns (IsOk) {}
+}
+
+message TcpData {
+  string healthcheckAddress = 1;
+  google.protobuf.Duration timeout = 2;
+  int32 fwmark = 3;
+  string id = 4;
+}
+
+message IcmpData {
+  string ipS = 1;
+  google.protobuf.Duration timeout = 2;
+  int32 fwmark = 3;
+  string id = 4;
+}
+
+message HttpsData {
+  string healthcheckAddress = 1;
+  google.protobuf.Duration timeout = 2;
+  int32 fwmark = 3;
+  string id = 4;
+}
+
+message HttpAdvancedData {
+  string hcType = 1;
+  string healthcheckAddress = 2;
+  bool nearFieldsMode = 3;
+  map<string, string> userDefinedData = 4;
+  google.protobuf.Duration timeout = 5;
+  int32 fwmark = 6;
+  string id = 7;
+}
+
+message IsOk {
+  bool isOk = 1;
+  string id = 2;
+}

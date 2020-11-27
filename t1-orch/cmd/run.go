@@ -64,15 +64,17 @@ var rootCmd = &cobra.Command{
 
 		dummyWorker := portadapter.NewDummyWorker(viperConfig.GetString(dummyAddressName), viperConfig.GetDuration(dummyTimeoutName), logging)
 
-		// db and caches init
+		// mem init
 		memoryWorker := &portadapter.MemoryWorker{
 			Services:                     make(map[string]*domain.ServiceInfo),
 			ApplicationServersTunnelInfo: make(map[string]int),
 		}
 
 		//  healthchecks start
+		healthcheckChecker := portadapter.NewHealthcheckChecker(viperConfig.GetString(hcAddressName), viperConfig.GetDuration(hcTimeoutName), logging)
 
 		hc := healthcheck.NewHeathcheckEntity(memoryWorker,
+			healthcheckChecker,
 			ipvsWorker,
 			dummyWorker,
 			idGenerator,

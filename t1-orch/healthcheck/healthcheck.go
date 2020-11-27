@@ -11,7 +11,6 @@ import (
 )
 
 const healthcheckName = "healthcheck"
-const protocolICMP = 1
 
 type failedApplicationServers struct { // TODO: remove that struct
 	sync.Mutex
@@ -24,6 +23,7 @@ type HeathcheckEntity struct {
 	sync.Mutex
 	runningHeathchecks []*domain.ServiceInfo // TODO: map much better
 	memoryWorker       domain.MemoryWorker
+	healthcheckChecker domain.HealthcheckChecker
 	ipvsadm            domain.IPVSWorker
 	dw                 domain.DummyWorker
 	idGenerator        domain.IDgenerator
@@ -33,6 +33,7 @@ type HeathcheckEntity struct {
 
 // NewHeathcheckEntity ...
 func NewHeathcheckEntity(memoryWorker domain.MemoryWorker,
+	healthcheckChecker domain.HealthcheckChecker,
 	ipvsadm domain.IPVSWorker,
 	dw domain.DummyWorker,
 	idGenerator domain.IDgenerator,
@@ -41,6 +42,7 @@ func NewHeathcheckEntity(memoryWorker domain.MemoryWorker,
 	return &HeathcheckEntity{
 		runningHeathchecks: []*domain.ServiceInfo{}, // need for append
 		memoryWorker:       memoryWorker,
+		healthcheckChecker: healthcheckChecker,
 		ipvsadm:            ipvsadm,
 		dw:                 dw,
 		idGenerator:        idGenerator,
@@ -418,18 +420,18 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceIn
 	// FIXME: set fwmark
 	switch hcService.HCType {
 	case "tcp":
-		return IsTcpCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HCAddress,
+		return hc.healthcheckChecker.IsTcpCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HCAddress,
 			hcService.HCTimeout,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 
 	case "http": // FIXME: https checks here, no support for http
-		return IsHttpsCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HCAddress,
+		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HCAddress,
 			hcService.HCTimeout,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "http-advanced":
-		return IsHttpAdvancedCheckOk(hcService.HCType,
+		return hc.healthcheckChecker.IsHttpAdvancedCheckOk(hcService.HCType,
 			hcService.ApplicationServers[applicationServerInfoKey].HCAddress,
 			hcService.HCNearFieldsMode,
 			hcService.HCUserDefinedData,
@@ -437,15 +439,7 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceIn
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "icmp":
-		seq := 1
-		// 	echoRequestSeqId.Lock() // FIXME: select sequence
-		// if echoRequestSeqId.seq == 65535 {
-		// 	echoRequestSeqId.seq = 1
-		// } else {
-		// 	echoRequestSeqId.seq++
-		// }
-		return IsIcmpCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HCAddress,
-			seq,
+		return hc.healthcheckChecker.IsIcmpCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HCAddress,
 			hcService.HCTimeout,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
