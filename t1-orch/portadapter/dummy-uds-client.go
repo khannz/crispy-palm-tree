@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	transport "github.com/khannz/crispy-palm-tree/t1-orch/grpc-orch"
+	transport "github.com/khannz/crispy-palm-tree/t1-orch/grpc-dummy"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
