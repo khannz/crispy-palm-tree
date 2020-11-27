@@ -35,6 +35,23 @@ func NewEtcdWorker(facade *T1OrchFacade,
 }
 
 func (etcdWorker *EtcdWorker) EtcdConfigWatch() {
+	getResp, err := etcdWorker.EtcdClient.Get(context.Background(), etcdWorker.agentID)
+	if err != nil {
+		etcdWorker.facade.Logging.WithFields(logrus.Fields{
+			"entity":   etcdConfig,
+			"event id": etcdWorker.agentID,
+		}).Warnf("can't read new config from etcd: %v", err)
+	}
+
+	if len(getResp.OpResponse().Get().Kvs) != 0 {
+		kvs := string(getResp.OpResponse().Get().Kvs[0].Value)
+		etcdWorker.facade.Logging.WithFields(logrus.Fields{
+			"entity":   etcdConfig,
+			"event id": etcdWorker.agentID,
+		}).Warnf("get init config from etcd: %v", kvs)
+		etcdWorker.facade.ApplyNewConfig()
+	}
+
 	watchChan := etcdWorker.EtcdClient.Watch(context.Background(), etcdWorker.agentID)
 	for watchResp := range watchChan {
 		for _, event := range watchResp.Events {
