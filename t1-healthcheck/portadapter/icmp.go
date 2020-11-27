@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	icmpwrapper "github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/portadapter/icmp-wrapper"
@@ -23,25 +24,29 @@ const (
 
 type IcmpEntity struct {
 	logging *logrus.Logger
+	sync.Mutex
+	seq int
 }
 
 func NewIcmpEntity(logging *logrus.Logger) *IcmpEntity {
-	return &IcmpEntity{logging: logging}
+	return &IcmpEntity{logging: logging, seq: 0}
 }
 
 func (icmpEntity *IcmpEntity) IsIcmpCheckOk(ipS string,
-	seq int,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
+	icmpEntity.Lock()
 	m := icmp.Message{
 		Type: ipv4.ICMPTypeEcho, Code: 0,
 		Body: &icmp.Echo{
 			ID:   os.Getpid() & 0xffff,
-			Seq:  seq,
+			Seq:  icmpEntity.seq,
 			Data: []byte(""),
 		},
 	}
+	icmpEntity.increaseSeq()
+	icmpEntity.Unlock()
 	echo, err := m.Marshal(nil)
 	if err != nil {
 		icmpEntity.logging.WithFields(logrus.Fields{
@@ -103,5 +108,14 @@ func exchangeICMPEcho(network string, ip net.IP, timeout time.Duration, echo []b
 		default:
 			return fmt.Errorf("unsoported reply type: %v", rm.Type)
 		}
+	}
+}
+
+func (icmpEntity *IcmpEntity) increaseSeq() {
+	// icmpEntity must be locked
+	if icmpEntity.seq == 65535 {
+		icmpEntity.seq = 1
+	} else {
+		icmpEntity.seq++
 	}
 }

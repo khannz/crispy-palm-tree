@@ -99,7 +99,6 @@ func (gs *GrpcServer) IsIcmpCheckOk(ctx context.Context, incomeIcmpCheck *transp
 	timeout, _ := ptypes.Duration(incomeIcmpCheck.Timeout)
 	isOk := gs.facade.IsIcmpCheckOk(
 		incomeIcmpCheck.IpS,
-		int(incomeIcmpCheck.Seq),
 		timeout,
 		int(incomeIcmpCheck.Fwmark),
 		incomeIcmpCheck.Id)

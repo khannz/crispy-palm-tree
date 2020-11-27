@@ -65,13 +65,11 @@ func (hcFacade *HCFacade) IsHttpsCheckOk(healthcheckAddress string,
 }
 
 func (hcFacade *HCFacade) IsIcmpCheckOk(ipS string,
-	seq int,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
 	newIcmpCheckEntity := usecase.NewIcmpCheckEntity(hcFacade.IcmpWorker, hcFacade.Logging)
 	return newIcmpCheckEntity.IsIcmpCheckOk(ipS,
-		seq,
 		timeout,
 		fwmark,
 		id)

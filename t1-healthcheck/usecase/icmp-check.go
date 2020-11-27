@@ -20,12 +20,11 @@ func NewIcmpCheckEntity(hcICMPWorker domain.ICMPWorker, logging *logrus.Logger) 
 }
 
 func (icmpCheckEntity *IcmpCheckEntity) IsIcmpCheckOk(ipS string,
-	seq int,
+	// seq int,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
 	return icmpCheckEntity.hcICMPWorker.IsIcmpCheckOk(ipS,
-		seq,
 		timeout,
 		fwmark,
 		id)
