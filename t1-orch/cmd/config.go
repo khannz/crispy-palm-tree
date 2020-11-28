@@ -115,7 +115,7 @@ func init() {
 	pflag.String(ipvsAddressName, defaultIpvsAddress, "ipvs address. Example:'/var/run/lbost1ai.sock'")
 	pflag.Duration(ipvsTimeoutName, defaultIpvsTimeout, "ipvs request timeout")
 
-	pflag.StringArray(etcdEndpointsName, defaultEtcdEndpoints, "etcd endpoints")
+	pflag.StringSlice(etcdEndpointsName, defaultEtcdEndpoints, "etcd endpoints") // FIXME: support for only one endpoint
 	pflag.Duration(etcdTimeoutName, defaultEtcdTimeout, "etcd timeout")
 
 	pflag.Parse()

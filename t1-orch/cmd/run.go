@@ -97,7 +97,6 @@ var rootCmd = &cobra.Command{
 			logging)
 
 		// etcd worker start
-
 		etcdWorker, err := application.NewEtcdWorker(facade,
 			viperConfig.GetStringSlice(etcdEndpointsName),
 			viperConfig.GetDuration(etcdTimeoutName),
@@ -106,6 +105,7 @@ var rootCmd = &cobra.Command{
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to etcd fail: %v", err)
 		}
 		defer etcdWorker.EtcdClient.Close()
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to etcd")
 		go etcdWorker.EtcdConfigWatch()
 		etcdWorker.TmpEtcdPut()
 		// if err := facade.InitConfigAtStart("FIXME: agent id here", idForRootProcess); err != nil {
