@@ -35,7 +35,7 @@ route-rpm-snapshot:
 	cd t1-route && goreleaser --snapshot --skip-publish --rm-dist
 
 route-bin:
-	cd t1-route && CGO_ENABLED=0 go build -o lbost1ad
+	cd t1-route && CGO_ENABLED=0 go build -o lbost1ar
 
 route-clean:
 	rm -rf ./t1-route/dist
