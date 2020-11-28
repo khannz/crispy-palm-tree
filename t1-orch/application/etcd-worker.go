@@ -10,12 +10,14 @@ import (
 
 const etcdConfig = "etcd config"
 
+// EtcdWorker ...
 type EtcdWorker struct {
 	facade     *T1OrchFacade
 	EtcdClient *clientv3.Client
 	agentID    string
 }
 
+// NewEtcdWorker ...
 func NewEtcdWorker(facade *T1OrchFacade,
 	endpoints []string,
 	dialTimeout time.Duration,
@@ -34,6 +36,7 @@ func NewEtcdWorker(facade *T1OrchFacade,
 	}, nil
 }
 
+// EtcdConfigWatch ...
 func (etcdWorker *EtcdWorker) EtcdConfigWatch() {
 	getResp, err := etcdWorker.EtcdClient.Get(context.Background(), etcdWorker.agentID)
 	if err != nil {
@@ -44,12 +47,11 @@ func (etcdWorker *EtcdWorker) EtcdConfigWatch() {
 	}
 
 	if len(getResp.OpResponse().Get().Kvs) != 0 {
-		kvs := string(getResp.OpResponse().Get().Kvs[0].Value)
 		etcdWorker.facade.Logging.WithFields(logrus.Fields{
 			"entity":   etcdConfig,
 			"event id": etcdWorker.agentID,
-		}).Warnf("get init config from etcd: %v", kvs)
-		etcdWorker.facade.ApplyNewConfig()
+		}).Warnf("get init config from etcd: %v", string(getResp.OpResponse().Get().Kvs[0].Value))
+		etcdWorker.facade.ApplyNewConfig(getResp.OpResponse().Get().Kvs[0].Value, etcdWorker.agentID)
 	}
 
 	watchChan := etcdWorker.EtcdClient.Watch(context.Background(), etcdWorker.agentID)
@@ -59,8 +61,7 @@ func (etcdWorker *EtcdWorker) EtcdConfigWatch() {
 				"entity":   etcdConfig,
 				"event id": etcdWorker.agentID,
 			}).Infof("got new config from etcd: %v", event.Kv.Value)
-			etcdWorker.facade.ApplyNewConfig()
-			// fmt.Printf("Event received! %s executed on %q with value %q\n", event.Type, event.Kv.Key, event.Kv.Value)
+			etcdWorker.facade.ApplyNewConfig(event.Kv.Value, etcdWorker.agentID)
 		}
 	}
 }

@@ -1,36 +1,27 @@
 package application
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
-	"github.com/khannz/crispy-palm-tree/t1-orch/usecase"
 )
 
-// InitConfigAtStart ...
-func (t1OrchFacade *T1OrchFacade) InitConfigAtStart(agentID, id string) error {
-	currentServices, err := getCurrentConfigFromKVStorage(agentID)
+func (etcdWorker *EtcdWorker) TmpEtcdPut() {
+	mockServices := mockServices()
+
+	out, err := json.Marshal(mockServices)
 	if err != nil {
-		return fmt.Errorf("can't init config: get current config fail: %v", err)
+		panic(err)
 	}
 
-	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
-	for _, currentService := range currentServices {
-		enrichKVServiceDataToDomainServiceInfo(currentService) // add data logic data fields
-		if err := t1OrchFacade.MemoryWorker.AddService(currentService); err != nil {
-			return err
-		}
-		if err := newNewServiceEntity.NewService(currentService, id); err != nil {
-			return err
-		}
+	// etcd.Put(context.Background(), *etcdWatchKey, time.Now().String())
+	if _, err := etcdWorker.EtcdClient.Put(context.Background(), etcdWorker.agentID, string(out)); err != nil {
+		fmt.Println("put to etcd error: ", err)
 	}
-	return nil
-}
-
-func getCurrentConfigFromKVStorage(agengID string) ([]*domain.ServiceInfo, error) {
-
-	return mockServices(), nil
+	fmt.Println("populated " + etcdWorker.agentID + " with a value..")
 }
 
 func mockServices() []*domain.ServiceInfo {

@@ -38,7 +38,7 @@ const (
 
 	defaultEtcdTimeout = 5 * time.Second
 
-	defaultT1Id = ""
+	defaultT1Id = "test1"
 )
 
 var defaultEtcdEndpoints = []string{"http://127.0.0.1:2379"}

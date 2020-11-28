@@ -9,6 +9,7 @@ import (
 // ServiceInfo ...
 type ServiceInfo struct {
 	sync.RWMutex          `json:"-"`
+	ServiceId             string                        `json:"serviceId"`
 	Address               string                        `json:"address"`
 	IP                    string                        `json:"ip"`
 	Port                  string                        `json:"port"`

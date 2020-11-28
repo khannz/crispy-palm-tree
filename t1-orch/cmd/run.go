@@ -107,11 +107,11 @@ var rootCmd = &cobra.Command{
 		}
 		defer etcdWorker.EtcdClient.Close()
 		go etcdWorker.EtcdConfigWatch()
-
-		if err := facade.InitConfigAtStart("FIXME: agent id here", idForRootProcess); err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("initialize runtime settings fail: %v", err)
-		}
-		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("initialize runtime settings successful")
+		etcdWorker.TmpEtcdPut()
+		// if err := facade.InitConfigAtStart("FIXME: agent id here", idForRootProcess); err != nil {
+		// 	logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("initialize runtime settings fail: %v", err)
+		// }
+		// logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("initialize runtime settings successful")
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("orch is running")
 
