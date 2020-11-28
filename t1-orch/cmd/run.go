@@ -50,7 +50,7 @@ var rootCmd = &cobra.Command{
 			"etcd endpoints": viperConfig.GetStringSlice(etcdEndpointsName),
 			"etcd timeout":   viperConfig.GetDuration(etcdTimeoutName),
 
-			"t1 id": viperConfig.GetString(t1IdName),
+			"t1 id": viperConfig.GetString(t1OrchIDName),
 		}).Info("")
 
 		gracefulShutdown := &domain.GracefulShutdown{}
@@ -101,7 +101,7 @@ var rootCmd = &cobra.Command{
 		etcdWorker, err := application.NewEtcdWorker(facade,
 			viperConfig.GetStringSlice(etcdEndpointsName),
 			viperConfig.GetDuration(etcdTimeoutName),
-			viperConfig.GetString(t1IdName))
+			viperConfig.GetString(t1OrchIDName))
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to etcd fail: %v", err)
 		}

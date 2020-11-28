@@ -21,8 +21,8 @@ const (
 	defaultSystemLogTag     = ""
 	defaultLogEventLocation = true
 
-	defaultT1OrchID      = "" // required
-	defaultHlckInterface = "" // required
+	defaultT1OrchID      = "test1" // required
+	defaultHlckInterface = ""      // required
 
 	defaultIDType = "nanoid"
 
@@ -37,8 +37,6 @@ const (
 	defaultHCTimeout = 2 * time.Second
 
 	defaultEtcdTimeout = 5 * time.Second
-
-	defaultT1Id = "test1"
 )
 
 var defaultEtcdEndpoints = []string{"http://127.0.0.1:2379"}
@@ -71,8 +69,6 @@ const (
 
 	etcdEndpointsName = "etcd-endpoints"
 	etcdTimeoutName   = "etcd-timeout"
-
-	t1IdName = "t1-id"
 )
 
 // // For builds with ldflags
@@ -105,7 +101,7 @@ func init() {
 
 	pflag.String(t1OrchIDName, defaultT1OrchID, "t1 orch id")
 
-	pflag.String(defaultHlckInterface, hlckInterfaceName, "healthcheck interface")
+	pflag.String(hlckInterfaceName, defaultHlckInterface, "healthcheck interface")
 
 	pflag.String(idTypeName, defaultIDType, "ID type(nanoid|uuid4)")
 
@@ -121,8 +117,6 @@ func init() {
 
 	pflag.StringArray(etcdEndpointsName, defaultEtcdEndpoints, "etcd endpoints")
 	pflag.Duration(etcdTimeoutName, defaultEtcdTimeout, "etcd timeout")
-
-	pflag.String(t1IdName, defaultT1Id, "t1 id. Watch key id in etcd")
 
 	pflag.Parse()
 	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {
@@ -157,7 +151,7 @@ func init() {
 	// 	logging.Fatalf("t1 orch id must be set")
 	// }
 
-	if viperConfig.GetString(t1IdName) == "" {
+	if viperConfig.GetString(t1OrchIDName) == "" {
 		logging.Fatalf("t1 id must be set")
 	}
 
