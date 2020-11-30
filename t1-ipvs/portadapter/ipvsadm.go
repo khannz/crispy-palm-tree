@@ -7,7 +7,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/tehnerd/gnl2go"
-	"github.com/thevan4/go-billet/executor"
 )
 
 const (
@@ -25,10 +24,11 @@ type IPVSADMEntity struct {
 
 // NewIPVSADMEntity ...
 func NewIPVSADMEntity(logging *logrus.Logger) (*IPVSADMEntity, error) {
-	_, _, exitCode, err := executor.Execute("ipvsadm", "", nil)
-	if err != nil || exitCode != 0 {
-		return nil, fmt.Errorf("got error when execute ipvsadm command: %v, exit code %v", err, exitCode)
+	ipvs, err := ipvsInit()
+	if err != nil {
+		return nil, fmt.Errorf("got error when init ipvsadm: %v", err)
 	}
+	defer ipvs.Exit()
 	return &IPVSADMEntity{logging: logging}, nil
 }
 
