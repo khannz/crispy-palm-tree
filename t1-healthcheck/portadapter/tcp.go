@@ -37,7 +37,8 @@ func (tcpEntity *TcpEntity) IsTcpCheckOk(healthcheckAddress string,
 		}).Tracef("tcp connect to %v error: %v", healthcheckAddress, err)
 		return false
 	}
-	conn := net.Conn(tcpConn)
+	defer tcpConn.f.Close()
+	conn := net.Conn(tcpConn.netConn)
 	defer conn.Close()
 
 	if conn != nil {

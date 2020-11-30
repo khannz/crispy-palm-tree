@@ -15,6 +15,8 @@ import (
 
 const icmpHealthcheckName = "icmp healthcheck"
 
+// FIXME: SetsockoptTimeval ?
+
 const (
 	ICMP4_ECHO_REQUEST = 8
 	ICMP4_ECHO_REPLY   = 0
@@ -80,7 +82,7 @@ func exchangeICMPEcho(network string, ip net.IP, timeout time.Duration, echo []b
 	if err != nil {
 		return fmt.Errorf("faled ListenPacket: %v", err)
 	}
-	defer c.Close()
+	defer c.Close() // FIXME: check sockets not running out
 
 	_, err = c.WriteTo(echo, &net.UDPAddr{IP: ip})
 	if err != nil {

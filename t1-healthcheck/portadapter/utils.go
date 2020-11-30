@@ -15,7 +15,7 @@ type conn struct {
 	netConn net.Conn
 }
 
-func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) (nc net.Conn, err error) {
+func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) (*conn, error) {
 	ip := net.ParseIP(ipS)
 	if ip == nil {
 		return nil, fmt.Errorf("invalid IP address %q", ip)
@@ -70,7 +70,7 @@ func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) 
 			return nil, os.NewSyscallError("connect", err)
 		}
 	}
-	if err := setSocketTimeout(c.fd, 0); err != nil {
+	if err := setSocketTimeout(c.fd, timeout); err != nil { // FIXME: set socket timeout
 		return nil, err
 	}
 
@@ -90,7 +90,7 @@ func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) 
 		return nil, fmt.Errorf("%T is not a *net.TCPConn", c.netConn)
 	}
 
-	return c.netConn, nil
+	return c, nil
 }
 
 // setSocketMark sets packet marking on the given socket.
