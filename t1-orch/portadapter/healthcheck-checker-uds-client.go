@@ -51,7 +51,7 @@ func (healthcheckChecker *HealthcheckChecker) IsTcpCheckOk(healthcheckAddress st
 	pbTcpData := &transport.TcpData{
 		HealthcheckAddress: healthcheckAddress,
 		Timeout:            ptypes.DurationProto(timeout),
-		Fwmark:             int32(fwmark),
+		Fwmark:             int64(fwmark),
 		Id:                 id,
 	}
 	isTcpCheckOk, err := dummyClient.IsTcpCheckOk(sendCtx, pbTcpData)
@@ -89,7 +89,7 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpsCheckOk(healthcheckAddress 
 	pbHttpsData := &transport.HttpsData{
 		HealthcheckAddress: healthcheckAddress,
 		Timeout:            ptypes.DurationProto(timeout),
-		Fwmark:             int32(fwmark),
+		Fwmark:             int64(fwmark),
 		Id:                 id,
 	}
 
@@ -134,7 +134,7 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpAdvancedCheckOk(hcType strin
 		NearFieldsMode:     nearFieldsMode,
 		UserDefinedData:    userDefinedData,
 		Timeout:            ptypes.DurationProto(timeout),
-		Fwmark:             int32(fwmark),
+		Fwmark:             int64(fwmark),
 		Id:                 id,
 	}
 
@@ -173,7 +173,7 @@ func (healthcheckChecker *HealthcheckChecker) IsIcmpCheckOk(ipS string,
 	pbIcmp := &transport.IcmpData{
 		IpS:     ipS,
 		Timeout: ptypes.DurationProto(timeout),
-		Fwmark:  int32(fwmark),
+		Fwmark:  int64(fwmark),
 		Id:      id,
 	}
 	isIcmpCheckOk, err := dummyClient.IsIcmpCheckOk(sendCtx, pbIcmp)
