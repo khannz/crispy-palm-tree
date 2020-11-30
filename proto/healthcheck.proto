@@ -14,21 +14,21 @@ service HealthcheckWorker {
 message TcpData {
   string healthcheckAddress = 1;
   google.protobuf.Duration timeout = 2;
-  int32 fwmark = 3;
+  int64 fwmark = 3;
   string id = 4;
 }
 
 message IcmpData {
   string ipS = 1;
   google.protobuf.Duration timeout = 2;
-  int32 fwmark = 3;
+  int64 fwmark = 3;
   string id = 4;
 }
 
 message HttpsData {
   string healthcheckAddress = 1;
   google.protobuf.Duration timeout = 2;
-  int32 fwmark = 3;
+  int64 fwmark = 3;
   string id = 4;
 }
 
@@ -38,7 +38,7 @@ message HttpAdvancedData {
   bool nearFieldsMode = 3;
   map<string, string> userDefinedData = 4;
   google.protobuf.Duration timeout = 5;
-  int32 fwmark = 6;
+  int64 fwmark = 6;
   string id = 7;
 }
 
