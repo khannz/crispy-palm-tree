@@ -20,7 +20,7 @@ func enrichKVApplicationServersDataToDomainApplicationServers(domainServiceInfo 
 
 	for addr, das := range domainServiceInfo.ApplicationServers {
 		//
-		ip, _, _ := net.ParseCIDR(das.IP)
+		ip, _, _ := net.ParseCIDR(das.IP + "/32")
 		internalHC := domain.InternalHC{}
 		internalHC.HCType = domainServiceInfo.HCType
 		internalHC.HCAddress = domainServiceInfo.ApplicationServers[addr].HCAddress
