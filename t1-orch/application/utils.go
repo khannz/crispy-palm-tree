@@ -11,15 +11,16 @@ func enrichKVServiceDataToDomainServiceInfo(domainServiceInfo *domain.ServiceInf
 	hcAppSrvs := enrichKVApplicationServersDataToDomainApplicationServers(domainServiceInfo)
 	domainServiceInfo.IsUp = false
 	domainServiceInfo.ApplicationServers = hcAppSrvs
+	domainServiceInfo.FailedApplicationServers = domain.NewFailedApplicationServers()
 	domainServiceInfo.HCStop = make(chan struct{}, 1)
 	domainServiceInfo.HCStopped = make(chan struct{}, 1)
 }
 
+// FIXME: enrich only at healthchecks, move that logic
 func enrichKVApplicationServersDataToDomainApplicationServers(domainServiceInfo *domain.ServiceInfo) map[string]*domain.ApplicationServer {
 	hass := make(map[string]*domain.ApplicationServer, len(domainServiceInfo.ApplicationServers))
 
 	for addr, das := range domainServiceInfo.ApplicationServers {
-		//
 		ip, _, _ := net.ParseCIDR(das.IP + "/32")
 		internalHC := domain.InternalHC{}
 		internalHC.HCType = domainServiceInfo.HCType
@@ -32,7 +33,6 @@ func enrichKVApplicationServersDataToDomainApplicationServers(domainServiceInfo 
 		internalHC.UserDefinedData = domainServiceInfo.HCUserDefinedData
 		internalHC.RetriesForUP = make([]bool, domainServiceInfo.HCRetriesForUP)
 		internalHC.RetriesForDown = make([]bool, domainServiceInfo.HCRetriesForDown)
-		//
 		has := &domain.ApplicationServer{
 			Address:    addr,
 			IP:         das.IP,

@@ -8,26 +8,27 @@ import (
 
 // ServiceInfo ...
 type ServiceInfo struct {
-	sync.RWMutex          `json:"-"`
-	ServiceId             string                        `json:"serviceId"`
-	Address               string                        `json:"address"`
-	IP                    string                        `json:"ip"`
-	Port                  string                        `json:"port"`
-	IsUp                  bool                          `json:"isUp"`
-	BalanceType           string                        `json:"balanceType"`
-	RoutingType           string                        `json:"routingType"`
-	Protocol              string                        `json:"protocol"`
-	AlivedAppServersForUp int                           `json:"alivedAppServersForUp"`
-	HCType                string                        `json:"hcType"`
-	HCRepeat              time.Duration                 `json:"hcRepeat"`
-	HCTimeout             time.Duration                 `json:"hcTimeout"`
-	HCNearFieldsMode      bool                          `json:"hcNearFieldsMode,omitempty"`
-	HCUserDefinedData     map[string]string             `json:"hcUserDefinedData,omitempty"`
-	HCRetriesForUP        int                           `json:"hcRetriesForUP"`
-	HCRetriesForDown      int                           `json:"hcRetriesForDown"`
-	ApplicationServers    map[string]*ApplicationServer `json:"ApplicationServers"`
-	HCStop                chan struct{}                 `json:"-"`
-	HCStopped             chan struct{}                 `json:"-"`
+	sync.RWMutex             `json:"-"`
+	ServiceId                string                        `json:"serviceId"`
+	Address                  string                        `json:"address"`
+	IP                       string                        `json:"ip"`
+	Port                     string                        `json:"port"`
+	IsUp                     bool                          `json:"isUp"`
+	BalanceType              string                        `json:"balanceType"`
+	RoutingType              string                        `json:"routingType"`
+	Protocol                 string                        `json:"protocol"`
+	AlivedAppServersForUp    int                           `json:"alivedAppServersForUp"`
+	HCType                   string                        `json:"hcType"`
+	HCRepeat                 time.Duration                 `json:"hcRepeat"`
+	HCTimeout                time.Duration                 `json:"hcTimeout"`
+	HCNearFieldsMode         bool                          `json:"hcNearFieldsMode,omitempty"`
+	HCUserDefinedData        map[string]string             `json:"hcUserDefinedData,omitempty"`
+	HCRetriesForUP           int                           `json:"hcRetriesForUP"`
+	HCRetriesForDown         int                           `json:"hcRetriesForDown"`
+	ApplicationServers       map[string]*ApplicationServer `json:"ApplicationServers"`
+	FailedApplicationServers *FailedApplicationServers     `json:"-"`
+	HCStop                   chan struct{}                 `json:"-"`
+	HCStopped                chan struct{}                 `json:"-"`
 }
 
 // ApplicationServer ...
@@ -69,4 +70,23 @@ func (applicationServer *ApplicationServer) String() string {
 		applicationServer.InternalHC.NearFieldsMode,
 		applicationServer.InternalHC.UserDefinedData,
 	)
+}
+
+type FailedApplicationServers struct {
+	sync.Mutex
+	Wg    *sync.WaitGroup
+	Count int
+}
+
+func NewFailedApplicationServers() *FailedApplicationServers {
+	return &FailedApplicationServers{
+		Wg:    new(sync.WaitGroup),
+		Count: 0,
+	}
+}
+
+func (failedApplicationServers *FailedApplicationServers) SetFailedApplicationServersToZero() {
+	failedApplicationServers.Lock()
+	defer failedApplicationServers.Unlock()
+	failedApplicationServers.Count = 0
 }
