@@ -50,8 +50,13 @@ func (etcdWorker *EtcdWorker) EtcdConfigWatch() {
 		etcdWorker.facade.Logging.WithFields(logrus.Fields{
 			"entity":   etcdConfig,
 			"event id": etcdWorker.agentID,
-		}).Warnf("get init config from etcd: %v", string(getResp.OpResponse().Get().Kvs[0].Value))
-		etcdWorker.facade.ApplyNewConfig(getResp.OpResponse().Get().Kvs[0].Value, etcdWorker.agentID)
+		}).Infof("get init config from etcd: %v", string(getResp.OpResponse().Get().Kvs[0].Value))
+		if err := etcdWorker.facade.ApplyNewConfig(getResp.OpResponse().Get().Kvs[0].Value, etcdWorker.agentID); err != nil {
+			etcdWorker.facade.Logging.WithFields(logrus.Fields{
+				"entity":   etcdConfig,
+				"event id": etcdWorker.agentID,
+			}).Errorf("can't apply init config from etcd: %v", err)
+		}
 	}
 
 	watchChan := etcdWorker.EtcdClient.Watch(context.Background(), etcdWorker.agentID)
@@ -61,7 +66,12 @@ func (etcdWorker *EtcdWorker) EtcdConfigWatch() {
 				"entity":   etcdConfig,
 				"event id": etcdWorker.agentID,
 			}).Infof("got new config from etcd: %v", event.Kv.Value)
-			etcdWorker.facade.ApplyNewConfig(event.Kv.Value, etcdWorker.agentID)
+			if err := etcdWorker.facade.ApplyNewConfig(event.Kv.Value, etcdWorker.agentID); err != nil {
+				etcdWorker.facade.Logging.WithFields(logrus.Fields{
+					"entity":   etcdConfig,
+					"event id": etcdWorker.agentID,
+				}).Errorf("can't apply new watch config from etcd: %v", err)
+			}
 		}
 	}
 }
