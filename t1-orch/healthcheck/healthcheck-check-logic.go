@@ -9,8 +9,7 @@ import (
 
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain.ServiceInfo) {
 	// first run hc at create entity
-	idForCheckService := hc.idGenerator.NewID()
-	hc.CheckApplicationServersInService(hcService, idForCheckService) // lock hc, hcService, dummy
+	hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
 	hc.logging.Infof("hc service: %v", hcService)
 	ticker := time.NewTicker(hcService.HCRepeat)
 	for {
@@ -20,25 +19,26 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain
 			hcService.HCStopped <- struct{}{}
 			return
 		case <-ticker.C:
-			hc.CheckApplicationServersInService(hcService, idForCheckService) // lock hc, hcService, dummy
+			hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
 		}
 	}
 }
 
 // CheckApplicationServersInService ... TODO: rename that. not only checks here, also set service state
-func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.ServiceInfo, id string) {
+func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.ServiceInfo) {
 	defer hcService.FailedApplicationServers.SetFailedApplicationServersToZero()
+	newID := hc.idGenerator.NewID()
 	for k := range hcService.ApplicationServers {
 		hcService.FailedApplicationServers.Wg.Add(1)
 		go hc.checkApplicationServerInService(hcService,
 			k,
-			id) // lock hcService
+			newID) // lock hcService
 	}
 	hcService.FailedApplicationServers.Wg.Wait()
 	percentageUp := percentageOfUp(len(hcService.ApplicationServers), hcService.FailedApplicationServers.Count)
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
-		"event id": id,
+		"event id": newID,
 	}).Debugf("Heathcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
 		hcService.Address,
 		hcService.FailedApplicationServers.Count,
@@ -51,21 +51,21 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.S
 	if !hcService.IsUp && isServiceUp {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": id,
+			"event id": newID,
 		}).Warnf("service %v is up now", hcService.Address)
 		hcService.IsUp = true
-		hc.annonceLogic(hcService.IP, hcService.IsUp, id) // lock hc and dummy
+		hc.annonceLogic(hcService.IP, hcService.IsUp, newID) // lock hc and dummy
 	} else if hcService.IsUp && !isServiceUp {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
-			"event id": id,
+			"event id": newID,
 		}).Warnf("service %v is down now", hcService.Address)
 		hcService.IsUp = false
-		hc.annonceLogic(hcService.IP, hcService.IsUp, id) // lock hc and dummy
+		hc.annonceLogic(hcService.IP, hcService.IsUp, newID) // lock hc and dummy
 	} else {
 		hc.logging.Debugf("service state not changed: is up: %v", hcService.IsUp)
 	}
-	hc.updateInStorage(hcService, id)
+	hc.updateInStorage(hcService, newID)
 }
 
 func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.ServiceInfo,
@@ -77,8 +77,10 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 
 	hc.moveApplicationServerStateIndexes(hcService, applicationServerInfoKey, isCheckOk)                                                     // lock hcService
 	isApplicationServerUp, isApplicationServerChangeState := hc.isApplicationServerUpAndStateChange(hcService, applicationServerInfoKey, id) // lock hcService
-	// TODO: !!! check it works
-	hc.logging.Tracef("for server %v: isCheckOk: %v, isApplicationServerUp: %v, isApplicationServerChangeState: %v ",
+	hc.logging.WithFields(logrus.Fields{
+		"entity":   healthcheckName,
+		"event id": id,
+	}).Tracef("for server %v: isCheckOk: %v, isApplicationServerUp: %v, isApplicationServerChangeState: %v ",
 		hcService.ApplicationServers[applicationServerInfoKey].Address,
 		isCheckOk,
 		isApplicationServerUp,
