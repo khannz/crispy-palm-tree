@@ -97,6 +97,11 @@ func (consulWorker *ConsulWorker) formUpdateServicesInfo(balancingServices []str
 		if err != nil {
 			return nil, fmt.Errorf("can't get application servers paths: %v", err)
 		}
+
+		if len(applicationServersPaths) <= 1 {
+			return nil, fmt.Errorf("application servers not found for service %v", bsPath)
+		}
+
 		applicationServersTransportArray := make([]*ApplicationServerTransport, 0, len(applicationServersPaths)-1)
 		for _, applicationServersPath := range applicationServersPaths {
 			if applicationServersPath == bsPath+consulWorker.appServersPath {
