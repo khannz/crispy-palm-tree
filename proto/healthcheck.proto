@@ -33,7 +33,7 @@ message HttpsData {
 }
 
 message HttpAdvancedData {
-  string hcType = 1;
+  string healthcheckType = 1;
   string healthcheckAddress = 2;
   bool nearFieldsMode = 3;
   map<string, string> userDefinedData = 4;
