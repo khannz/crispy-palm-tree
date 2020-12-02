@@ -70,12 +70,15 @@ func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) 
 			return nil, os.NewSyscallError("connect", err)
 		}
 	}
-	if err := setSocketTimeout(c.fd, timeout); err != nil { // FIXME: set socket timeout
-		return nil, err
-	}
 
-	lsa, _ := syscall.Getsockname(c.fd)
-	rsa, _ = syscall.Getpeername(c.fd)
+	lsa, err := syscall.Getsockname(c.fd)
+	if err != nil {
+		return nil, fmt.Errorf("can't get sock name for %v", c.fd)
+	}
+	rsa, err = syscall.Getpeername(c.fd)
+	if err != nil {
+		return nil, fmt.Errorf("can't get peer name for %v", c.fd)
+	}
 	name := fmt.Sprintf("%s %s -> %s", network, sockaddrToString(lsa), sockaddrToString(rsa))
 	c.f = os.NewFile(uintptr(c.fd), name)
 
@@ -98,6 +101,9 @@ func setSocketMark(fd, mark int) error {
 	if err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_MARK, mark); err != nil {
 		return os.NewSyscallError("failed to set mark", err)
 	}
+	// TODO: force close sockets
+	// 	true = 1;
+	// setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int))
 	return nil
 }
 
