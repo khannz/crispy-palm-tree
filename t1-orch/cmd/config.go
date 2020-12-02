@@ -33,13 +33,14 @@ const (
 	defaultIpvsAddress  = "/var/run/lbost1ai.sock"
 	defaultIpvsTimeout  = 2 * time.Second
 
-	defaultHCAddress = "/var/run/lbost1ah.sock"
-	defaultHCTimeout = 2 * time.Second
+	defaultHealthcheckAddress = "/var/run/lbost1ah.sock"
+	defaultResponseTimer      = 2 * time.Second
 
-	defaultEtcdTimeout = 5 * time.Second
+	defaultConsulAddress         = "127.0.0.1:18700"
+	defaultConsulSubscribePath   = "lbos/t1-cluster-1/"
+	defaultConsulAppServersPath  = "app-servers/"
+	defaultConsulServiceManifest = "manifest"
 )
-
-var defaultEtcdEndpoints = []string{"http://127.0.0.1:2379"}
 
 // Config names
 const (
@@ -57,8 +58,8 @@ const (
 
 	idTypeName = "id-type"
 
-	hcAddressName = "hc-address"
-	hcTimeoutName = "hc-timeout"
+	healthcheckAddressName = "hc-address"
+	responseTimerName      = "hc-timeout"
 
 	dummyAddressName = "dummy-addr"
 	dummyTimeoutName = "dummy-timeout"
@@ -67,11 +68,13 @@ const (
 	ipvsAddressName  = "ipvs-addr"
 	ipvsTimeoutName  = "ipvs-timeout"
 
-	etcdEndpointsName = "etcd-endpoints"
-	etcdTimeoutName   = "etcd-timeout"
+	consulAddressName         = "consul-address"
+	consulSubscribePathName   = "consul-subscribe-path"
+	consulAppServersPathName  = "consul-app-servers-path"
+	consulServiceManifestName = "consul-manifest-name"
 )
 
-// // For builds with ldflags
+// For builds with ldflags
 var (
 	version   = "unknown"
 	buildTime = "unknown"
@@ -105,8 +108,8 @@ func init() {
 
 	pflag.String(idTypeName, defaultIDType, "ID type(nanoid|uuid4)")
 
-	pflag.String(hcAddressName, defaultHCAddress, "Healthcheck address. Example:'127.0.0.1:7000'")
-	pflag.Duration(hcTimeoutName, defaultHCTimeout, "Healthcheck request timeout")
+	pflag.String(healthcheckAddressName, defaultHealthcheckAddress, "Healthcheck address. Example:'127.0.0.1:7000'")
+	pflag.Duration(responseTimerName, defaultResponseTimer, "Healthcheck request timeout")
 
 	pflag.String(dummyAddressName, defaultDummyAddress, "dummy address. Example:'/var/run/lbost1ad.sock'")
 	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy request timeout")
@@ -115,8 +118,10 @@ func init() {
 	pflag.String(ipvsAddressName, defaultIpvsAddress, "ipvs address. Example:'/var/run/lbost1ai.sock'")
 	pflag.Duration(ipvsTimeoutName, defaultIpvsTimeout, "ipvs request timeout")
 
-	pflag.StringSlice(etcdEndpointsName, defaultEtcdEndpoints, "etcd endpoints") // FIXME: support for only one endpoint
-	pflag.Duration(etcdTimeoutName, defaultEtcdTimeout, "etcd timeout")
+	pflag.String(consulAddressName, defaultConsulAddress, "consul address")
+	pflag.String(consulSubscribePathName, defaultConsulSubscribePath, "consul subscribe path")
+	pflag.String(consulAppServersPathName, defaultConsulAppServersPath, "consul app servers path")
+	pflag.String(consulServiceManifestName, defaultConsulServiceManifest, "consul service manifest")
 
 	pflag.Parse()
 	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {

@@ -141,29 +141,29 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.Service
 
 // 	for k := range newServiceHealthcheck.ApplicationServers {
 // 		internalHC := domain.InternalHC{}
-// 		internalHC.HCType = newServiceHealthcheck.HCType
-// 		internalHC.HCAddress = newServiceHealthcheck.ApplicationServers[k].HCAddress
-// 		internalHC.HCTimeout = newServiceHealthcheck.HCTimeout
-// 		internalHC.LastIndexForUp = 0
-// 		internalHC.LastIndexForDown = 0
+// 		internalHC.HealthcheckType = newServiceHealthcheck.HealthcheckType
+// 		internalHC.HealthcheckAddress = newServiceHealthcheck.ApplicationServers[k].HealthcheckAddress
+// 		internalHC.ResponseTimer = newServiceHealthcheck.ResponseTimer
+// 		internalHC.LastIndexForAlive = 0
+// 		internalHC.LastIndexForDead = 0
 // 		internalHC.NearFieldsMode = newServiceHealthcheck.HCNearFieldsMode
 // 		internalHC.UserDefinedData = newServiceHealthcheck.HCUserDefinedData
 
-// 		retriesCounterForUp := make([]bool, newServiceHealthcheck.HCRetriesForUP)
-// 		retriesCounterForDown := make([]bool, newServiceHealthcheck.HCRetriesForDown)
+// 		retriesCounterForUp := make([]bool, newServiceHealthcheck.AliveThreshold)
+// 		retriesCounterForDown := make([]bool, newServiceHealthcheck.DeadThreshold)
 
 // 		if _, isFinded := oldApplicationServers[k]; isFinded {
-// 			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[k].InternalHC.RetriesForUP)
-// 			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[k].InternalHC.RetriesForDown)
-// 			internalHC.RetriesForUP = retriesCounterForUp
-// 			internalHC.RetriesForDown = retriesCounterForDown
+// 			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[k].InternalHC.AliveThreshold)
+// 			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[k].InternalHC.DeadThreshold)
+// 			internalHC.AliveThreshold = retriesCounterForUp
+// 			internalHC.DeadThreshold = retriesCounterForDown
 // 			newServiceHealthcheck.ApplicationServers[k].IsUp = oldApplicationServers[k].IsUp
 // 			newServiceHealthcheck.ApplicationServers[k].InternalHC = internalHC
 // 			hc.logging.Debugf("application server %v was found, is up state was moved", newServiceHealthcheck.ApplicationServers[k].Address)
 // 			continue
 // 		}
-// 		internalHC.RetriesForUP = retriesCounterForUp
-// 		internalHC.RetriesForDown = retriesCounterForDown
+// 		internalHC.AliveThreshold = retriesCounterForUp
+// 		internalHC.DeadThreshold = retriesCounterForDown
 // 		newServiceHealthcheck.ApplicationServers[k].IsUp = false
 // 		newServiceHealthcheck.ApplicationServers[k].InternalHC = internalHC
 // 		hc.logging.Debugf("application server %v NOT found, is up state set false", newServiceHealthcheck.ApplicationServers[k].Address)

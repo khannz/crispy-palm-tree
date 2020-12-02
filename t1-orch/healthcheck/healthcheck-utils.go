@@ -113,24 +113,24 @@ func getCopyOfApplicationServersFromService(serviceInfo *domain.ServiceInfo) map
 	applicationServers := make(map[string]*domain.ApplicationServer, len(serviceInfo.ApplicationServers))
 	for k, applicationServer := range serviceInfo.ApplicationServers {
 		tmpApplicationServerInternal := domain.InternalHC{
-			HCType:           applicationServer.InternalHC.HCType,
-			HCAddress:        applicationServer.InternalHC.HCAddress,
-			HCTimeout:        applicationServer.InternalHC.HCTimeout,
-			RetriesForUP:     applicationServer.InternalHC.RetriesForUP,
-			RetriesForDown:   applicationServer.InternalHC.RetriesForDown,
-			LastIndexForUp:   applicationServer.InternalHC.LastIndexForUp,
-			LastIndexForDown: applicationServer.InternalHC.LastIndexForDown,
-			NearFieldsMode:   applicationServer.InternalHC.NearFieldsMode,
-			UserDefinedData:  applicationServer.InternalHC.UserDefinedData,
+			HealthcheckType:    applicationServer.InternalHC.HealthcheckType,
+			HealthcheckAddress: applicationServer.InternalHC.HealthcheckAddress,
+			ResponseTimer:      applicationServer.InternalHC.ResponseTimer,
+			AliveThreshold:     applicationServer.InternalHC.AliveThreshold,
+			DeadThreshold:      applicationServer.InternalHC.DeadThreshold,
+			LastIndexForAlive:  applicationServer.InternalHC.LastIndexForAlive,
+			LastIndexForDead:   applicationServer.InternalHC.LastIndexForDead,
+			NearFieldsMode:     applicationServer.InternalHC.NearFieldsMode,
+			UserDefinedData:    applicationServer.InternalHC.UserDefinedData,
 		}
 
 		applicationServers[k] = &domain.ApplicationServer{
-			Address:    applicationServer.Address,
-			IP:         applicationServer.IP,
-			Port:       applicationServer.Port,
-			IsUp:       applicationServer.IsUp,
-			HCAddress:  applicationServer.HCAddress,
-			InternalHC: tmpApplicationServerInternal,
+			Address:            applicationServer.Address,
+			IP:                 applicationServer.IP,
+			Port:               applicationServer.Port,
+			IsUp:               applicationServer.IsUp,
+			HealthcheckAddress: applicationServer.HealthcheckAddress,
+			InternalHC:         tmpApplicationServerInternal,
 		}
 	}
 	return applicationServers
@@ -147,46 +147,46 @@ func (hc *HeathcheckEntity) updateInStorage(hcService *domain.ServiceInfo, id st
 func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(hcService *domain.ServiceInfo, applicationServerInfoKey string, isUpNow bool) {
 	hcService.Lock()
 	defer hcService.Unlock()
-	hc.logging.Tracef("moveApplicationServerStateIndexes: app srv index: %v,isUpNow: %v, total app srv at service: %v, RetriesForUP array len: %v, RetriesForDown array len: %v",
+	hc.logging.Tracef("moveApplicationServerStateIndexes: app srv index: %v,isUpNow: %v, total app srv at service: %v, AliveThreshold array len: %v, DeadThreshold array len: %v",
 		applicationServerInfoKey,
 		isUpNow,
 		len(hcService.ApplicationServers),
-		len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForUP),
-		len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForDown))
+		len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold),
+		len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold))
 
-	if len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForUP) < hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForUp+1 {
-		hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForUp = 0
+	if len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold) < hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive+1 {
+		hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive = 0
 	}
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForUP[hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForUp] = isUpNow
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForUp++
+	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold[hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive] = isUpNow
+	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive++
 
-	if len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForDown) < hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDown+1 {
-		hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDown = 0
+	if len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold) < hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead+1 {
+		hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead = 0
 	}
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForDown[hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDown] = isUpNow
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDown++
+	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold[hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead] = isUpNow
+	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead++
 }
 
 func copyServiceInfo(hcService *domain.ServiceInfo) *domain.ServiceInfo {
 	copyOfApplicationServersFromService := getCopyOfApplicationServersFromService(hcService)
 	return &domain.ServiceInfo{
-		Address:               hcService.Address,
-		IP:                    hcService.IP,
-		Port:                  hcService.Port,
-		IsUp:                  hcService.IsUp,
-		BalanceType:           hcService.BalanceType,
-		RoutingType:           hcService.RoutingType,
-		Protocol:              hcService.Protocol,
-		AlivedAppServersForUp: hcService.AlivedAppServersForUp,
-		HCType:                hcService.HCType,
-		HCRepeat:              hcService.HCRepeat,
-		HCTimeout:             hcService.HCTimeout,
-		HCNearFieldsMode:      hcService.HCNearFieldsMode,
-		HCUserDefinedData:     hcService.HCUserDefinedData,
-		HCRetriesForUP:        hcService.HCRetriesForUP,
-		HCRetriesForDown:      hcService.HCRetriesForDown,
-		ApplicationServers:    copyOfApplicationServersFromService,
-		HCStop:                make(chan struct{}, 1),
-		HCStopped:             make(chan struct{}, 1),
+		Address:            hcService.Address,
+		IP:                 hcService.IP,
+		Port:               hcService.Port,
+		IsUp:               hcService.IsUp,
+		BalanceType:        hcService.BalanceType,
+		RoutingType:        hcService.RoutingType,
+		Protocol:           hcService.Protocol,
+		Quorum:             hcService.Quorum,
+		HealthcheckType:    hcService.HealthcheckType,
+		HelloTimer:         hcService.HelloTimer,
+		ResponseTimer:      hcService.ResponseTimer,
+		HCNearFieldsMode:   hcService.HCNearFieldsMode,
+		HCUserDefinedData:  hcService.HCUserDefinedData,
+		AliveThreshold:     hcService.AliveThreshold,
+		DeadThreshold:      hcService.DeadThreshold,
+		ApplicationServers: copyOfApplicationServersFromService,
+		HCStop:             make(chan struct{}, 1),
+		HCStopped:          make(chan struct{}, 1),
 	}
 }

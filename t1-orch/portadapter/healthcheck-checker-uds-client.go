@@ -103,7 +103,7 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpsCheckOk(healthcheckAddress 
 	return isHttpsCheckOk.GetIsOk()
 }
 
-func (healthcheckChecker *HealthcheckChecker) IsHttpAdvancedCheckOk(hcType string,
+func (healthcheckChecker *HealthcheckChecker) IsHttpAdvancedCheckOk(healthcheckType string,
 	healthcheckAddress string,
 	nearFieldsMode bool,
 	userDefinedData map[string]string,
@@ -129,7 +129,7 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpAdvancedCheckOk(hcType strin
 	defer sendCancel()
 
 	pbHttpAdvandecData := &transport.HttpAdvancedData{
-		HcType:             hcType,
+		HealthcheckType:    healthcheckType,
 		HealthcheckAddress: healthcheckAddress,
 		NearFieldsMode:     nearFieldsMode,
 		UserDefinedData:    userDefinedData,

@@ -11,7 +11,7 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain
 	// first run hc at create entity
 	hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
 	hc.logging.Infof("hc service: %v", hcService)
-	ticker := time.NewTicker(hcService.HCRepeat)
+	ticker := time.NewTicker(hcService.HelloTimer)
 	for {
 		select {
 		case <-hcService.HCStop:
@@ -44,8 +44,8 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.S
 		hcService.FailedApplicationServers.Count,
 		len(hcService.ApplicationServers),
 		percentageUp,
-		hcService.AlivedAppServersForUp)
-	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageUp, hcService.AlivedAppServersForUp)
+		hcService.Quorum)
+	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageUp, hcService.Quorum)
 	hc.logging.Tracef("Old service state %v. New service state %v", hcService.IsUp, isServiceUp)
 
 	if !hcService.IsUp && isServiceUp {
@@ -130,36 +130,36 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) bool {
-	switch hcService.HCType {
+	switch hcService.HealthcheckType {
 	case "tcp":
 		return hc.healthcheckChecker.IsTcpCheckOk(hcService.Address,
-			hcService.HCTimeout,
+			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 
 	case "http": // FIXME: https checks here, no support for http
 		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.Address,
-			hcService.HCTimeout,
+			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "http-advanced":
-		return hc.healthcheckChecker.IsHttpAdvancedCheckOk(hcService.HCType,
+		return hc.healthcheckChecker.IsHttpAdvancedCheckOk(hcService.HealthcheckType,
 			hcService.Address,
 			hcService.HCNearFieldsMode,
 			hcService.HCUserDefinedData,
-			hcService.HCTimeout,
+			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "icmp":
 		return hc.healthcheckChecker.IsIcmpCheckOk(hcService.Address,
-			hcService.HCTimeout,
+			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	default:
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
 			"event id": id,
-		}).Errorf("Heathcheck error: unknown healtcheck type: %v", hcService.HCType)
+		}).Errorf("Heathcheck error: unknown healtcheck type: %v", hcService.HealthcheckType)
 		return false // must never will bfe. all data already validated
 	}
 }
@@ -170,12 +170,12 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domai
 	//return isUp and isChagedState booleans
 	hcService.Lock()
 	defer hcService.Unlock()
-	hc.logging.Tracef("real: %v, RetriesCounterForDown: %v", hcService.ApplicationServers[applicationServerInfoKey].Address, hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForUP)
-	hc.logging.Tracef("real: %v, RetriesCounterForUp: %v", hcService.ApplicationServers[applicationServerInfoKey].Address, hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForDown)
+	hc.logging.Tracef("real: %v, RetriesCounterForDown: %v", hcService.ApplicationServers[applicationServerInfoKey].Address, hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold)
+	hc.logging.Tracef("real: %v, RetriesCounterForUp: %v", hcService.ApplicationServers[applicationServerInfoKey].Address, hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold)
 
 	if hcService.ApplicationServers[applicationServerInfoKey].IsUp { // !!!
 		// check it not down
-		for _, isUp := range hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForDown {
+		for _, isUp := range hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold {
 			if isUp {
 				return true, false // do not change up state
 			}
@@ -188,7 +188,7 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domai
 		return false, true
 	}
 
-	for _, isUp := range hcService.ApplicationServers[applicationServerInfoKey].InternalHC.RetriesForUP {
+	for _, isUp := range hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold {
 		if !isUp {
 			// do not change down state
 			return false, false

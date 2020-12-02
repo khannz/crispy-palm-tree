@@ -244,7 +244,7 @@ type HttpAdvancedData struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	HcType             string             `protobuf:"bytes,1,opt,name=hcType,proto3" json:"hcType,omitempty"`
+	HealthcheckType    string             `protobuf:"bytes,1,opt,name=healthcheckType,proto3" json:"healthcheckType,omitempty"`
 	HealthcheckAddress string             `protobuf:"bytes,2,opt,name=healthcheckAddress,proto3" json:"healthcheckAddress,omitempty"`
 	NearFieldsMode     bool               `protobuf:"varint,3,opt,name=nearFieldsMode,proto3" json:"nearFieldsMode,omitempty"`
 	UserDefinedData    map[string]string  `protobuf:"bytes,4,rep,name=userDefinedData,proto3" json:"userDefinedData,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
@@ -285,9 +285,9 @@ func (*HttpAdvancedData) Descriptor() ([]byte, []int) {
 	return file_healthcheck_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *HttpAdvancedData) GetHcType() string {
+func (x *HttpAdvancedData) GetHealthcheckType() string {
 	if x != nil {
-		return x.HcType
+		return x.HealthcheckType
 	}
 	return ""
 }

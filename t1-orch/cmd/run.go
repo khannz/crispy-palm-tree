@@ -38,8 +38,8 @@ var rootCmd = &cobra.Command{
 			"healthcheck interface": viperConfig.GetString(hlckInterfaceName),
 
 			"id type":       viperConfig.GetString(idTypeName),
-			"hc address":    viperConfig.GetString(hcAddressName),
-			"hc timeout":    viperConfig.GetDuration(hcTimeoutName),
+			"hc address":    viperConfig.GetString(healthcheckAddressName),
+			"hc timeout":    viperConfig.GetDuration(responseTimerName),
 			"route address": viperConfig.GetString(routeAddressName),
 			"route timeout": viperConfig.GetDuration(routeTimeoutName),
 			"dummy address": viperConfig.GetString(dummyAddressName),
@@ -47,8 +47,10 @@ var rootCmd = &cobra.Command{
 			"ipvs address":  viperConfig.GetString(ipvsAddressName),
 			"ipvs timeout":  viperConfig.GetDuration(ipvsTimeoutName),
 
-			"etcd endpoints": viperConfig.GetStringSlice(etcdEndpointsName),
-			"etcd timeout":   viperConfig.GetDuration(etcdTimeoutName),
+			"consul address":          viperConfig.GetString(consulAddressName),
+			"consul subscribe path":   viperConfig.GetString(consulSubscribePathName),
+			"consul app servers path": viperConfig.GetString(consulAppServersPathName),
+			"consul service manifest": viperConfig.GetString(consulServiceManifestName),
 
 			"t1 id": viperConfig.GetString(t1OrchIDName),
 		}).Info("")
@@ -76,7 +78,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		//  healthchecks start
-		healthcheckChecker := portadapter.NewHealthcheckChecker(viperConfig.GetString(hcAddressName), viperConfig.GetDuration(hcTimeoutName), logging)
+		healthcheckChecker := portadapter.NewHealthcheckChecker(viperConfig.GetString(healthcheckAddressName), viperConfig.GetDuration(responseTimerName), logging)
 
 		hc := healthcheck.NewHeathcheckEntity(memoryWorker,
 			healthcheckChecker,
@@ -96,17 +98,19 @@ var rootCmd = &cobra.Command{
 			idGenerator,
 			logging)
 
-		// etcd worker start
-		etcdWorker, err := application.NewEtcdWorker(facade,
-			viperConfig.GetStringSlice(etcdEndpointsName),
-			viperConfig.GetDuration(etcdTimeoutName),
-			viperConfig.GetString(t1OrchIDName))
+		// consul worker start
+		consulWorker, err := application.NewConsulWorker(facade,
+			viperConfig.GetString(consulAddressName),
+			viperConfig.GetString(consulSubscribePathName),
+			viperConfig.GetString(consulAppServersPathName),
+			viperConfig.GetString(consulServiceManifestName),
+			logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to etcd fail: %v", err)
 		}
-		defer etcdWorker.EtcdClient.Close()
-		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to etcd")
-		go etcdWorker.EtcdConfigWatch()
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to consul")
+		go consulWorker.ConsulConfigWatch()
+		go consulWorker.JobWorker()
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("orch is running")
 
