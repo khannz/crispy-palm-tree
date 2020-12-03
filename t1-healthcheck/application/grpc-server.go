@@ -58,7 +58,7 @@ func (gs *GrpcServer) IsHttpAdvancedCheckOk(ctx context.Context, incomeHttpAdvan
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcJobName,
 		"event id": id,
-	}).Infof("completed job http adv check server %v", incomeHttpAdvancedCheck)
+	}).Infof("completed job http adv check server %v. isOk: %v", incomeHttpAdvancedCheck, isOk)
 
 	return outPbData, nil
 }
@@ -84,7 +84,7 @@ func (gs *GrpcServer) IsHttpsCheckOk(ctx context.Context, incomeHttpsCheck *tran
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcJobName,
 		"event id": id,
-	}).Infof("completed job https check server %v", incomeHttpsCheck)
+	}).Infof("completed job https check server %v. isOk: %v", incomeHttpsCheck, isOk)
 
 	return outPbData, nil
 }
@@ -110,7 +110,7 @@ func (gs *GrpcServer) IsIcmpCheckOk(ctx context.Context, incomeIcmpCheck *transp
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcJobName,
 		"event id": id,
-	}).Infof("completed job icmp check server %v", incomeIcmpCheck)
+	}).Infof("completed job icmp check server %v. isOk: %v", incomeIcmpCheck, isOk)
 
 	return outPbData, nil
 }
@@ -136,7 +136,7 @@ func (gs *GrpcServer) IsTcpCheckOk(ctx context.Context, incomeTcpCheck *transpor
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcJobName,
 		"event id": id,
-	}).Infof("completed job tcp check server %v", incomeTcpCheck)
+	}).Infof("completed job tcp check server %v. isOk: %v", incomeTcpCheck, isOk)
 
 	return outPbData, nil
 }
