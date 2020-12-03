@@ -53,9 +53,10 @@ func (memoryWorker *MemoryWorker) GetService(serviceAddress string) (*domain.Ser
 	return findedServiceInfo, nil
 }
 
-func (memoryWorker *MemoryWorker) GetServices() {
-	// not implemented
-	// memoryWorker.GetService("")
+func (memoryWorker *MemoryWorker) GetServices() map[string]*domain.ServiceInfo {
+	memoryWorker.Lock()
+	defer memoryWorker.Unlock()
+	return memoryWorker.Services
 }
 
 func (memoryWorker *MemoryWorker) RemoveService(serviceInfo *domain.ServiceInfo) error {

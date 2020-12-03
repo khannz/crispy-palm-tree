@@ -42,6 +42,7 @@ func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]
 	// form diff for runtime config
 	servicesForCreate, servicesForUpdate, servicesForRemove := t1OrchFacade.formDiffForNewConfig(updatedServicesInfo)
 
+	// TODO: usecases in gorutines
 	if len(servicesForCreate) != 0 {
 		if err := t1OrchFacade.CreateServices(servicesForCreate, id); err != nil {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
@@ -52,7 +53,7 @@ func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]
 	}
 
 	if len(servicesForUpdate) != 0 {
-		// TODO: magic
+		// TODO: implement
 	}
 
 	if len(servicesForRemove) != 0 {
@@ -66,6 +67,7 @@ func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]
 
 	return nil
 }
+
 func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*domain.ServiceInfo,
 	id string) error {
 	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
@@ -95,6 +97,25 @@ func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*d
 }
 
 func (t1OrchFacade *T1OrchFacade) formDiffForNewConfig(updatedServicesInfo map[string]*domain.ServiceInfo) (map[string]*domain.ServiceInfo, map[string]*domain.ServiceInfo, map[string]*domain.ServiceInfo) {
+	servicesForCreate := make(map[string]*domain.ServiceInfo)
+	servicesForUpdate := make(map[string]*domain.ServiceInfo)
+	servicesForRemove := make(map[string]*domain.ServiceInfo)
 
-	return nil, nil, nil
+	currentServices := t1OrchFacade.MemoryWorker.GetServices()
+
+	for updatedServiceInfoAddress, updatedServiceInfo := range updatedServicesInfo {
+		if _, isServiceIn := currentServices[updatedServiceInfoAddress]; isServiceIn {
+			servicesForUpdate[updatedServiceInfoAddress] = updatedServiceInfo
+		} else {
+			servicesForCreate[updatedServiceInfoAddress] = updatedServiceInfo
+		}
+	}
+
+	for memServiceAddress, memServiceInfo := range currentServices {
+		if _, isServiceIn := updatedServicesInfo[memServiceAddress]; !isServiceIn {
+			servicesForRemove[memServiceAddress] = memServiceInfo
+		}
+	}
+
+	return servicesForCreate, servicesForUpdate, servicesForRemove
 }
