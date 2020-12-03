@@ -41,6 +41,16 @@ func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]
 	id := t1OrchFacade.IDgenerator.NewID()
 	// form diff for runtime config
 	servicesForCreate, servicesForUpdate, servicesForRemove := t1OrchFacade.formDiffForNewConfig(updatedServicesInfo)
+	t1OrchFacade.Logging.WithFields(logrus.Fields{
+		"entity":   consulWorkerName,
+		"event id": id,
+	}).Infof("services for create(%v): %v\nservices for update(%v): %v\nservices for remove(%v): %v",
+		servicesForCreate,
+		len(servicesForCreate),
+		servicesForUpdate,
+		len(servicesForUpdate),
+		servicesForRemove,
+		len(servicesForRemove))
 
 	// TODO: usecases in gorutines
 	if len(servicesForCreate) != 0 {
@@ -53,7 +63,12 @@ func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]
 	}
 
 	if len(servicesForUpdate) != 0 {
-		// TODO: implement
+		if err := t1OrchFacade.UpdateServices(servicesForUpdate, id); err != nil {
+			t1OrchFacade.Logging.WithFields(logrus.Fields{
+				"entity":   consulWorkerName,
+				"event id": id,
+			}).Errorf("update services error: %v", err)
+		}
 	}
 
 	if len(servicesForRemove) != 0 {
@@ -90,6 +105,17 @@ func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*d
 			return err
 		}
 		if err := newRemoveServiceEntity.RemoveService(serviceForCreate, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t1OrchFacade *T1OrchFacade) UpdateServices(servicesForUpdate map[string]*domain.ServiceInfo,
+	id string) error {
+	newUpdateServiceEntity := usecase.NewUpdateServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
+	for _, serviceForUpdate := range servicesForUpdate {
+		if err := newUpdateServiceEntity.UpdateService(serviceForUpdate, id); err != nil {
 			return err
 		}
 	}

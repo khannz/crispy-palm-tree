@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const removeServiceName = "new service"
+const removeServiceName = "remove service"
 
 // RemoveServiceEntity ...
 type RemoveServiceEntity struct {
@@ -51,7 +51,7 @@ func (removeService *RemoveServiceEntity) RemoveService(serviceInfo *domain.Serv
 		"entity":   removeServiceName,
 		"event id": removeServiceID,
 	}).Infof("start usecase for remove service: %v", serviceInfo)
-
+	// FIXME: check route remove from mem
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrv := range serviceInfo.ApplicationServers { // TODO: "nat not ready, only tcp at now"
 			tunnelStillNeeded := removeService.memoryWorker.NeedTunnelForApplicationServer(appSrv.IP)

@@ -51,7 +51,7 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 		"entity":   newServiceName,
 		"event id": newServiceID,
 	}).Infof("start usecase for new service: %v", serviceInfo)
-
+	// FIXME: check route remove add to mem
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrv := range serviceInfo.ApplicationServers { // TODO: "nat not ready, only tcp at now"
 			if err := newService.routeMaker.AddRoute(serviceInfo.IP, appSrv.IP, newServiceID); err != nil {

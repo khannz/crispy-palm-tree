@@ -31,43 +31,43 @@ func percentageOfDownBelowMPercentOfAlivedForUp(pofUp float32, maxDownForUp int)
 	return float32(maxDownForUp) <= pofUp
 }
 
-// func fillNewBooleanArray(newArray []bool, oldArray []bool) {
-// 	if len(newArray) > len(oldArray) {
-// 		reverceArrays(newArray, oldArray)
-// 		for i := len(newArray) - 1; i >= 0; i-- {
-// 			if i >= len(oldArray) {
-// 				newArray[i] = false
-// 			} else {
-// 				newArray[i] = oldArray[i]
-// 			}
-// 		}
-// 		reverceArrays(newArray, oldArray)
-// 		return
-// 	} else if len(newArray) == len(oldArray) {
-// 		reverceArrays(newArray, oldArray)
-// 		for i := range newArray {
-// 			newArray[i] = oldArray[i]
-// 		}
-// 		reverceArrays(newArray, oldArray)
-// 		return
-// 	}
+func fillNewBooleanArray(newArray []bool, oldArray []bool) {
+	if len(newArray) > len(oldArray) {
+		reverceArrays(newArray, oldArray)
+		for i := len(newArray) - 1; i >= 0; i-- {
+			if i >= len(oldArray) {
+				newArray[i] = false
+			} else {
+				newArray[i] = oldArray[i]
+			}
+		}
+		reverceArrays(newArray, oldArray)
+		return
+	} else if len(newArray) == len(oldArray) {
+		reverceArrays(newArray, oldArray)
+		for i := range newArray {
+			newArray[i] = oldArray[i]
+		}
+		reverceArrays(newArray, oldArray)
+		return
+	}
 
-// 	reverceArrays(newArray, oldArray)
-// 	tmpOldArraySlice := oldArray[:len(newArray)]
-// 	copy(newArray, tmpOldArraySlice)
-// 	reverceArrays(newArray, oldArray)
-// }
+	reverceArrays(newArray, oldArray)
+	tmpOldArraySlice := oldArray[:len(newArray)]
+	copy(newArray, tmpOldArraySlice)
+	reverceArrays(newArray, oldArray)
+}
 
-// func reverceArrays(arOne, arTwo []bool) {
-// 	reverceArray(arOne)
-// 	reverceArray(arTwo)
-// }
+func reverceArrays(arOne, arTwo []bool) {
+	reverceArray(arOne)
+	reverceArray(arTwo)
+}
 
-// func reverceArray(ar []bool) {
-// 	for i, j := 0, len(ar)-1; i < j; i, j = i+1, j-1 {
-// 		ar[i], ar[j] = ar[j], ar[i]
-// 	}
-// }
+func reverceArray(ar []bool) {
+	for i, j := 0, len(ar)-1; i < j; i, j = i+1, j-1 {
+		ar[i], ar[j] = ar[j], ar[i]
+	}
+}
 
 func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) {
 	if _, inMap := hc.announcedServices[serviceIP]; inMap {

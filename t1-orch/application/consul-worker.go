@@ -20,7 +20,7 @@ type ConsulWorker struct {
 	subscribePath   string
 	appServersPath  string
 	serviceManifest string
-	jobChan         chan map[string]*domain.ServiceInfo // TODO: map[string]*domain.ServiceInfo
+	jobChan         chan map[string]*domain.ServiceInfo
 	logging         *logrus.Logger
 }
 
@@ -117,9 +117,8 @@ func (consulWorker *ConsulWorker) formUpdateServicesInfo(balancingServices []str
 			}
 			applicationServersTransportArray = append(applicationServersTransportArray, applicationServerTransport)
 		}
-
 		serviceManifestPair, _, err := consulWorker.kvClient.Get(bsPath+consulWorker.serviceManifest, nil)
-		if err != nil {
+		if err != nil || serviceManifestPair == nil {
 			return nil, fmt.Errorf("can't get service manifest pair: %v", err)
 		}
 		balancingServiceTransport := &ServiceTransport{}

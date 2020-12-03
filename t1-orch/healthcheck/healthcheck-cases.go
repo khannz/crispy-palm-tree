@@ -99,22 +99,16 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.Service
 		hc.runningHeathchecks[updateIndex].HCStop <- struct{}{}
 		<-hc.runningHeathchecks[updateIndex].HCStopped
 		hc.logging.Tracef("healthchecks stopped for update service job %v", hcService.Address)
-		// hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[updateIndex].IsUp) // lock hcService
-		// do not include new app servers here!
+		hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[updateIndex].IsUp) // lock hcService
+		// do not include new app servers here! why??
 		_, _, applicationServersForRemove := formDiffApplicationServers(hcService.ApplicationServers, currentApplicationServers)
 		if len(applicationServersForRemove) != 0 {
 			for _, k := range applicationServersForRemove {
-				// if hc.isApplicationServerInIPSVService(hcService.IP,
-				// 	hcService.Port,
-				// 	currentApplicationServers[k].IP,
-				// 	currentApplicationServers[k].Port,
-				// 	id) {
 				if err := hc.excludeApplicationServerFromIPVS(hcService, currentApplicationServers[k], id); err != nil {
 					hc.logging.WithFields(logrus.Fields{
 						"entity":   healthcheckName,
 						"event id": id,
 					}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
-					// }
 				}
 			}
 		}
@@ -131,44 +125,40 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.Service
 		hcService.Address)
 }
 
-// FIXME: fwmark set fail
-// func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceInfo, oldApplicationServers map[string]*domain.ApplicationServer, oldIsUpState bool) {
-// 	newServiceHealthcheck.Lock()
-// 	defer newServiceHealthcheck.Unlock()
-// 	newServiceHealthcheck.IsUp = oldIsUpState
-// 	newServiceHealthcheck.HCStop = make(chan struct{}, 1)
-// 	newServiceHealthcheck.HCStopped = make(chan struct{}, 1)
+func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceInfo, oldApplicationServers map[string]*domain.ApplicationServer, oldIsUpState bool) {
+	newServiceHealthcheck.Lock()
+	defer newServiceHealthcheck.Unlock()
+	newServiceHealthcheck.IsUp = oldIsUpState
+	newServiceHealthcheck.HCStop = make(chan struct{}, 1)
+	newServiceHealthcheck.HCStopped = make(chan struct{}, 1)
 
-// 	for k := range newServiceHealthcheck.ApplicationServers {
-// 		internalHC := domain.InternalHC{}
-// 		internalHC.HealthcheckType = newServiceHealthcheck.HealthcheckType
-// 		internalHC.HealthcheckAddress = newServiceHealthcheck.ApplicationServers[k].HealthcheckAddress
-// 		internalHC.ResponseTimer = newServiceHealthcheck.ResponseTimer
-// 		internalHC.LastIndexForAlive = 0
-// 		internalHC.LastIndexForDead = 0
-// 		internalHC.NearFieldsMode = newServiceHealthcheck.HCNearFieldsMode
-// 		internalHC.UserDefinedData = newServiceHealthcheck.HCUserDefinedData
+	for k := range newServiceHealthcheck.ApplicationServers {
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.HealthcheckType = newServiceHealthcheck.HealthcheckType
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.HealthcheckAddress = newServiceHealthcheck.ApplicationServers[k].HealthcheckAddress
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.ResponseTimer = newServiceHealthcheck.ResponseTimer
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.LastIndexForAlive = 0
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.LastIndexForDead = 0
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.NearFieldsMode = newServiceHealthcheck.HCNearFieldsMode
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.UserDefinedData = newServiceHealthcheck.HCUserDefinedData
 
-// 		retriesCounterForUp := make([]bool, newServiceHealthcheck.AliveThreshold)
-// 		retriesCounterForDown := make([]bool, newServiceHealthcheck.DeadThreshold)
+		retriesCounterForUp := make([]bool, newServiceHealthcheck.AliveThreshold)
+		retriesCounterForDown := make([]bool, newServiceHealthcheck.DeadThreshold)
 
-// 		if _, isFinded := oldApplicationServers[k]; isFinded {
-// 			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[k].InternalHC.AliveThreshold)
-// 			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[k].InternalHC.DeadThreshold)
-// 			internalHC.AliveThreshold = retriesCounterForUp
-// 			internalHC.DeadThreshold = retriesCounterForDown
-// 			newServiceHealthcheck.ApplicationServers[k].IsUp = oldApplicationServers[k].IsUp
-// 			newServiceHealthcheck.ApplicationServers[k].InternalHC = internalHC
-// 			hc.logging.Debugf("application server %v was found, is up state was moved", newServiceHealthcheck.ApplicationServers[k].Address)
-// 			continue
-// 		}
-// 		internalHC.AliveThreshold = retriesCounterForUp
-// 		internalHC.DeadThreshold = retriesCounterForDown
-// 		newServiceHealthcheck.ApplicationServers[k].IsUp = false
-// 		newServiceHealthcheck.ApplicationServers[k].InternalHC = internalHC
-// 		hc.logging.Debugf("application server %v NOT found, is up state set false", newServiceHealthcheck.ApplicationServers[k].Address)
-// 	}
-// }
+		if _, isFinded := oldApplicationServers[k]; isFinded {
+			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[k].InternalHC.AliveThreshold)
+			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[k].InternalHC.DeadThreshold)
+			newServiceHealthcheck.ApplicationServers[k].InternalHC.AliveThreshold = retriesCounterForUp
+			newServiceHealthcheck.ApplicationServers[k].InternalHC.DeadThreshold = retriesCounterForDown
+			newServiceHealthcheck.ApplicationServers[k].IsUp = oldApplicationServers[k].IsUp
+			hc.logging.Debugf("application server %v was found, is up state was moved", newServiceHealthcheck.ApplicationServers[k].Address)
+			continue
+		}
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.AliveThreshold = retriesCounterForUp
+		newServiceHealthcheck.ApplicationServers[k].InternalHC.DeadThreshold = retriesCounterForDown
+		newServiceHealthcheck.ApplicationServers[k].IsUp = false
+		hc.logging.Debugf("application server %v NOT found, is up state set false", newServiceHealthcheck.ApplicationServers[k].Address)
+	}
+}
 
 // annonceLogic - used when service change state
 
