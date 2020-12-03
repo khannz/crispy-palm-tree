@@ -14,6 +14,7 @@ type T1OrchFacade struct {
 	HeathcheckEntity *healthcheck.HeathcheckEntity
 	GracefulShutdown *domain.GracefulShutdown
 	IDgenerator      domain.IDgenerator
+	RuntimeServices  map[string]*domain.ServiceInfo
 	Logging          *logrus.Logger
 }
 
@@ -31,21 +32,69 @@ func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
 		HeathcheckEntity: hc,
 		GracefulShutdown: gracefulShutdown,
 		IDgenerator:      idGenerator,
+		RuntimeServices:  make(map[string]*domain.ServiceInfo),
 		Logging:          logging,
 	}
 }
 
-func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo []*domain.ServiceInfo) error {
+func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]*domain.ServiceInfo) error {
 	id := t1OrchFacade.IDgenerator.NewID()
+	// form diff for runtime config
+	servicesForCreate, servicesForUpdate, servicesForRemove := t1OrchFacade.formDiffForNewConfig(updatedServicesInfo)
 
+	if len(servicesForCreate) != 0 {
+		if err := t1OrchFacade.CreateServices(servicesForCreate, id); err != nil {
+			t1OrchFacade.Logging.WithFields(logrus.Fields{
+				"entity":   consulWorkerName,
+				"event id": id,
+			}).Errorf("create services error: %v", err)
+		}
+	}
+
+	if len(servicesForUpdate) != 0 {
+		// TODO: magic
+	}
+
+	if len(servicesForRemove) != 0 {
+		if err := t1OrchFacade.RemoveServices(servicesForRemove, id); err != nil {
+			t1OrchFacade.Logging.WithFields(logrus.Fields{
+				"entity":   consulWorkerName,
+				"event id": id,
+			}).Errorf("remove services error: %v", err)
+		}
+	}
+
+	return nil
+}
+func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*domain.ServiceInfo,
+	id string) error {
 	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
-	for _, currentService := range updatedServicesInfo {
-		if err := t1OrchFacade.MemoryWorker.AddService(currentService); err != nil {
+	for _, serviceForCreate := range servicesForCreate {
+		if err := t1OrchFacade.MemoryWorker.AddService(serviceForCreate); err != nil {
 			return err
 		}
-		if err := newNewServiceEntity.NewService(currentService, id); err != nil {
+		if err := newNewServiceEntity.NewService(serviceForCreate, id); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*domain.ServiceInfo,
+	id string) error {
+	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
+	for _, serviceForCreate := range servicesForRemove {
+		if err := t1OrchFacade.MemoryWorker.RemoveService(serviceForCreate); err != nil {
+			return err
+		}
+		if err := newRemoveServiceEntity.RemoveService(serviceForCreate, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t1OrchFacade *T1OrchFacade) formDiffForNewConfig(updatedServicesInfo map[string]*domain.ServiceInfo) (map[string]*domain.ServiceInfo, map[string]*domain.ServiceInfo, map[string]*domain.ServiceInfo) {
+
+	return nil, nil, nil
 }

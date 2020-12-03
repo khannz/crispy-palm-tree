@@ -73,5 +73,3 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 	}).Info("updated service at healtchecks")
 	return nil
 }
-
-// FIXME: check seq automate set

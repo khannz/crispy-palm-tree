@@ -20,7 +20,7 @@ type ConsulWorker struct {
 	subscribePath   string
 	appServersPath  string
 	serviceManifest string
-	jobChan         chan []*domain.ServiceInfo
+	jobChan         chan map[string]*domain.ServiceInfo // TODO: map[string]*domain.ServiceInfo
 	logging         *logrus.Logger
 }
 
@@ -44,7 +44,7 @@ func NewConsulWorker(facade *T1OrchFacade,
 		subscribePath:   consulSubscribePath,
 		appServersPath:  consulAppServersPath,
 		serviceManifest: serviceManifest,
-		jobChan:         make(chan []*domain.ServiceInfo),
+		jobChan:         make(chan map[string]*domain.ServiceInfo),
 		logging:         logging,
 	}, nil
 }
@@ -86,7 +86,7 @@ func (consulWorker *ConsulWorker) ConsulConfigWatch() {
 	}
 }
 
-func (consulWorker *ConsulWorker) formUpdateServicesInfo(balancingServices []string) ([]*domain.ServiceInfo, error) {
+func (consulWorker *ConsulWorker) formUpdateServicesInfo(balancingServices []string) (map[string]*domain.ServiceInfo, error) {
 	balancingServicesTransportArray := make([]*ServiceTransport, 0, len(balancingServices)-1)
 	for _, bsPath := range balancingServices {
 		if bsPath == consulWorker.subscribePath {

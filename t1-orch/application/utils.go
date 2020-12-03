@@ -9,8 +9,8 @@ import (
 	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
 )
 
-func convertBalancingServicesTransportArrayToDomainModel(servicesTransport []*ServiceTransport) ([]*domain.ServiceInfo, error) {
-	servicesInfo := make([]*domain.ServiceInfo, 0, len(servicesTransport))
+func convertBalancingServicesTransportArrayToDomainModel(servicesTransport []*ServiceTransport) (map[string]*domain.ServiceInfo, error) {
+	servicesInfo := make(map[string]*domain.ServiceInfo, len(servicesTransport))
 	for _, serviceTransport := range servicesTransport {
 
 		quorum, err := strconv.Atoi(serviceTransport.Quorum)
@@ -67,7 +67,7 @@ func convertBalancingServicesTransportArrayToDomainModel(servicesTransport []*Se
 			HCStop:                   make(chan struct{}, 1),
 			HCStopped:                make(chan struct{}, 1),
 		}
-		servicesInfo = append(servicesInfo, serviceInfo)
+		servicesInfo[serviceInfo.Address] = serviceInfo
 	}
 
 	return servicesInfo, nil
