@@ -11,7 +11,7 @@ import (
 // HCFacade struct
 type HCFacade struct {
 	HttpAdvancedWorker domain.HTTPAdvancedWorker
-	HttpsWorker        domain.HTTPSWorker
+	HTTPAndHTTPSWorker domain.HTTPAndHTTPSWorker
 	IcmpWorker         domain.ICMPWorker
 	TcpWorker          domain.TCPWorker
 	IDgenerator        domain.IDgenerator
@@ -20,7 +20,7 @@ type HCFacade struct {
 
 // NewHCFacade ...
 func NewHCFacade(httpAdvancedWorker domain.HTTPAdvancedWorker,
-	httpsWorker domain.HTTPSWorker,
+	httpAndHTTPSWorker domain.HTTPAndHTTPSWorker,
 	icmpWorker domain.ICMPWorker,
 	tcpWorker domain.TCPWorker,
 	idGenerator domain.IDgenerator,
@@ -28,7 +28,7 @@ func NewHCFacade(httpAdvancedWorker domain.HTTPAdvancedWorker,
 
 	return &HCFacade{
 		HttpAdvancedWorker: httpAdvancedWorker,
-		HttpsWorker:        httpsWorker,
+		HTTPAndHTTPSWorker: httpAndHTTPSWorker,
 		IcmpWorker:         icmpWorker,
 		TcpWorker:          tcpWorker,
 		IDgenerator:        idGenerator,
@@ -53,14 +53,16 @@ func (hcFacade *HCFacade) IsHttpAdvancedCheckOk(healthcheckType string,
 		id)
 }
 
-func (hcFacade *HCFacade) IsHttpsCheckOk(healthcheckAddress string,
+func (hcFacade *HCFacade) IsHttpOrHttpsCheckOk(healthcheckAddress string,
 	timeout time.Duration,
 	fwmark int,
+	isHttpCheck bool,
 	id string) bool {
-	newhttpsCheckEntity := usecase.NewhttpsCheckEntity(hcFacade.HttpsWorker, hcFacade.Logging)
-	return newhttpsCheckEntity.IsHttpsCheckOk(healthcheckAddress,
+	newHttpOrHttpsCheckEntity := usecase.NewHttpOrHttpsCheckEntity(hcFacade.HTTPAndHTTPSWorker, hcFacade.Logging)
+	return newHttpOrHttpsCheckEntity.IsHttpOrHttpsCheckOk(healthcheckAddress,
 		timeout,
 		fwmark,
+		isHttpCheck,
 		id)
 }
 

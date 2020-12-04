@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 
 		// create hc entites
 		httpAdvE := portadapter.NewHttpAdvancedEntity(logging)
-		httpsE := portadapter.NewHttpsEntity(logging)
+		httpsE := portadapter.NewHttpsAndHttpsEntity(logging)
 		icmpE := portadapter.NewIcmpEntity(logging)
 		tcpE := portadapter.NewTcpEntity(logging)
 		// ecnd create

@@ -13,17 +13,18 @@ import (
 
 const httpsHealthcheckName = "https healthcheck"
 
-type HttpsEntity struct {
+type HttpsAndHttpsEntity struct {
 	logging *logrus.Logger
 }
 
-func NewHttpsEntity(logging *logrus.Logger) *HttpsEntity {
-	return &HttpsEntity{logging: logging}
+func NewHttpsAndHttpsEntity(logging *logrus.Logger) *HttpsAndHttpsEntity {
+	return &HttpsAndHttpsEntity{logging: logging}
 }
 
-func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
+func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheckAddress string,
 	timeout time.Duration,
 	fwmark int,
+	isHttpCheck bool,
 	id string) bool {
 	method := "GET"
 	request := "/"
@@ -32,18 +33,23 @@ func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
 	if err != nil {
 		return false
 	}
-	u.Scheme = "https"
+
+	if isHttpCheck {
+		u.Scheme = "http"
+	} else {
+		u.Scheme = "https"
+	}
 
 	ip, port, err := net.SplitHostPort(healthcheckAddress)
 	if err != nil {
-		httpsEntity.logging.WithFields(logrus.Fields{
+		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpsHealthcheckName,
 			"event id": id,
 		}).Errorf("https can't SplitHostPort from %v: %v", healthcheckAddress, err)
 		return false
 	}
 
-	// FIXME: need to fix hc models
+	// FIXME: need to fix hc models ??
 	u.Host = ip
 	// if u.Host == "" {
 	// 	u.Host = ipS + ":" + port
@@ -56,7 +62,7 @@ func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
 	// Both DSR and TUN mode requires socket marks
 	tcpConn, err := dialTCP(network, ip, port, timeout, fwmark)
 	if err != nil {
-		httpsEntity.logging.WithFields(logrus.Fields{
+		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpsHealthcheckName,
 			"event id": id,
 		}).Debugf("can't connect from %v: %v", healthcheckAddress, err)
@@ -86,7 +92,7 @@ func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
 	}
 	req, err := http.NewRequest(method, request, nil)
 	if err != nil {
-		httpsEntity.logging.WithFields(logrus.Fields{
+		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpsHealthcheckName,
 			"event id": id,
 		}).Errorf("https can't create request for %v: %v", healthcheckAddress, err)
@@ -99,7 +105,7 @@ func (httpsEntity *HttpsEntity) IsHttpsCheckOk(healthcheckAddress string,
 	// response and an error being returned.
 	resp, err := client.Do(req)
 	if err != nil {
-		httpsEntity.logging.WithFields(logrus.Fields{
+		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpsHealthcheckName,
 			"event id": id,
 		}).Errorf("https response error: %v", err)

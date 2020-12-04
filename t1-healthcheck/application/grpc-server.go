@@ -63,18 +63,48 @@ func (gs *GrpcServer) IsHttpAdvancedCheckOk(ctx context.Context, incomeHttpAdvan
 	return outPbData, nil
 }
 
+func (gs *GrpcServer) IsHttpCheckOk(ctx context.Context, incomeHttpCheck *transport.HttpData) (*transport.IsOk, error) {
+	id := incomeHttpCheck.Id
+	isHttpCheck := true
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcJobName,
+		"event id": id,
+	}).Debugf("got job http check server %v", incomeHttpCheck)
+
+	timeout, _ := ptypes.Duration(incomeHttpCheck.Timeout)
+	isOk := gs.facade.IsHttpOrHttpsCheckOk(
+		incomeHttpCheck.HealthcheckAddress,
+		timeout,
+		int(incomeHttpCheck.Fwmark),
+		isHttpCheck,
+		id)
+
+	outPbData := &transport.IsOk{
+		IsOk: isOk,
+		Id:   id,
+	}
+	gs.facade.Logging.WithFields(logrus.Fields{
+		"entity":   grpcJobName,
+		"event id": id,
+	}).Debugf("completed job https check server %v. isOk: %v", incomeHttpCheck, isOk)
+
+	return outPbData, nil
+}
+
 func (gs *GrpcServer) IsHttpsCheckOk(ctx context.Context, incomeHttpsCheck *transport.HttpsData) (*transport.IsOk, error) {
 	id := incomeHttpsCheck.Id
+	isHttpCheck := false
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcJobName,
 		"event id": id,
 	}).Debugf("got job https check server %v", incomeHttpsCheck)
 
 	timeout, _ := ptypes.Duration(incomeHttpsCheck.Timeout)
-	isOk := gs.facade.IsHttpsCheckOk(
+	isOk := gs.facade.IsHttpOrHttpsCheckOk(
 		incomeHttpsCheck.HealthcheckAddress,
 		timeout,
 		int(incomeHttpsCheck.Fwmark),
+		isHttpCheck,
 		id)
 
 	outPbData := &transport.IsOk{
