@@ -137,7 +137,12 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceIn
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 
-	case "http": // FIXME: https checks here, no support for http
+	case "http":
+		return hc.healthcheckChecker.IsHttpCheckOk(hcService.Address,
+			hcService.ResponseTimer,
+			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
+			id)
+	case "https":
 		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.Address,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
