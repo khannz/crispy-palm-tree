@@ -14,14 +14,15 @@ const consulWorkerName = "consul worker"
 
 // ConsulWorker ...
 type ConsulWorker struct {
-	facade          *T1OrchFacade
-	client          *consulapi.Client
-	kvClient        *consulapi.KV
-	subscribePath   string
-	appServersPath  string
-	serviceManifest string
-	jobChan         chan map[string]*domain.ServiceInfo
-	logging         *logrus.Logger
+	facade                          *T1OrchFacade
+	client                          *consulapi.Client
+	kvClient                        *consulapi.KV
+	subscribePath                   string
+	appServersPath                  string
+	serviceManifest                 string
+	needToRemoveServicesIfDataEmpty bool
+	jobChan                         chan map[string]*domain.ServiceInfo
+	logging                         *logrus.Logger
 }
 
 // NewConsulWorker ...
@@ -38,14 +39,15 @@ func NewConsulWorker(facade *T1OrchFacade,
 		return nil, err
 	}
 	return &ConsulWorker{
-		facade:          facade,
-		client:          client,
-		kvClient:        client.KV(),
-		subscribePath:   consulSubscribePath,
-		appServersPath:  consulAppServersPath,
-		serviceManifest: serviceManifest,
-		jobChan:         make(chan map[string]*domain.ServiceInfo),
-		logging:         logging,
+		facade:                          facade,
+		client:                          client,
+		kvClient:                        client.KV(),
+		subscribePath:                   consulSubscribePath,
+		appServersPath:                  consulAppServersPath,
+		serviceManifest:                 serviceManifest,
+		needToRemoveServicesIfDataEmpty: true,
+		jobChan:                         make(chan map[string]*domain.ServiceInfo),
+		logging:                         logging,
 	}, nil
 }
 
@@ -53,7 +55,6 @@ func (consulWorker *ConsulWorker) ConsulConfigWatch() {
 	defer close(consulWorker.jobChan)
 	currentIndex := uint64(0)
 	queryOptions := &consulapi.QueryOptions{WaitIndex: currentIndex}
-
 	for {
 		balancingServices, meta, err := consulWorker.kvClient.Keys(consulWorker.subscribePath, "/", queryOptions)
 		if err != nil {
@@ -64,13 +65,26 @@ func (consulWorker *ConsulWorker) ConsulConfigWatch() {
 			continue
 		}
 		if balancingServices == nil || meta == nil || len(balancingServices) <= 1 {
-			time.Sleep(1 * time.Second)
+			if consulWorker.needToRemoveServicesIfDataEmpty {
+				consulWorker.logging.WithFields(logrus.Fields{
+					"entity": consulWorkerName,
+				}).Infof("balancing services not found. started deleting existing services: %v", err)
+				consulWorker.jobChan <- nil
+				consulWorker.needToRemoveServicesIfDataEmpty = false
+			}
+			time.Sleep(5 * time.Second)
 			continue
 		} else if currentIndex == meta.LastIndex {
 			// ~ every 300-330 sec indexes autocheck
+			consulWorker.logging.WithFields(logrus.Fields{
+				"entity": consulWorkerName,
+			}).Tracef("metaindex not change: %v", currentIndex)
 			time.Sleep(1 * time.Second)
 			continue
 		}
+
+		consulWorker.needToRemoveServicesIfDataEmpty = true
+
 		currentIndex = meta.LastIndex
 
 		servicesInfo, err := consulWorker.formUpdateServicesInfo(balancingServices)
@@ -138,14 +152,18 @@ func (consulWorker *ConsulWorker) formUpdateServicesInfo(balancingServices []str
 
 func (consulWorker *ConsulWorker) JobWorker() {
 	for servicesInfo := range consulWorker.jobChan {
-		if err := consulWorker.facade.ApplyNewConfig(servicesInfo); err != nil {
-			consulWorker.logging.WithFields(logrus.Fields{
-				"entity": consulWorkerName,
-			}).Errorf("config update error: %v", err)
-			continue
+		if servicesInfo != nil {
+			if err := consulWorker.facade.ApplyNewConfig(servicesInfo); err != nil {
+				consulWorker.logging.WithFields(logrus.Fields{
+					"entity": consulWorkerName,
+				}).Errorf("config update error: %v", err)
+			}
+		} else {
+			if err := consulWorker.facade.RemoveAllConfig(); err != nil {
+				consulWorker.logging.WithFields(logrus.Fields{
+					"entity": consulWorkerName,
+				}).Errorf("config update error: %v", err)
+			}
 		}
-		consulWorker.logging.WithFields(logrus.Fields{
-			"entity": consulWorkerName,
-		}).Infof("config updated for services %v", servicesInfo)
 	}
 }

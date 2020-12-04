@@ -51,7 +51,7 @@ func (removeService *RemoveServiceEntity) RemoveService(serviceInfo *domain.Serv
 		"entity":   removeServiceName,
 		"event id": removeServiceID,
 	}).Infof("start usecase for remove service: %v", serviceInfo)
-	// FIXME: check route remove from mem
+
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrv := range serviceInfo.ApplicationServers { // TODO: "nat not ready, only tcp at now"
 			tunnelStillNeeded := removeService.memoryWorker.NeedTunnelForApplicationServer(appSrv.IP)
@@ -66,11 +66,12 @@ func (removeService *RemoveServiceEntity) RemoveService(serviceInfo *domain.Serv
 		"event id": removeServiceID,
 	}).Info("remove service from healtchecks")
 	if err := removeService.hc.RemoveServiceFromHealtchecks(serviceInfo, removeServiceID); err != nil {
-		return fmt.Errorf("error when change service in healthcheck: %v", err)
+		return fmt.Errorf("error when remove service in healthcheck: %v", err)
 	}
-	removeService.logging.WithFields(logrus.Fields{
-		"entity":   removeServiceName,
-		"event id": removeServiceID,
-	}).Info("remove service from healtchecks")
+
+	if err := removeService.memoryWorker.RemoveService(serviceInfo); err != nil {
+		return fmt.Errorf("error when remove service in memory: %v", err)
+	}
+
 	return nil
 }

@@ -10,7 +10,7 @@ import (
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain.ServiceInfo) {
 	// first run hc at create entity
 	hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
-	hc.logging.Infof("hc service: %v", hcService)
+	hc.logging.Debugf("hc service: %v", hcService)
 	ticker := time.NewTicker(hcService.HelloTimer)
 	for {
 		select {

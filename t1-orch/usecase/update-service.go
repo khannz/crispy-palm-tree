@@ -82,14 +82,10 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 	updateService.logging.WithFields(logrus.Fields{
 		"entity":   updateServiceName,
 		"event id": updateServiceID,
-	}).Info("update service at healtchecks")
+	}).Infof("update service %v at healtchecks", serviceInfo.Address)
 	if _, err := updateService.hc.UpdateServiceAtHealtchecks(serviceInfo, updateServiceID); err != nil {
 		return fmt.Errorf("error when change service in healthcheck: %v", err)
 	}
-	updateService.logging.WithFields(logrus.Fields{
-		"entity":   updateServiceName,
-		"event id": updateServiceID,
-	}).Info("updated service at healtchecks")
 	return nil
 }
 

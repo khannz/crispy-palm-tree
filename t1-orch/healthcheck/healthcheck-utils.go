@@ -2,19 +2,6 @@ package healthcheck
 
 import domain "github.com/khannz/crispy-palm-tree/t1-orch/domain"
 
-func (hc *HeathcheckEntity) findServiceInHealtcheckSlice(address string) (int, bool) {
-	var findedIndex int
-	var isFinded bool
-	for index, runningServiceHc := range hc.runningHeathchecks {
-		if address == runningServiceHc.Address {
-			findedIndex = index
-			isFinded = true
-			break
-		}
-	}
-	return findedIndex, isFinded
-}
-
 func percentageOfUp(rawTotal, rawDown int) float32 {
 	total := float32(rawTotal)
 	down := float32(rawDown)
@@ -78,6 +65,8 @@ func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string
 }
 
 func (hc *HeathcheckEntity) removeServiceFromMayAnnouncedServices(serviceIP string) {
+	hc.Lock()
+	defer hc.Unlock()
 	_, isFinded := hc.announcedServices[serviceIP]
 	if isFinded {
 		if hc.announcedServices[serviceIP] == 0 {

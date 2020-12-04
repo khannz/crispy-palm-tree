@@ -14,7 +14,7 @@ const healthcheckName = "healthcheck"
 // HeathcheckEntity ...
 type HeathcheckEntity struct {
 	sync.Mutex
-	runningHeathchecks []*domain.ServiceInfo // TODO: map much better
+	runningHeathchecks map[string]*domain.ServiceInfo // TODO: map much better
 	memoryWorker       domain.MemoryWorker
 	healthcheckChecker domain.HealthcheckChecker
 	ipvsadm            domain.IPVSWorker
@@ -33,7 +33,7 @@ func NewHeathcheckEntity(memoryWorker domain.MemoryWorker,
 	logging *logrus.Logger) *HeathcheckEntity {
 
 	return &HeathcheckEntity{
-		runningHeathchecks: []*domain.ServiceInfo{}, // need for append
+		runningHeathchecks: map[string]*domain.ServiceInfo{}, // need for append
 		memoryWorker:       memoryWorker,
 		healthcheckChecker: healthcheckChecker,
 		ipvsadm:            ipvsadm,
@@ -49,8 +49,7 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *domain.ServiceInf
 	hc.Lock()
 	defer hc.Unlock()
 
-	// hc.enrichApplicationServersHealthchecks(hcService, nil, false) // lock hcService
-	hc.runningHeathchecks = append(hc.runningHeathchecks, hcService)
+	hc.runningHeathchecks[hcService.Address] = hcService
 	hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
 	if err := hc.addServiceToIPVS(hcService, id); err != nil {
 		return fmt.Errorf("can't add srvice to IPVS: %v", err)
@@ -61,24 +60,24 @@ func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *domain.ServiceInf
 
 // RemoveServiceFromHealtchecks will work until removed
 func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.ServiceInfo, id string) error {
-	hc.Lock()
-	indexForRemove, isFinded := hc.findServiceInHealtcheckSlice(hcService.Address)
-	hc.Unlock()
-	if isFinded {
+	hc.Lock() // lock for find
+	if _, isFinded := hc.runningHeathchecks[hcService.Address]; isFinded {
 		hc.logging.Tracef("send stop checks for service %v", hcService.Address)
-		hc.runningHeathchecks[indexForRemove].HCStop <- struct{}{}
-		<-hc.runningHeathchecks[indexForRemove].HCStopped
+		hc.runningHeathchecks[hcService.Address].HCStop <- struct{}{}
+		hc.Unlock() // unlock for find
+		<-hc.runningHeathchecks[hcService.Address].HCStopped
 		hc.annonceLogic(hcService.IP, false, id) // lock hc and dummy; may remove annonce
-		hc.Lock()
-		hc.removeServiceFromMayAnnouncedServices(hcService.IP) // hc must be locked
-		hc.runningHeathchecks = append(hc.runningHeathchecks[:indexForRemove], hc.runningHeathchecks[indexForRemove+1:]...)
-		hc.Unlock()
+		hc.removeServiceFromMayAnnouncedServices(hcService.IP)
+		hc.Lock() // lock for remove service
+		delete(hc.runningHeathchecks, hcService.Address)
+		hc.Unlock() // unlock for remove service
 		if err := hc.removeServiceFromIPVS(hcService, id); err != nil {
 			return fmt.Errorf("can't remove service from IPVS: %v", err)
 		}
 		hc.logging.Tracef("get checks stopped from service %v", hcService.Address)
 		return nil
 	}
+	hc.Unlock() // unlock if service not found
 
 	return fmt.Errorf("Heathcheck error: RemoveServiceFromHealtchecks error: service %v not found",
 		hcService.Address)
@@ -87,20 +86,14 @@ func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.Servi
 // UpdateServiceAtHealtchecks ...
 func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.ServiceInfo, id string) (*domain.ServiceInfo, error) {
 	hc.Lock()
-	updateIndex, isFinded := hc.findServiceInHealtcheckSlice(hcService.Address) // find service for update at hc services
-	hc.Unlock()
-	if isFinded {
-		hc.runningHeathchecks[updateIndex].Lock()
-		hc.Lock()
-		currentApplicationServers := getCopyOfApplicationServersFromService(hc.runningHeathchecks[updateIndex]) // copy of current services
-		hc.Unlock()
-		hc.runningHeathchecks[updateIndex].Unlock()
+	if _, isFinded := hc.runningHeathchecks[hcService.Address]; isFinded {
+		currentApplicationServers := getCopyOfApplicationServersFromService(hc.runningHeathchecks[hcService.Address]) // copy of current services
 		hc.logging.Tracef("get update service job, sending stop checks for service %v", hcService.Address)
-		hc.runningHeathchecks[updateIndex].HCStop <- struct{}{}
-		<-hc.runningHeathchecks[updateIndex].HCStopped
+		hc.runningHeathchecks[hcService.Address].HCStop <- struct{}{}
+		hc.Unlock()
+		<-hc.runningHeathchecks[hcService.Address].HCStopped
 		hc.logging.Tracef("healthchecks stopped for update service job %v", hcService.Address)
-		hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[updateIndex].IsUp) // lock hcService
-		// do not include new app servers here! why??
+		hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[hcService.Address].IsUp) // lock hcService
 		_, _, applicationServersForRemove := formDiffApplicationServers(hcService.ApplicationServers, currentApplicationServers)
 		if len(applicationServersForRemove) != 0 {
 			for _, k := range applicationServersForRemove {
@@ -113,13 +106,13 @@ func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.Service
 			}
 		}
 
-		tmpHC := append(hc.runningHeathchecks[:updateIndex], hcService)
 		hc.Lock()
-		hc.runningHeathchecks = append(tmpHC, hc.runningHeathchecks[updateIndex+1:]...)
-		hc.Unlock()
+		hc.runningHeathchecks[hcService.Address] = hcService
 		go hc.startHealthchecksForCurrentService(hcService)
+		hc.Unlock()
 		return hcService, nil
 	}
+	hc.Unlock() // unlock if not found
 
 	return hcService, fmt.Errorf("Heathcheck error: UpdateServiceAtHealtchecks error: service %v not found",
 		hcService.Address)
@@ -131,7 +124,7 @@ func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealt
 	newServiceHealthcheck.IsUp = oldIsUpState
 	newServiceHealthcheck.HCStop = make(chan struct{}, 1)
 	newServiceHealthcheck.HCStopped = make(chan struct{}, 1)
-
+	// TODO: to many code for set InternalHC?
 	for k := range newServiceHealthcheck.ApplicationServers {
 		newServiceHealthcheck.ApplicationServers[k].InternalHC.HealthcheckType = newServiceHealthcheck.HealthcheckType
 		newServiceHealthcheck.ApplicationServers[k].InternalHC.HealthcheckAddress = newServiceHealthcheck.ApplicationServers[k].HealthcheckAddress
@@ -160,32 +153,6 @@ func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealt
 	}
 }
 
-// annonceLogic - used when service change state
-
-// // TODO: much faster if we have func isApplicationServersInIPSVSerrvice, return []int (indexes for app srv not fount)
-// func (hc *HeathcheckEntity) isApplicationServerInIPSVService(hcServiceIP, rawHcServicePort, applicationServerIP, rawApplicationServerPort string, id string) bool {
-// 	hcServicePort, err := stringToUINT16(rawHcServicePort)
-// 	if err != nil {
-// 		hc.logging.Errorf("can't convert port to uint16: %v", err)
-// 	}
-// 	applicationServerPort, err := stringToUINT16(rawApplicationServerPort)
-// 	if err != nil {
-// 		hc.logging.Errorf("can't convert port to uint16: %v", err)
-// 	}
-
-// 	oneAppSrvMap := make(map[string]uint16, 1)
-// 	oneAppSrvMap[applicationServerIP] = applicationServerPort
-// 	isApplicationServerInService, err := hc.ipvsadm.IsIPVSApplicationServerInService(hcServiceIP,
-// 		hcServicePort,
-// 		oneAppSrvMap,
-// 		id)
-// 	if err != nil {
-// 		hc.logging.Errorf("can't check is application server in service: %v", err)
-// 		return false
-// 	}
-// 	return isApplicationServerInService
-// }
-
 func (hc *HeathcheckEntity) GetServiceState(hcService *domain.ServiceInfo, id string) (*domain.ServiceInfo, error) {
 	hc.Lock()
 	defer hc.Unlock()
@@ -197,13 +164,13 @@ func (hc *HeathcheckEntity) GetServiceState(hcService *domain.ServiceInfo, id st
 	return nil, fmt.Errorf("get service state fail: service %v not found in healthchecks", hcService.Address)
 }
 
-func (hc *HeathcheckEntity) GetServicesState(id string) ([]*domain.ServiceInfo, error) {
+func (hc *HeathcheckEntity) GetServicesState(id string) (map[string]*domain.ServiceInfo, error) {
 	hc.Lock()
 	defer hc.Unlock()
 	if len(hc.runningHeathchecks) == 0 {
 		return nil, fmt.Errorf("active hc services: %v", len(hc.runningHeathchecks))
 	}
-	copyOfServiceInfos := make([]*domain.ServiceInfo, len(hc.runningHeathchecks))
+	copyOfServiceInfos := make(map[string]*domain.ServiceInfo, len(hc.runningHeathchecks))
 	for i, runHC := range hc.runningHeathchecks {
 		copyOfServiceInfos[i] = copyServiceInfo(runHC)
 	}
