@@ -19,14 +19,14 @@ func NewhttpAdvancedCheckEntity(hcHTTPAdvancedWorker domain.HTTPAdvancedWorker, 
 	}
 }
 
-func (httpAdvancedCheckEntity *HttpAdvancedCheckEntity) IsHttpAdvancedCheckOk(hcType string,
+func (httpAdvancedCheckEntity *HttpAdvancedCheckEntity) IsHttpAdvancedCheckOk(healthcheckType string,
 	healthcheckAddress string,
 	nearFieldsMode bool,
 	userDefinedData map[string]string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	return httpAdvancedCheckEntity.hcHTTPAdvancedWorker.IsHttpAdvancedCheckOk(hcType,
+	return httpAdvancedCheckEntity.hcHTTPAdvancedWorker.IsHttpAdvancedCheckOk(healthcheckType,
 		healthcheckAddress,
 		nearFieldsMode,
 		userDefinedData,

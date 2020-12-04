@@ -6,6 +6,7 @@ import "google/protobuf/duration.proto";
 
 service HealthcheckWorker {
   rpc IsHttpAdvancedCheckOk (HttpAdvancedData) returns (IsOk) {}
+  rpc IsHttpCheckOk (HttpData) returns (IsOk) {}
   rpc IsHttpsCheckOk (HttpsData) returns (IsOk) {}
   rpc IsIcmpCheckOk (IcmpData) returns (IsOk) {}
   rpc IsTcpCheckOk (TcpData) returns (IsOk) {}
@@ -25,6 +26,13 @@ message IcmpData {
   string id = 4;
 }
 
+message HttpData {
+  string healthcheckAddress = 1;
+  google.protobuf.Duration timeout = 2;
+  int64 fwmark = 3;
+  string id = 4;
+}
+
 message HttpsData {
   string healthcheckAddress = 1;
   google.protobuf.Duration timeout = 2;
@@ -33,7 +41,7 @@ message HttpsData {
 }
 
 message HttpAdvancedData {
-  string hcType = 1;
+  string healthcheckType = 1;
   string healthcheckAddress = 2;
   bool nearFieldsMode = 3;
   map<string, string> userDefinedData = 4;

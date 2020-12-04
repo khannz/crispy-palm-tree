@@ -29,14 +29,14 @@ type UnknownDataStruct struct {
 	UnknowArrayOfMaps []map[string]string
 }
 
-func (httpAdvancedEntity *HttpAdvancedEntity) IsHttpAdvancedCheckOk(hcType string,
+func (httpAdvancedEntity *HttpAdvancedEntity) IsHttpAdvancedCheckOk(healthcheckType string,
 	healthcheckAddress string,
 	nearFieldsMode bool,
 	userDefinedData map[string]string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	switch hcType {
+	switch healthcheckType {
 	case "http-advanced-json":
 		return httpAdvancedJSONCheckOk(healthcheckAddress, nearFieldsMode,
 			userDefinedData, timeout, fwmark, id, httpAdvancedEntity.logging)
@@ -44,7 +44,7 @@ func (httpAdvancedEntity *HttpAdvancedEntity) IsHttpAdvancedCheckOk(hcType strin
 		httpAdvancedEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpAdvancedHealthcheckName,
 			"event id": id,
-		}).Errorf("Heathcheck error: http advanced check fail error: unknown check type: %v", hcType)
+		}).Errorf("Heathcheck error: http advanced check fail error: unknown check type: %v", healthcheckType)
 		return false
 	}
 }

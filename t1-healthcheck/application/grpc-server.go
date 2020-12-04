@@ -43,7 +43,7 @@ func (gs *GrpcServer) IsHttpAdvancedCheckOk(ctx context.Context, incomeHttpAdvan
 
 	timeout, _ := ptypes.Duration(incomeHttpAdvancedCheck.Timeout)
 	isOk := gs.facade.IsHttpAdvancedCheckOk(
-		incomeHttpAdvancedCheck.HcType,
+		incomeHttpAdvancedCheck.HealthcheckType,
 		incomeHttpAdvancedCheck.HealthcheckAddress,
 		incomeHttpAdvancedCheck.NearFieldsMode,
 		incomeHttpAdvancedCheck.UserDefinedData,

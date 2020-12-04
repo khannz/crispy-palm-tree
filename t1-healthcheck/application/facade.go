@@ -36,7 +36,7 @@ func NewHCFacade(httpAdvancedWorker domain.HTTPAdvancedWorker,
 	}
 }
 
-func (hcFacade *HCFacade) IsHttpAdvancedCheckOk(hcType string,
+func (hcFacade *HCFacade) IsHttpAdvancedCheckOk(healthcheckType string,
 	healthcheckAddress string,
 	nearFieldsMode bool,
 	userDefinedData map[string]string,
@@ -44,7 +44,7 @@ func (hcFacade *HCFacade) IsHttpAdvancedCheckOk(hcType string,
 	fwmark int,
 	id string) bool {
 	newhttpAdvancedCheckEntity := usecase.NewhttpAdvancedCheckEntity(hcFacade.HttpAdvancedWorker, hcFacade.Logging)
-	return newhttpAdvancedCheckEntity.IsHttpAdvancedCheckOk(hcType,
+	return newhttpAdvancedCheckEntity.IsHttpAdvancedCheckOk(healthcheckType,
 		healthcheckAddress,
 		nearFieldsMode,
 		userDefinedData,
