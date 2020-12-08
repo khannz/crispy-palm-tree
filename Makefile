@@ -11,10 +11,10 @@ ipvs-grpc:
 	protoc -I ./proto/ --go_out=./t1-ipvs/grpc-orch/ --go-grpc_out=./t1-ipvs/grpc-orch/ ./proto/t1-orch.proto
 
 # TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
-ipvs-build-rpm-snapshot:
+ipvs-rpm-snapshot:
 	cd t1-ipvs && goreleaser --snapshot --skip-publish --rm-dist
 
-ipvs-build-bin:
+ipvs-bin:
 	cd t1-ipvs && CGO_ENABLED=0 go build -o lbost1ai
 
 ipvs-clean:
