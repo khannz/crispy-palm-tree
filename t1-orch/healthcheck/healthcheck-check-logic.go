@@ -1,7 +1,6 @@
 package healthcheck
 
 import (
-	"strings"
 	"time"
 
 	domain "github.com/khannz/crispy-palm-tree/t1-orch/domain"
@@ -132,27 +131,26 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) bool {
-	hcPortArr := strings.Split(hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress, ":")
 	switch hcService.HealthcheckType {
 	case "tcp":
-		return hc.healthcheckChecker.IsTcpCheckOk(hcService.IP+":"+hcPortArr[1],
+		return hc.healthcheckChecker.IsTcpCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 
 	case "http":
-		return hc.healthcheckChecker.IsHttpCheckOk(hcService.IP+":"+hcPortArr[1],
+		return hc.healthcheckChecker.IsHttpCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "https":
-		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.IP+":"+hcPortArr[1],
+		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "http-advanced":
 		return hc.healthcheckChecker.IsHttpAdvancedCheckOk(hcService.HealthcheckType,
-			hcService.IP+":"+hcPortArr[1],
+			hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress,
 			hcService.HCNearFieldsMode,
 			hcService.HCUserDefinedData,
 			hcService.ResponseTimer,
