@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -26,18 +25,19 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 	fwmark int,
 	isHttpCheck bool,
 	id string) bool {
-	method := "GET"
-	request := "/"
-	responseCode := 200
-	u, err := url.Parse(request)
-	if err != nil {
-		return false
-	}
+	// method := "GET" // TODO: remove hardcode
+	request := "/index.html"
+	responseCodes := make(map[int]struct{})
+	responseCodes[200] = struct{}{}
+	responseCodes[301] = struct{}{}
+	responseCodes[307] = struct{}{}
+	responseCodes[308] = struct{}{}
 
+	var newHCAddress string
 	if isHttpCheck {
-		u.Scheme = "http"
+		newHCAddress = "http://" + healthcheckAddress + request
 	} else {
-		u.Scheme = "https"
+		newHCAddress = "https://" + healthcheckAddress + request
 	}
 
 	ip, port, err := net.SplitHostPort(healthcheckAddress)
@@ -48,14 +48,6 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 		}).Errorf("https can't SplitHostPort from %v: %v", healthcheckAddress, err)
 		return false
 	}
-
-	// FIXME: need to fix hc models ??
-	u.Host = ip
-	// if u.Host == "" {
-	// 	u.Host = ipS + ":" + port
-	// }
-
-	// proxy := (func(*http.Request) (*url.URL, error))(nil)
 
 	var dialer func(network, addr string) (net.Conn, error)
 	network := "tcp4"
@@ -90,26 +82,26 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 		},
 		Timeout: timeout,
 	}
-	req, err := http.NewRequest(method, request, nil)
-	if err != nil {
-		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
-			"entity":   httpsHealthcheckName,
-			"event id": id,
-		}).Errorf("https can't create request for %v: %v", healthcheckAddress, err)
-		return false
-	}
-	req.URL = u
 
 	// If we received a response we want to process it, even in the
 	// presence of an error - a redirect 3xx will result in both the
 	// response and an error being returned.
-	resp, err := client.Do(req)
+	resp, err := client.Get(newHCAddress)
 	if err != nil {
 		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpsHealthcheckName,
 			"event id": id,
-		}).Errorf("https response error: %v", err)
+		}).Tracef("Heathcheck error: Connecting http(https) error: %v", err)
+		if resp != nil {
+			if resp.Body != nil {
+				defer resp.Body.Close()
+			}
+			_, codeOk := responseCodes[resp.StatusCode]
+			return codeOk
+		}
+		return false
 	}
+
 	if resp == nil {
 		return false
 	}
@@ -118,13 +110,9 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 	}
 
 	// Check response code.
-	var codeOk bool
-	if responseCode == 0 {
-		codeOk = true
-	} else if resp.StatusCode == responseCode {
-		codeOk = true
-	}
-
+	// var codeOk bool
+	// switch responseCodes // TODO:
+	_, codeOk := responseCodes[resp.StatusCode]
 	// Check response body.
 	bodyOk := true
 
