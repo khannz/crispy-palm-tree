@@ -143,13 +143,13 @@ func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealt
 			newServiceHealthcheck.ApplicationServers[k].InternalHC.AliveThreshold = retriesCounterForUp
 			newServiceHealthcheck.ApplicationServers[k].InternalHC.DeadThreshold = retriesCounterForDown
 			newServiceHealthcheck.ApplicationServers[k].IsUp = oldApplicationServers[k].IsUp
-			hc.logging.Debugf("application server %v was found, is up state was moved", newServiceHealthcheck.ApplicationServers[k].Address)
+			hc.logging.Tracef("application server %v was found, is up state was moved", newServiceHealthcheck.ApplicationServers[k].Address)
 			continue
 		}
 		newServiceHealthcheck.ApplicationServers[k].InternalHC.AliveThreshold = retriesCounterForUp
 		newServiceHealthcheck.ApplicationServers[k].InternalHC.DeadThreshold = retriesCounterForDown
 		newServiceHealthcheck.ApplicationServers[k].IsUp = false
-		hc.logging.Debugf("application server %v NOT found, is up state set false", newServiceHealthcheck.ApplicationServers[k].Address)
+		hc.logging.Tracef("application server %v NOT found, is up state set false", newServiceHealthcheck.ApplicationServers[k].Address)
 	}
 }
 

@@ -1,6 +1,7 @@
 package healthcheck
 
 import (
+	"strings"
 	"time"
 
 	domain "github.com/khannz/crispy-palm-tree/t1-orch/domain"
@@ -10,7 +11,7 @@ import (
 func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain.ServiceInfo) {
 	// first run hc at create entity
 	hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
-	hc.logging.Debugf("hc service: %v", hcService)
+	hc.logging.Tracef("hc service: %v", hcService)
 	ticker := time.NewTicker(hcService.HelloTimer)
 	for {
 		select {
@@ -39,7 +40,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.S
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
 		"event id": newID,
-	}).Debugf("Heathcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
+	}).Tracef("Heathcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
 		hcService.Address,
 		hcService.FailedApplicationServers.Count,
 		len(hcService.ApplicationServers),
@@ -63,7 +64,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.S
 		hcService.IsUp = false
 		hc.annonceLogic(hcService.IP, hcService.IsUp, newID) // lock hc and dummy
 	} else {
-		hc.logging.Debugf("service state not changed: is up: %v", hcService.IsUp)
+		hc.logging.Tracef("service state not changed: is up: %v", hcService.IsUp)
 	}
 	hc.updateInStorage(hcService, newID)
 }
@@ -86,7 +87,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 		isApplicationServerUp,
 		isApplicationServerChangeState)
 	if !isCheckOk {
-		hc.logging.Debugf("one hc for application server %v is up: %v; is server change state: %v",
+		hc.logging.Tracef("one hc for application server %v is up: %v; is server change state: %v",
 			hcService.ApplicationServers[applicationServerInfoKey].Address,
 			isApplicationServerUp,
 			isApplicationServerChangeState)
@@ -106,7 +107,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 		return
 	}
 
-	hc.logging.Debugf("one hc for application server %v is up: %v; is server change state: %v",
+	hc.logging.Tracef("one hc for application server %v is up: %v; is server change state: %v",
 		hcService.ApplicationServers[applicationServerInfoKey].Address,
 		isApplicationServerUp,
 		isApplicationServerChangeState)
@@ -127,36 +128,38 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 	}
 }
 
+// FIXME: recaftor work for check address, at this moment it looks like magic
 func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) bool {
+	hcPortArr := strings.Split(hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress, ":")
 	switch hcService.HealthcheckType {
 	case "tcp":
-		return hc.healthcheckChecker.IsTcpCheckOk(hcService.Address,
+		return hc.healthcheckChecker.IsTcpCheckOk(hcService.IP+":"+hcPortArr[1],
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 
 	case "http":
-		return hc.healthcheckChecker.IsHttpCheckOk(hcService.Address,
+		return hc.healthcheckChecker.IsHttpCheckOk(hcService.IP+":"+hcPortArr[1],
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "https":
-		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.Address,
+		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.IP+":"+hcPortArr[1],
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "http-advanced":
 		return hc.healthcheckChecker.IsHttpAdvancedCheckOk(hcService.HealthcheckType,
-			hcService.Address,
+			hcService.IP+":"+hcPortArr[1],
 			hcService.HCNearFieldsMode,
 			hcService.HCUserDefinedData,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "icmp":
-		return hc.healthcheckChecker.IsIcmpCheckOk(hcService.Address,
+		return hc.healthcheckChecker.IsIcmpCheckOk(hcService.IP,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
@@ -188,7 +191,7 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domai
 		hcService.ApplicationServers[applicationServerInfoKey].IsUp = false // if all hc fail at RetriesCounterForDown - change state
 		hc.logging.WithFields(logrus.Fields{
 			"event id": id,
-		}).Warnf("at service %v real server %v DOWN", hcService.Address,
+		}).Tracef("at service %v real server %v DOWN", hcService.Address,
 			hcService.ApplicationServers[applicationServerInfoKey].Address)
 		return false, true
 	}
@@ -204,7 +207,7 @@ func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domai
 	hcService.ApplicationServers[applicationServerInfoKey].IsUp = true // if all hc fail at RetriesCounterForDown - change state
 	hc.logging.WithFields(logrus.Fields{
 		"event id": id,
-	}).Warnf("at service %v real server %v UP", hcService.Address,
+	}).Tracef("at service %v real server %v UP", hcService.Address,
 		hcService.ApplicationServers[applicationServerInfoKey].Address)
 	return true, true
 
