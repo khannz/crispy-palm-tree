@@ -46,10 +46,15 @@ func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) 
 		}
 	}()
 
-	c.fd, err = syscall.Socket(domain, syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC, 0)
+	c.fd, err = syscall.Socket(domain, syscall.SOCK_STREAM, 0)
 	if err != nil {
 		return nil, os.NewSyscallError("socket", err)
 	}
+
+	defer func() {
+		time.Sleep(10 * time.Millisecond)
+		syscall.Close(c.fd)
+	}()
 
 	if mark != 0 {
 		if err := setSocketMark(c.fd, mark); err != nil {

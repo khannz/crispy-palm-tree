@@ -2,7 +2,6 @@ package portadapter
 
 import (
 	"net"
-	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -41,7 +40,6 @@ func (tcpEntity *TcpEntity) IsTcpCheckOk(healthcheckAddress string,
 	defer tcpConn.f.Close()
 	conn := net.Conn(tcpConn.netConn)
 	defer conn.Close()
-	defer os.Remove(tcpConn.f.Name())
 
 	if conn != nil {
 		tcpEntity.logging.WithFields(logrus.Fields{
