@@ -78,7 +78,11 @@ var rootCmd = &cobra.Command{
 		}
 
 		//  healthchecks start
-		healthcheckChecker := portadapter.NewHealthcheckChecker(viperConfig.GetString(healthcheckAddressName), viperConfig.GetDuration(responseTimerName), logging)
+		healthcheckChecker, err := portadapter.NewHealthcheckChecker(viperConfig.GetString(healthcheckAddressName), viperConfig.GetDuration(responseTimerName), logging)
+		if err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to healthchecks fail: %v", err)
+		}
+		defer healthcheckChecker.Conn.Close()
 
 		hc := healthcheck.NewHeathcheckEntity(memoryWorker,
 			healthcheckChecker,

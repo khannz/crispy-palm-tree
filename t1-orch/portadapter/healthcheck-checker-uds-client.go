@@ -2,6 +2,7 @@ package portadapter
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -13,38 +14,34 @@ import (
 const healthcheckCheckerName = "healthcheck-checker"
 
 type HealthcheckChecker struct {
-	address     string
-	grpcTimeout time.Duration // TODO: somehow use tickers?
-	logging     *logrus.Logger
+	client  transport.HealthcheckWorkerClient
+	Conn    *grpc.ClientConn
+	logging *logrus.Logger
 }
 
-func NewHealthcheckChecker(address string, grpcTimeout time.Duration, logging *logrus.Logger) *HealthcheckChecker {
-	return &HealthcheckChecker{
-		address:     address,
-		grpcTimeout: grpcTimeout,
-		logging:     logging,
+func NewHealthcheckChecker(address string, grpcTimeout time.Duration, logging *logrus.Logger) (*HealthcheckChecker, error) {
+	withContextDialer := makeDialer(address, 20*time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeout)
+	defer cancel()
+
+	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
+	if err != nil {
+		return nil, fmt.Errorf("can't not connect to HC %v, dial fail: %v", address, err)
 	}
+	client := transport.NewHealthcheckWorkerClient(conn)
+
+	return &HealthcheckChecker{
+		client:  client,
+		Conn:    conn,
+		logging: logging,
+	}, nil
 }
 
 func (healthcheckChecker *HealthcheckChecker) IsTcpCheckOk(healthcheckAddress string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	withContextDialer := makeDialer(healthcheckChecker.address, 20*time.Second)
-
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, healthcheckChecker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
-	if err != nil {
-		healthcheckChecker.logging.WithFields(logrus.Fields{
-			"entity":   healthcheckCheckerName,
-			"event id": id,
-		}).Errorf("can't connect grpc uds: %v", err)
-		return false
-	}
-	defer conn.Close()
-
-	dummyClient := transport.NewHealthcheckWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer sendCancel()
 
@@ -54,7 +51,7 @@ func (healthcheckChecker *HealthcheckChecker) IsTcpCheckOk(healthcheckAddress st
 		Fwmark:             int64(fwmark),
 		Id:                 id,
 	}
-	isTcpCheckOk, err := dummyClient.IsTcpCheckOk(sendCtx, pbTcpData)
+	isTcpCheckOk, err := healthcheckChecker.client.IsTcpCheckOk(sendCtx, pbTcpData)
 	if err != nil {
 		healthcheckChecker.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckCheckerName,
@@ -68,21 +65,6 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpCheckOk(healthcheckAddress s
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	withContextDialer := makeDialer(healthcheckChecker.address, 20*time.Second)
-
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, healthcheckChecker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
-	if err != nil {
-		healthcheckChecker.logging.WithFields(logrus.Fields{
-			"entity":   healthcheckCheckerName,
-			"event id": id,
-		}).Errorf("can't connect grpc uds: %v", err)
-		return false
-	}
-	defer conn.Close()
-
-	dummyClient := transport.NewHealthcheckWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer sendCancel()
 
@@ -93,7 +75,7 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpCheckOk(healthcheckAddress s
 		Id:                 id,
 	}
 
-	isHttpCheckOk, err := dummyClient.IsHttpCheckOk(sendCtx, pbHttpData)
+	isHttpCheckOk, err := healthcheckChecker.client.IsHttpCheckOk(sendCtx, pbHttpData)
 	if err != nil {
 		healthcheckChecker.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckCheckerName,
@@ -107,21 +89,6 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpsCheckOk(healthcheckAddress 
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	withContextDialer := makeDialer(healthcheckChecker.address, 20*time.Second)
-
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, healthcheckChecker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
-	if err != nil {
-		healthcheckChecker.logging.WithFields(logrus.Fields{
-			"entity":   healthcheckCheckerName,
-			"event id": id,
-		}).Errorf("can't connect grpc uds: %v", err)
-		return false
-	}
-	defer conn.Close()
-
-	dummyClient := transport.NewHealthcheckWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer sendCancel()
 
@@ -132,7 +99,7 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpsCheckOk(healthcheckAddress 
 		Id:                 id,
 	}
 
-	isHttpsCheckOk, err := dummyClient.IsHttpsCheckOk(sendCtx, pbHttpsData)
+	isHttpsCheckOk, err := healthcheckChecker.client.IsHttpsCheckOk(sendCtx, pbHttpsData)
 	if err != nil {
 		healthcheckChecker.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckCheckerName,
@@ -149,21 +116,6 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpAdvancedCheckOk(healthcheckT
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	withContextDialer := makeDialer(healthcheckChecker.address, 20*time.Second)
-
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, healthcheckChecker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
-	if err != nil {
-		healthcheckChecker.logging.WithFields(logrus.Fields{
-			"entity":   healthcheckCheckerName,
-			"event id": id,
-		}).Errorf("can't connect grpc uds: %v", err)
-		return false
-	}
-	defer conn.Close()
-
-	dummyClient := transport.NewHealthcheckWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer sendCancel()
 
@@ -177,7 +129,7 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpAdvancedCheckOk(healthcheckT
 		Id:                 id,
 	}
 
-	isHttpAdvancedCheckOk, err := dummyClient.IsHttpAdvancedCheckOk(sendCtx, pbHttpAdvandecData)
+	isHttpAdvancedCheckOk, err := healthcheckChecker.client.IsHttpAdvancedCheckOk(sendCtx, pbHttpAdvandecData)
 	if err != nil {
 		healthcheckChecker.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckCheckerName,
@@ -191,21 +143,6 @@ func (healthcheckChecker *HealthcheckChecker) IsIcmpCheckOk(ipS string,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
-	withContextDialer := makeDialer(healthcheckChecker.address, 20*time.Second)
-
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, healthcheckChecker.address, grpc.WithInsecure(), grpc.WithContextDialer(withContextDialer))
-	if err != nil {
-		healthcheckChecker.logging.WithFields(logrus.Fields{
-			"entity":   healthcheckCheckerName,
-			"event id": id,
-		}).Errorf("can't connect grpc uds: %v", err)
-		return false
-	}
-	defer conn.Close()
-
-	dummyClient := transport.NewHealthcheckWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer sendCancel()
 
@@ -215,7 +152,7 @@ func (healthcheckChecker *HealthcheckChecker) IsIcmpCheckOk(ipS string,
 		Fwmark:  int64(fwmark),
 		Id:      id,
 	}
-	isIcmpCheckOk, err := dummyClient.IsIcmpCheckOk(sendCtx, pbIcmp)
+	isIcmpCheckOk, err := healthcheckChecker.client.IsIcmpCheckOk(sendCtx, pbIcmp)
 	if err != nil {
 		healthcheckChecker.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckCheckerName,
