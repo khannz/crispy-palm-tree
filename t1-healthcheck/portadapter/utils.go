@@ -57,13 +57,16 @@ func dialTCP(network, ipS string, port string, timeout time.Duration, mark int, 
 	}(sockClose, c.fd)
 
 	if mark != 0 {
-		if err := setSocketMark(c.fd, mark); err != nil {
-			return nil, err
+		if err := syscall.SetsockoptInt(c.fd, syscall.SOL_SOCKET, syscall.SO_MARK, mark); err != nil {
+			return nil, os.NewSyscallError("failed to set mark", err)
 		}
 	}
 
-	if err := setSocketTimeout(c.fd, timeout); err != nil {
-		return nil, err
+	tv := syscall.NsecToTimeval(timeout.Nanoseconds())
+	for _, opt := range []int{syscall.SO_RCVTIMEO, syscall.SO_SNDTIMEO} {
+		if err := syscall.SetsockoptTimeval(c.fd, syscall.SOL_SOCKET, opt, &tv); err != nil {
+			return nil, os.NewSyscallError("setsockopt", err)
+		}
 	}
 	for {
 		err := syscall.Connect(c.fd, rsa)
@@ -99,28 +102,6 @@ func dialTCP(network, ipS string, port string, timeout time.Duration, mark int, 
 	}
 
 	return c, nil
-}
-
-// setSocketMark sets packet marking on the given socket.
-func setSocketMark(fd, mark int) error {
-	if err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_MARK, mark); err != nil {
-		return os.NewSyscallError("failed to set mark", err)
-	}
-	// TODO: force close sockets
-	// 	true = 1;
-	// setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int))
-	return nil
-}
-
-// setSocketTimeout sets the receive and send timeouts on the given socket.
-func setSocketTimeout(fd int, timeout time.Duration) error {
-	tv := syscall.NsecToTimeval(timeout.Nanoseconds())
-	for _, opt := range []int{syscall.SO_RCVTIMEO, syscall.SO_SNDTIMEO} {
-		if err := syscall.SetsockoptTimeval(fd, syscall.SOL_SOCKET, opt, &tv); err != nil {
-			return os.NewSyscallError("setsockopt", err)
-		}
-	}
-	return nil
 }
 
 func sockaddrToString(sa syscall.Sockaddr) string {
