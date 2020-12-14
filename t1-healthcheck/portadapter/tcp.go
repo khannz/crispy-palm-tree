@@ -30,10 +30,7 @@ func (tcpEntity *TcpEntity) IsTcpCheckOk(healthcheckAddress string,
 		return false
 	}
 
-	sockClose := make(chan struct{}, 1)
-	defer func(sockClose chan struct{}) { close(sockClose) }(sockClose)
-	defer func(sockClose chan struct{}) { sockClose <- struct{}{} }(sockClose)
-	tcpConn, err := dialTCP("tcp4", ip, port, timeout, fwmark, sockClose)
+	tcpConn, err := dialTCP("tcp4", ip, port, timeout, fwmark)
 	if err != nil {
 		tcpEntity.logging.WithFields(logrus.Fields{
 			"entity":   tcpHealthcheckName,
@@ -41,8 +38,7 @@ func (tcpEntity *TcpEntity) IsTcpCheckOk(healthcheckAddress string,
 		}).Tracef("tcp connect to %v error: %v", healthcheckAddress, err)
 		return false
 	}
-	defer tcpConn.f.Close()
-	conn := net.Conn(tcpConn.netConn)
+	conn := net.Conn(tcpConn)
 	defer conn.Close()
 
 	if conn != nil {

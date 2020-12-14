@@ -52,10 +52,7 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 	var dialer func(network, addr string) (net.Conn, error)
 	network := "tcp4"
 	// Both DSR and TUN mode requires socket marks
-	sockClose := make(chan struct{}, 1)
-	defer func(sockClose chan struct{}) { close(sockClose) }(sockClose)
-	defer func(sockClose chan struct{}) { sockClose <- struct{}{} }(sockClose)
-	tcpConn, err := dialTCP(network, ip, port, timeout, fwmark, sockClose)
+	tcpConn, err := dialTCP(network, ip, port, timeout, fwmark)
 	if err != nil {
 		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpsHealthcheckName,
@@ -63,11 +60,10 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 		}).Debugf("can't connect from %v: %v", healthcheckAddress, err)
 		return false
 	}
-	defer tcpConn.f.Close()
-	defer tcpConn.netConn.Close()
+	defer tcpConn.Close()
 
 	dialer = func(net string, addr string) (net.Conn, error) {
-		return tcpConn.netConn, nil
+		return tcpConn, nil
 	}
 
 	tlsConfig := &tls.Config{
