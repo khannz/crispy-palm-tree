@@ -29,7 +29,11 @@ func (tcpEntity *TcpEntity) IsTcpCheckOk(healthcheckAddress string,
 		}).Errorf("tcp can't SplitHostPort from %v: %v", healthcheckAddress, err)
 		return false
 	}
-	tcpConn, err := dialTCP("tcp4", ip, port, timeout, fwmark)
+
+	sockClose := make(chan struct{}, 1)
+	defer func(sockClose chan struct{}) { close(sockClose) }(sockClose)
+	defer func(sockClose chan struct{}) { sockClose <- struct{}{} }(sockClose)
+	tcpConn, err := dialTCP("tcp4", ip, port, timeout, fwmark, sockClose)
 	if err != nil {
 		tcpEntity.logging.WithFields(logrus.Fields{
 			"entity":   tcpHealthcheckName,

@@ -15,7 +15,7 @@ type conn struct {
 	netConn net.Conn
 }
 
-func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) (*conn, error) {
+func dialTCP(network, ipS string, port string, timeout time.Duration, mark int, sockClose chan struct{}) (*conn, error) {
 	ip := net.ParseIP(ipS)
 	if ip == nil {
 		return nil, fmt.Errorf("invalid IP address %q", ip)
@@ -51,10 +51,10 @@ func dialTCP(network, ipS string, port string, timeout time.Duration, mark int) 
 		return nil, os.NewSyscallError("socket", err)
 	}
 
-	defer func() {
-		time.Sleep(10 * time.Millisecond)
-		syscall.Close(c.fd)
-	}()
+	go func(sockClose chan struct{}, fd int) {
+		<-sockClose
+		syscall.Close(fd)
+	}(sockClose, c.fd)
 
 	if mark != 0 {
 		if err := setSocketMark(c.fd, mark); err != nil {

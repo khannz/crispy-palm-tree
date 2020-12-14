@@ -84,7 +84,10 @@ func httpAdvancedJSONCheckOk(healthcheckAddress string,
 	var dialer func(network, addr string) (net.Conn, error)
 	network := "tcp4"
 	// Both DSR and TUN mode requires socket marks
-	tcpConn, err := dialTCP(network, ip, port, timeout, fwmark)
+	sockClose := make(chan struct{}, 1)
+	defer func(sockClose chan struct{}) { close(sockClose) }(sockClose)
+	defer func(sockClose chan struct{}) { sockClose <- struct{}{} }(sockClose)
+	tcpConn, err := dialTCP(network, ip, port, timeout, fwmark, sockClose)
 	if err != nil {
 		return false
 	}
