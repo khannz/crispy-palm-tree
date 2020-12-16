@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/golang/protobuf/ptypes"
@@ -17,20 +19,23 @@ const grpcJobName = "healthcheck grpc job"
 
 // GrpcServer is used to implement portadapter.HCGetService.
 type GrpcServer struct {
-	address string
-	facade  *HCFacade
-	grpcSrv *grpc.Server
-	logging *logrus.Logger
+	address      string
+	pprofAddress string
+	facade       *HCFacade
+	grpcSrv      *grpc.Server
+	logging      *logrus.Logger
 	transport.UnimplementedHealthcheckWorkerServer
 }
 
 func NewGrpcServer(address string,
+	pprofAddress string,
 	facade *HCFacade,
 	logging *logrus.Logger) *GrpcServer {
 	return &GrpcServer{
-		address: address,
-		facade:  facade,
-		logging: logging,
+		address:      address,
+		pprofAddress: pprofAddress,
+		facade:       facade,
+		logging:      logging,
 	}
 }
 
@@ -183,7 +188,15 @@ func (grpcServer *GrpcServer) StartServer() error {
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
 	transport.RegisterHealthcheckWorkerServer(grpcServer.grpcSrv, grpcServer)
+
+	go func() {
+		if err := http.ListenAndServe(grpcServer.pprofAddress, nil); err != nil {
+			grpcServer.logging.Warnf("pprof not listening at address %v", grpcServer.pprofAddress)
+		}
+	}()
+
 	go grpcServer.Serve(lis)
+
 	return nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/khannz/crispy-palm-tree/lbost1a-healthcheck/application"
@@ -30,6 +31,7 @@ var rootCmd = &cobra.Command{
 			"log level":        viperConfig.GetString(logLevelName),
 			"log output":       viperConfig.GetString(logOutputName),
 			"syslog tag":       viperConfig.GetString(syslogTagName),
+			"pprof address":    viperConfig.GetString(pprofAddressName),
 
 			"hc address": viperConfig.GetString(hcAddressName),
 
@@ -60,8 +62,8 @@ var rootCmd = &cobra.Command{
 			logging)
 
 		// up grpc api
-
-		grpcServer := application.NewGrpcServer(viperConfig.GetString(hcAddressName), facade, logging) // gorutine inside
+		runtime.SetBlockProfileRate(1)
+		grpcServer := application.NewGrpcServer(viperConfig.GetString(hcAddressName), viperConfig.GetString(pprofAddressName), facade, logging) // gorutine inside
 		if err := grpcServer.StartServer(); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)
 		}

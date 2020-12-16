@@ -20,7 +20,8 @@ const (
 	defaultSystemLogTag     = ""
 	defaultLogEventLocation = true
 
-	defaultIDType = "nanoid"
+	defaultIDType       = "nanoid"
+	defaultPPROFAddress = ":8024"
 
 	defaultHCAddress = "/var/run/lbost1ah.sock"
 )
@@ -34,7 +35,8 @@ const (
 	syslogTagName        = "syslog-tag"
 	logEventLocationName = "log-event-location"
 
-	hcAddressName = "hc-address"
+	hcAddressName    = "hc-address"
+	pprofAddressName = "pprof-address"
 
 	idTypeName = "id-type"
 )
@@ -66,6 +68,7 @@ func init() {
 	pflag.String(logFormatName, defaultLogFormat, "Log format. Example values: 'text', 'json'")
 	pflag.String(syslogTagName, defaultSystemLogTag, "Syslog tag. Example: 'trac-dgen'")
 	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
+	pflag.String(pprofAddressName, defaultPPROFAddress, "pprof address")
 
 	pflag.String(hcAddressName, defaultHCAddress, "hc address")
 
