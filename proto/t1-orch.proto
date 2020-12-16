@@ -1,9 +1,9 @@
 syntax = "proto3";
 package lbos.t1.orch;
 
-
-service SendDummyRuntime {
-  rpc SendDummyRuntime (SendDummyRuntimeData) returns (EmptySendDummyData) {}
+service SendRuntime {
+  rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
+  rpc SendIpRuleRuntime(SendIpRuleRuntimeData) returns (EmptySendIpRuleData) {}
 }
 
 message SendDummyRuntimeData {
@@ -11,6 +11,11 @@ message SendDummyRuntimeData {
   string id = 2;
 }
 
-message EmptySendDummyData {
-  string id = 1;
+message EmptySendDummyData { string id = 1; }
+
+message SendIpRuleRuntimeData {
+  map<string, EmptySendIpRuleData> services = 1;
+  string id = 2;
 }
+
+message EmptySendIpRuleData { string id = 1; }
