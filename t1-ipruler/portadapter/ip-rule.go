@@ -4,24 +4,15 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"regexp"
 	"sync"
 
 	"github.com/sirupsen/logrus"
-	"github.com/thevan4/go-billet/executor"
 	"github.com/vishvananda/netlink"
 )
 
 const ipRuleName = "ipRule worker"
 
 // TODO: much more logs
-
-const ( // TODO: optimize regex
-	regexRuleForGetAllLinks      = `tun\d*\b`
-	regexRuleForGetRawAllIPRules = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}(\sdev\stun\d*\s)`
-	regexRuleForGetIpIPRule      = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}` // match 1
-	regexRuleForGetTableIPRule   = `tun(\d*)`                                                                            // match 1 group 1
-)
 
 // IPRuleEntity ...
 type IPRuleEntity struct {
@@ -137,36 +128,19 @@ func delIPRuleFwmark(tableAndMark int) error {
 	return nil
 }
 
-func (ipRuleEntity *IPRuleEntity) GetIPRuleRuntimeConfig(id string) (map[string]struct{}, error) {
+func (ipRuleEntity *IPRuleEntity) GetIPRuleRuntimeConfig(id string) (map[int]struct{}, error) {
 	ipRuleEntity.Lock()
 	defer ipRuleEntity.Unlock()
-	rawIPRules, err := executeForGetAllIPRules()
+	family := 2 // ipv4 hardcoded
+	rawIPRules, err := netlink.RuleList(family)
 	if err != nil {
 		return nil, err
 	}
-
-	ruleForGetRawAllIPRules := regexp.MustCompile(regexRuleForGetRawAllIPRules)
-	rr := ruleForGetRawAllIPRules.FindAllStringSubmatch(rawIPRules, -1)
-	rawIPRulesMap := make(map[string]struct{}, len(rr))
-	for _, r := range rr {
-		if len(r) != 0 {
-			rawIPRulesMap[r[0]] = struct{}{}
+	ipRulesMap := make(map[int]struct{})
+	for _, rawIPRule := range rawIPRules {
+		if rawIPRule.Mark > 0 {
+			ipRulesMap[rawIPRule.Mark] = struct{}{}
 		}
 	}
-
-	fmt.Println(rawIPRulesMap)
-
-	return nil, nil
-}
-
-func executeForGetAllIPRules() (string, error) {
-	args := []string{"ipRule", "list", "table", "all"}
-	stdout, _, exitCode, err := executor.Execute("ip", "", args)
-	if err != nil || exitCode != 0 {
-		return "", fmt.Errorf("error when execute command: ipRule list  table all: %v; exit code: %v",
-			err,
-			exitCode)
-	}
-
-	return string(stdout), nil
+	return ipRulesMap, nil
 }

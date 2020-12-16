@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/khannz/crispy-palm-tree/lbost1a-ipRule/application"
-	"github.com/khannz/crispy-palm-tree/lbost1a-ipRule/domain"
-	"github.com/khannz/crispy-palm-tree/lbost1a-ipRule/portadapter"
+	"github.com/khannz/crispy-palm-tree/t1-ipruler/application"
+	"github.com/khannz/crispy-palm-tree/t1-ipruler/domain"
+	"github.com/khannz/crispy-palm-tree/t1-ipruler/portadapter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -21,7 +21,7 @@ type GrpcServer struct {
 	facade  *RouteFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	transport.UnimplementedRouteGetWorkerServer
+	transport.UnimplementedIPRulerGetWorkerServer
 }
 
 func NewGrpcServer(addr string,
@@ -34,50 +34,50 @@ func NewGrpcServer(addr string,
 	}
 }
 
-// AddToRoute ...
-func (gs *GrpcServer) AddIPRule(ctx context.Context, incomeRouteData *transport.RouteData) (*transport.EmptyRouteData, error) {
+// AddToIPRuler ...
+func (gs *GrpcServer) AddToIPRuler(ctx context.Context, incomeIpData *transport.IpData) (*transport.EmptyGetIPRulerData, error) {
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcRouteName,
-		"event id": incomeRouteData.Id,
-	}).Infof("got job add to ip rule service %v", incomeRouteData)
-	if err := gs.facade.AddIPRule(incomeRouteData.HcDestIP, incomeRouteData.HcTunDestIP, incomeRouteData.Id); err != nil {
+		"event id": incomeIpData.Id,
+	}).Infof("got job add to ip rule service %v", incomeIpData)
+	if err := gs.facade.AddIPRule(incomeIpData.TunDestIP, incomeIpData.Id); err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
 			"entity":   grpcRouteName,
-			"event id": incomeRouteData.Id,
-		}).Errorf("failed job add to ip rule service %v", incomeRouteData)
-		return &transport.EmptyRouteData{}, err
+			"event id": incomeIpData.Id,
+		}).Errorf("failed job add to ip rule service %v", incomeIpData)
+		return &transport.EmptyGetIPRulerData{}, err
 	}
 
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcRouteName,
-		"event id": incomeRouteData.Id,
-	}).Infof("completed job add to ip rule service %v", incomeRouteData)
-	return &transport.EmptyRouteData{}, nil
+		"event id": incomeIpData.Id,
+	}).Infof("completed job add to ip rule service %v", incomeIpData)
+	return &transport.EmptyGetIPRulerData{}, nil
 }
 
-// RemoveIPRule ...
-func (gs *GrpcServer) RemoveIPRule(ctx context.Context, incomeRouteData *transport.RouteData) (*transport.EmptyRouteData, error) {
+// RemoveFromIPRuler ...
+func (gs *GrpcServer) RemoveFromIPRuler(ctx context.Context, incomeIpData *transport.IpData) (*transport.EmptyGetIPRulerData, error) {
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcRouteName,
-		"event id": incomeRouteData.Id,
-	}).Infof("got job remove from ip rule service %v", incomeRouteData)
-	if err := gs.facade.RemoveIPRule(incomeRouteData.HcDestIP, incomeRouteData.HcTunDestIP, incomeRouteData.NeedRemoveTunnel, incomeRouteData.Id); err != nil {
+		"event id": incomeIpData.Id,
+	}).Infof("got job remove from ip rule service %v", incomeIpData)
+	if err := gs.facade.RemoveIPRule(incomeIpData.TunDestIP, incomeIpData.Id); err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
 			"entity":   grpcRouteName,
-			"event id": incomeRouteData.Id,
-		}).Errorf("failed job remove from ip rule service %v", incomeRouteData)
-		return &transport.EmptyRouteData{}, err
+			"event id": incomeIpData.Id,
+		}).Errorf("failed job remove from ip rule service %v", incomeIpData)
+		return &transport.EmptyGetIPRulerData{}, err
 	}
 
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcRouteName,
-		"event id": incomeRouteData.Id,
-	}).Infof("completed job remove from ip rule service %v", incomeRouteData)
-	return &transport.EmptyRouteData{}, nil
+		"event id": incomeIpData.Id,
+	}).Infof("completed job remove from ip rule service %v", incomeIpData)
+	return &transport.EmptyGetIPRulerData{}, nil
 }
 
-// GetIPRuleRuntimeConfig ...
-func (gs *GrpcServer) GetIPRuleRuntimeConfig(ctx context.Context, incomeEmptyData *transport.EmptyRouteData) (*transport.GetAllRoutesData, error) {
+// GetIPRulerRuntime ...
+func (gs *GrpcServer) GetIPRulerRuntime(ctx context.Context, incomeEmptyData *transport.EmptyGetIPRulerData) (*transport.GetIPRulerRuntimeData, error) {
 	currentConfig, err := gs.facade.GetIPRuleRuntimeConfig(incomeEmptyData.Id)
 	if err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
@@ -86,11 +86,22 @@ func (gs *GrpcServer) GetIPRuleRuntimeConfig(ctx context.Context, incomeEmptyDat
 		}).Errorf("failed to get runtime config: %v", err)
 		return nil, err
 	}
-	pbCurrentConfig := &transport.GetAllRoutesData{
-		RouteData: currentConfig,
-		Id:        incomeEmptyData.Id,
+
+	convertedCurrentConfig := convertMapToPbMap(currentConfig)
+
+	pbCurrentConfig := &transport.GetIPRulerRuntimeData{
+		Fwmarks: convertedCurrentConfig,
+		Id:      incomeEmptyData.Id,
 	}
 	return pbCurrentConfig, nil
+}
+
+func convertMapToPbMap(currentConfig map[int]struct{}) map[int64]*transport.EmptyGetIPRulerData {
+	convertedCurrentConfig := make(map[int64]*transport.EmptyGetIPRulerData, len(currentConfig))
+	for cc := range currentConfig {
+		convertedCurrentConfig[int64(cc)] = &transport.EmptyGetIPRulerData{}
+	}
+	return convertedCurrentConfig
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
@@ -98,13 +109,13 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to cleanup socket info: %v", err)
 	}
 
-	lis, err := net.Listen("unix", grpcServer.addr)
-	// lis, err := net.Listen("tcp", "127.0.0.1:9000")
+	// lis, err := net.Listen("unix", grpcServer.addr)
+	lis, err := net.Listen("tcp", "127.0.0.1:9000")
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	transport.RegisterRouteGetWorkerServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterIPRulerGetWorkerServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.serve(lis)
 	return nil
 }

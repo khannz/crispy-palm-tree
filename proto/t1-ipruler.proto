@@ -13,7 +13,7 @@ message IpData {
 }
 
 message GetIPRulerRuntimeData {
-  map<string, EmptyGetIPRulerData> services = 1;
+  map<int64, EmptyGetIPRulerData> fwmarks = 1;
   string id = 2;
 }
 

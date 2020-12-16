@@ -3,8 +3,8 @@ package application
 import (
 	"time"
 
-	"github.com/khannz/crispy-palm-tree/lbost1a-ipRule/domain"
-	"github.com/khannz/crispy-palm-tree/lbost1a-ipRule/usecase"
+	"github.com/khannz/crispy-palm-tree/t1-ipruler/domain"
+	"github.com/khannz/crispy-palm-tree/t1-ipruler/usecase"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,7 +42,7 @@ func (ipRuleFacade *RouteFacade) RemoveIPRule(hcTunDestIP string, id string) err
 	return newAddToRouteEntity.RemoveIPRule(hcTunDestIP, id)
 }
 
-func (ipRuleFacade *RouteFacade) GetIPRuleRuntimeConfig(id string) (map[string]struct{}, error) {
+func (ipRuleFacade *RouteFacade) GetIPRuleRuntimeConfig(id string) (map[int]struct{}, error) {
 	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(ipRuleFacade.RouteWorker)
 	return newGetRuntimeConfigEntity.GetIPRuleRuntimeConfig(id)
 }

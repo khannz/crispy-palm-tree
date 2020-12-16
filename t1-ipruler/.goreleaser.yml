@@ -22,7 +22,7 @@ nfpms:
     file_name_template: "lbost1aipr_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
     vendor: thevan4
-    homepage: https://github.com/khannz/crispy-palm-tree/lbost1a-ipRule
+    homepage: https://github.com/khannz/crispy-palm-tree/t1-ipruler
     maintainer: SDN <sdn@*.com>
     description: lbost1aipr
     license: Apache-2.0

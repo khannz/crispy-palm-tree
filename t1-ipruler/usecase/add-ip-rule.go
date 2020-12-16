@@ -1,6 +1,6 @@
 package usecase
 
-import "github.com/khannz/crispy-palm-tree/lbost1a-ipRule/domain"
+import "github.com/khannz/crispy-palm-tree/t1-ipruler/domain"
 
 type AddToRouteEntity struct {
 	ipRuleWorker domain.RouteWorker

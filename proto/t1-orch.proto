@@ -14,7 +14,7 @@ message SendDummyRuntimeData {
 message EmptySendDummyData { string id = 1; }
 
 message SendIpRuleRuntimeData {
-  map<string, EmptySendIpRuleData> services = 1;
+  map<int64, EmptySendIpRuleData> fwmarks = 1;
   string id = 2;
 }
 
