@@ -1,25 +1,21 @@
 syntax = "proto3";
 package lbos.t1.route;
 
-
 service RouteGetWorker {
-  rpc AddRoute (RouteData) returns (EmptyRouteData) {}
-  rpc RemoveRoute (RouteData) returns (EmptyRouteData) {}
+  rpc AddRoute(RouteData) returns (EmptyRouteData) {}
+  rpc RemoveRoute(RouteData) returns (EmptyRouteData) {}
   rpc GetRouteRuntimeConfig(EmptyRouteData) returns (GetAllRoutesData) {}
 }
 
 message RouteData {
   string hcDestIP = 1;
   string hcTunDestIP = 2;
-  bool needRemoveTunnel = 3;
-  string id = 4;
+  string id = 3;
 }
 
 message GetAllRoutesData {
   repeated string routeData = 1;
   string id = 2;
-} 
-
-message EmptyRouteData {
-  string id = 1;
 }
+
+message EmptyRouteData { string id = 1; }

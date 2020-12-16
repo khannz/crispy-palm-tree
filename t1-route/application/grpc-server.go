@@ -60,7 +60,7 @@ func (gs *GrpcServer) RemoveRoute(ctx context.Context, incomeRouteData *transpor
 		"entity":   grpcRouteName,
 		"event id": incomeRouteData.Id,
 	}).Infof("got job remove from route service %v", incomeRouteData)
-	if err := gs.facade.RemoveRoute(incomeRouteData.HcDestIP, incomeRouteData.HcTunDestIP, incomeRouteData.NeedRemoveTunnel, incomeRouteData.Id); err != nil {
+	if err := gs.facade.RemoveRoute(incomeRouteData.HcDestIP, incomeRouteData.HcTunDestIP, incomeRouteData.Id); err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
 			"entity":   grpcRouteName,
 			"event id": incomeRouteData.Id,
@@ -97,8 +97,8 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to cleanup socket info: %v", err)
 	}
 
-	lis, err := net.Listen("unix", grpcServer.addr)
-	// lis, err := net.Listen("tcp", "127.0.0.1:9000")
+	// lis, err := net.Listen("unix", grpcServer.addr)
+	lis, err := net.Listen("tcp", "127.0.0.1:9000")
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
