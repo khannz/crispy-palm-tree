@@ -23,8 +23,8 @@ const (
 
 	defaultIDType = "nanoid"
 
-	defaultHCAddress = "/var/run/lbost1ah.sock"
-	defaultHCTimeout = 2 * time.Second
+	defaultOrchAddress = "/var/run/lbost1ah.sock"
+	defaultOrchTimeout = 2 * time.Second
 
 	defaultRouteAddress = "/var/run/lbost1ar.sock"
 	defaultRouteTimeout = 2 * time.Second
@@ -39,8 +39,8 @@ const (
 	syslogTagName        = "syslog-tag"
 	logEventLocationName = "log-event-location"
 
-	hcAddressName = "hc-address"
-	hcTimeoutName = "hc-timeout"
+	orchAddressName = "orch-address"
+	orchTimeoutName = "orch-timeout"
 
 	routeAddressName = "route-address"
 	routeTimeoutName = "route-timeout"
@@ -76,8 +76,8 @@ func init() {
 	pflag.String(syslogTagName, defaultSystemLogTag, "Syslog tag. Example: 'trac-dgen'")
 	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
 
-	pflag.String(hcAddressName, defaultHCAddress, "hc address")
-	pflag.Duration(hcTimeoutName, defaultHCTimeout, "hc timeout")
+	pflag.String(orchAddressName, defaultOrchAddress, "orch address")
+	pflag.Duration(orchTimeoutName, defaultOrchTimeout, "orch timeout")
 
 	pflag.String(routeAddressName, defaultRouteAddress, "route address")
 	pflag.Duration(routeTimeoutName, defaultRouteTimeout, "route address")

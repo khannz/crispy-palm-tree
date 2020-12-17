@@ -31,8 +31,8 @@ var rootCmd = &cobra.Command{
 			"log output":       viperConfig.GetString(logOutputName),
 			"syslog tag":       viperConfig.GetString(syslogTagName),
 
-			"hc address":    viperConfig.GetString(hcAddressName),
-			"hc timeout":    viperConfig.GetDuration(hcTimeoutName),
+			"orch address":  viperConfig.GetString(orchAddressName),
+			"orch timeout":  viperConfig.GetDuration(orchTimeoutName),
 			"route address": viperConfig.GetString(routeAddressName),
 			"route timeout": viperConfig.GetDuration(routeTimeoutName),
 			"id type":       viperConfig.GetString(idTypeName),
@@ -50,15 +50,15 @@ var rootCmd = &cobra.Command{
 		// routeConfigurator end
 
 		// OrchestratorWorker start
-		hw := portadapter.NewOrchestratorWorkerEntity(viperConfig.GetString(hcAddressName),
-			viperConfig.GetDuration(hcTimeoutName),
+		orch := portadapter.NewOrchestratorWorkerEntity(viperConfig.GetString(orchAddressName),
+			viperConfig.GetDuration(orchTimeoutName),
 			logging)
 		// OrchestratorWorker end
 
 		// init config end
 
 		facade := application.NewRouteFacade(routeConfigurator,
-			hw,
+			orch,
 			idGenerator,
 			logging)
 
