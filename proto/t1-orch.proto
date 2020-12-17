@@ -1,9 +1,9 @@
 syntax = "proto3";
 package lbos.t1.orch;
 
-
 service SendDummyRuntime {
-  rpc SendDummyRuntime (SendDummyRuntimeData) returns (EmptySendDummyData) {}
+  rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
+  rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
 }
 
 message SendDummyRuntimeData {
@@ -11,6 +11,11 @@ message SendDummyRuntimeData {
   string id = 2;
 }
 
-message EmptySendDummyData {
-  string id = 1;
+message EmptySendDummyData { string id = 1; }
+
+message SendRouteRuntimeData {
+  repeated string routeData = 1; // TODO: need example
+  string id = 2;
 }
+
+message EmptySendRouteData { string id = 1; }
