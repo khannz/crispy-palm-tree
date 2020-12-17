@@ -40,10 +40,9 @@ func (routeWorker *RouteWorker) AddRoute(hcDestIP string, hcTunDestIP string, id
 	defer sendCancel()
 
 	pbAddRoute := &transport.RouteData{
-		HcDestIP:         hcDestIP,
-		HcTunDestIP:      hcTunDestIP,
-		NeedRemoveTunnel: false,
-		Id:               id,
+		HcDestIP:    hcDestIP,
+		HcTunDestIP: hcTunDestIP,
+		Id:          id,
 	}
 	_, err = routeClient.AddRoute(sendCtx, pbAddRoute)
 	return err
@@ -65,10 +64,9 @@ func (routeWorker *RouteWorker) RemoveRoute(hcDestIP string, hcTunDestIP string,
 	defer sendCancel()
 
 	pbRemoveRoute := &transport.RouteData{
-		HcDestIP:         hcDestIP,
-		HcTunDestIP:      hcTunDestIP,
-		NeedRemoveTunnel: false,
-		Id:               id,
+		HcDestIP:    hcDestIP,
+		HcTunDestIP: hcTunDestIP,
+		Id:          id,
 	}
 	_, err = routeClient.RemoveRoute(sendCtx, pbRemoveRoute)
 	return err

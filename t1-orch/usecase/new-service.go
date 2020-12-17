@@ -53,10 +53,17 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 	}).Infof("start usecase for new service: %v", serviceInfo)
 
 	if serviceInfo.RoutingType == "tunneling" {
-		for _, appSrv := range serviceInfo.ApplicationServers { // TODO: "nat not ready, only tcp at now"
+		for _, appSrv := range serviceInfo.ApplicationServers { // in nat check to healthcheck address. may be broken
 			if err := newService.routeMaker.AddRoute(serviceInfo.IP, appSrv.IP, newServiceID); err != nil {
 				return err
 			}
+
+			// if err := newService.tunnelMaker.AddTunnel(); err != nil { FIXME:
+			// 	return err
+			// }
+			// if err := newService.ipruleMaker.AddIPRule(); err != nil { FIXME:
+			// 	return err
+			// }
 		}
 	}
 
