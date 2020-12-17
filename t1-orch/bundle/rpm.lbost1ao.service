@@ -2,6 +2,7 @@
 Description=Software network load balancer orchestrator service
 ConditionPathExists=/opt/lbost1ao/lbost1ao
 After=network.target
+After=lbost1ah.service
 
 [Service]
 Type=simple
