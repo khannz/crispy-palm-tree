@@ -48,7 +48,7 @@ func (routeWorker *RouteWorker) AddRoute(hcDestIP string, hcTunDestIP string, id
 	return err
 }
 
-func (routeWorker *RouteWorker) RemoveRoute(hcDestIP string, hcTunDestIP string, needRemoveTunnel bool, id string) error {
+func (routeWorker *RouteWorker) RemoveRoute(hcDestIP string, hcTunDestIP string, id string) error {
 	withContextDialer := makeDialer(routeWorker.address, 2*time.Second)
 
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)

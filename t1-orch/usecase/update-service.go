@@ -58,18 +58,21 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 	if err != nil {
 		return err
 	}
-	// appServersForUpdate
+	// appServersForUpdate - FIXME: CRITICAL: broken. need logic for count tunnels/routes/rules for add/remove
 	appServersForCreate, _, appServersForRemove := updateService.formDiffForApplicationServersInfo(currentServiceInfo.ApplicationServers, serviceInfo.ApplicationServers)
 	if serviceInfo.RoutingType == "tunneling" {
-		for _, appSrvForAdd := range appServersForCreate { // TODO: "nat not ready, only tcp at now"
-			if err := updateService.routeMaker.AddRoute(serviceInfo.IP, appSrvForAdd.IP, updateServiceID); err != nil {
+		for _, appSrvForAdd := range appServersForCreate {
+			if err := addTunnelRouteIpRule(updateService.routeMaker,
+				serviceInfo.IP,
+				appSrvForAdd.IP,
+				updateServiceID); err != nil {
 				return err
 			}
 		}
 
-		for _, appSrvForRemove := range appServersForRemove { // TODO: "nat not ready, only tcp at now"
-			tunnelStillNeeded := updateService.memoryWorker.NeedTunnelForApplicationServer(appSrvForRemove.IP)
-			if err := updateService.routeMaker.RemoveRoute(serviceInfo.IP, appSrvForRemove.IP, !tunnelStillNeeded, updateServiceID); err != nil {
+		for _, appSrvForRemove := range appServersForRemove {
+			// tunnelStillNeeded := updateService.memoryWorker.NeedTunnelForApplicationServer(appSrvForRemove.IP) // FIXME: never remove tunnels
+			if err := removeRouteTunnelIpRule(updateService.routeMaker, serviceInfo.IP, appSrvForRemove.IP, updateServiceID); err != nil {
 				return err
 			}
 		}

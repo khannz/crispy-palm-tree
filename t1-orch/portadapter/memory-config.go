@@ -90,6 +90,7 @@ func (memoryWorker *MemoryWorker) removeApplicationServer(appSrvIP string) {
 }
 
 func (memoryWorker *MemoryWorker) UpdateService(serviceInfo *domain.ServiceInfo) error {
+	// FIXME: need to check app servers: balance for add/remove tunnels is broken
 	memoryWorker.Lock()
 	defer memoryWorker.Unlock()
 	if _, isServiceIn := memoryWorker.Services[serviceInfo.Address]; !isServiceIn {

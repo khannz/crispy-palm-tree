@@ -53,9 +53,12 @@ func (removeService *RemoveServiceEntity) RemoveService(serviceInfo *domain.Serv
 	}).Infof("start usecase for remove service: %v", serviceInfo)
 
 	if serviceInfo.RoutingType == "tunneling" {
-		for _, appSrv := range serviceInfo.ApplicationServers { // TODO: "nat not ready, only tcp at now"
-			tunnelStillNeeded := removeService.memoryWorker.NeedTunnelForApplicationServer(appSrv.IP)
-			if err := removeService.routeMaker.RemoveRoute(serviceInfo.IP, appSrv.IP, !tunnelStillNeeded, removeServiceID); err != nil { // FIXME: never remove tunnels
+		for _, appSrv := range serviceInfo.ApplicationServers {
+			// tunnelStillNeeded := removeService.memoryWorker.NeedTunnelForApplicationServer(appSrv.IP) // FIXME: never remove tunnels
+			if err := removeRouteTunnelIpRule(removeService.routeMaker,
+				serviceInfo.IP,
+				appSrv.IP,
+				removeServiceID); err != nil {
 				return err
 			}
 		}
