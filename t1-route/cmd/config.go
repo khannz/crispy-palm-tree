@@ -23,7 +23,7 @@ const (
 
 	defaultIDType = "nanoid"
 
-	defaultOrchAddress = "/var/run/lbost1ah.sock"
+	defaultOrchAddress = "/var/run/lbost1ao.sock"
 	defaultOrchTimeout = 2 * time.Second
 
 	defaultRouteAddress = "/var/run/lbost1ar.sock"
