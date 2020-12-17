@@ -165,5 +165,5 @@ var _RouteGetWorker_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "route.proto",
+	Metadata: "t1-route.proto",
 }

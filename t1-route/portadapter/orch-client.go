@@ -39,11 +39,11 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runti
 	}
 	defer conn.Close()
 
-	orchClient := transport.NewSendRuntimeClient(conn)
+	orchClient := transport.NewSendDummyRuntimeClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
-	pbRuntimeConfig := &transport.SendAllRoutesRuntimeData{
+	pbRuntimeConfig := &transport.SendRouteRuntimeData{
 		RouteData: runtimeConfig,
 		Id:        id,
 	}
