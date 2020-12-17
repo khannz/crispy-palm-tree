@@ -3,7 +3,7 @@ package lbos.t1.orch;
 
 service SendDummyRuntime {
   rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
-  rpc SendRouteRuntime(SendAllRoutesRuntimeData) returns (EmptySendRouteData) {}
+  rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
 }
 
 message SendDummyRuntimeData {
@@ -13,7 +13,7 @@ message SendDummyRuntimeData {
 
 message EmptySendDummyData { string id = 1; }
 
-message SendAllRoutesRuntimeData {
+message SendRouteRuntimeData {
   repeated string routeData = 1;
   string id = 2;
 }
