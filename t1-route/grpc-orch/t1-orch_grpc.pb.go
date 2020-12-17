@@ -13,166 +13,119 @@ import (
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion7
 
-// SendDummyRuntimeClient is the client API for SendDummyRuntime service.
+// SendRuntimeClient is the client API for SendRuntime service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type SendDummyRuntimeClient interface {
+type SendRuntimeClient interface {
 	SendDummyRuntime(ctx context.Context, in *SendDummyRuntimeData, opts ...grpc.CallOption) (*EmptySendDummyData, error)
+	SendRouteRuntime(ctx context.Context, in *SendAllRoutesRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error)
 }
 
-type sendDummyRuntimeClient struct {
+type sendRuntimeClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewSendDummyRuntimeClient(cc grpc.ClientConnInterface) SendDummyRuntimeClient {
-	return &sendDummyRuntimeClient{cc}
+func NewSendRuntimeClient(cc grpc.ClientConnInterface) SendRuntimeClient {
+	return &sendRuntimeClient{cc}
 }
 
-func (c *sendDummyRuntimeClient) SendDummyRuntime(ctx context.Context, in *SendDummyRuntimeData, opts ...grpc.CallOption) (*EmptySendDummyData, error) {
+func (c *sendRuntimeClient) SendDummyRuntime(ctx context.Context, in *SendDummyRuntimeData, opts ...grpc.CallOption) (*EmptySendDummyData, error) {
 	out := new(EmptySendDummyData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendDummyRuntime/SendDummyRuntime", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/SendDummyRuntime", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// SendDummyRuntimeServer is the server API for SendDummyRuntime service.
-// All implementations must embed UnimplementedSendDummyRuntimeServer
+func (c *sendRuntimeClient) SendRouteRuntime(ctx context.Context, in *SendAllRoutesRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error) {
+	out := new(EmptySendRouteData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/SendRouteRuntime", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SendRuntimeServer is the server API for SendRuntime service.
+// All implementations must embed UnimplementedSendRuntimeServer
 // for forward compatibility
-type SendDummyRuntimeServer interface {
+type SendRuntimeServer interface {
 	SendDummyRuntime(context.Context, *SendDummyRuntimeData) (*EmptySendDummyData, error)
-	mustEmbedUnimplementedSendDummyRuntimeServer()
+	SendRouteRuntime(context.Context, *SendAllRoutesRuntimeData) (*EmptySendRouteData, error)
+	mustEmbedUnimplementedSendRuntimeServer()
 }
 
-// UnimplementedSendDummyRuntimeServer must be embedded to have forward compatible implementations.
-type UnimplementedSendDummyRuntimeServer struct {
+// UnimplementedSendRuntimeServer must be embedded to have forward compatible implementations.
+type UnimplementedSendRuntimeServer struct {
 }
 
-func (UnimplementedSendDummyRuntimeServer) SendDummyRuntime(context.Context, *SendDummyRuntimeData) (*EmptySendDummyData, error) {
+func (UnimplementedSendRuntimeServer) SendDummyRuntime(context.Context, *SendDummyRuntimeData) (*EmptySendDummyData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendDummyRuntime not implemented")
 }
-func (UnimplementedSendDummyRuntimeServer) mustEmbedUnimplementedSendDummyRuntimeServer() {}
+func (UnimplementedSendRuntimeServer) SendRouteRuntime(context.Context, *SendAllRoutesRuntimeData) (*EmptySendRouteData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendRouteRuntime not implemented")
+}
+func (UnimplementedSendRuntimeServer) mustEmbedUnimplementedSendRuntimeServer() {}
 
-// UnsafeSendDummyRuntimeServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to SendDummyRuntimeServer will
+// UnsafeSendRuntimeServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SendRuntimeServer will
 // result in compilation errors.
-type UnsafeSendDummyRuntimeServer interface {
-	mustEmbedUnimplementedSendDummyRuntimeServer()
+type UnsafeSendRuntimeServer interface {
+	mustEmbedUnimplementedSendRuntimeServer()
 }
 
-func RegisterSendDummyRuntimeServer(s *grpc.Server, srv SendDummyRuntimeServer) {
-	s.RegisterService(&_SendDummyRuntime_serviceDesc, srv)
+func RegisterSendRuntimeServer(s *grpc.Server, srv SendRuntimeServer) {
+	s.RegisterService(&_SendRuntime_serviceDesc, srv)
 }
 
-func _SendDummyRuntime_SendDummyRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _SendRuntime_SendDummyRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SendDummyRuntimeData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SendDummyRuntimeServer).SendDummyRuntime(ctx, in)
+		return srv.(SendRuntimeServer).SendDummyRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.orch.SendDummyRuntime/SendDummyRuntime",
+		FullMethod: "/lbos.t1.orch.SendRuntime/SendDummyRuntime",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SendDummyRuntimeServer).SendDummyRuntime(ctx, req.(*SendDummyRuntimeData))
+		return srv.(SendRuntimeServer).SendDummyRuntime(ctx, req.(*SendDummyRuntimeData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _SendDummyRuntime_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "lbos.t1.orch.SendDummyRuntime",
-	HandlerType: (*SendDummyRuntimeServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "SendDummyRuntime",
-			Handler:    _SendDummyRuntime_SendDummyRuntime_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "t1-orch.proto",
-}
-
-// SendRouteRuntimeClient is the client API for SendRouteRuntime service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type SendRouteRuntimeClient interface {
-	SendRouteRuntime(ctx context.Context, in *SendAllRoutesRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error)
-}
-
-type sendRouteRuntimeClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewSendRouteRuntimeClient(cc grpc.ClientConnInterface) SendRouteRuntimeClient {
-	return &sendRouteRuntimeClient{cc}
-}
-
-func (c *sendRouteRuntimeClient) SendRouteRuntime(ctx context.Context, in *SendAllRoutesRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error) {
-	out := new(EmptySendRouteData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRouteRuntime/SendRouteRuntime", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// SendRouteRuntimeServer is the server API for SendRouteRuntime service.
-// All implementations must embed UnimplementedSendRouteRuntimeServer
-// for forward compatibility
-type SendRouteRuntimeServer interface {
-	SendRouteRuntime(context.Context, *SendAllRoutesRuntimeData) (*EmptySendRouteData, error)
-	mustEmbedUnimplementedSendRouteRuntimeServer()
-}
-
-// UnimplementedSendRouteRuntimeServer must be embedded to have forward compatible implementations.
-type UnimplementedSendRouteRuntimeServer struct {
-}
-
-func (UnimplementedSendRouteRuntimeServer) SendRouteRuntime(context.Context, *SendAllRoutesRuntimeData) (*EmptySendRouteData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendRouteRuntime not implemented")
-}
-func (UnimplementedSendRouteRuntimeServer) mustEmbedUnimplementedSendRouteRuntimeServer() {}
-
-// UnsafeSendRouteRuntimeServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to SendRouteRuntimeServer will
-// result in compilation errors.
-type UnsafeSendRouteRuntimeServer interface {
-	mustEmbedUnimplementedSendRouteRuntimeServer()
-}
-
-func RegisterSendRouteRuntimeServer(s *grpc.Server, srv SendRouteRuntimeServer) {
-	s.RegisterService(&_SendRouteRuntime_serviceDesc, srv)
-}
-
-func _SendRouteRuntime_SendRouteRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _SendRuntime_SendRouteRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SendAllRoutesRuntimeData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SendRouteRuntimeServer).SendRouteRuntime(ctx, in)
+		return srv.(SendRuntimeServer).SendRouteRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.orch.SendRouteRuntime/SendRouteRuntime",
+		FullMethod: "/lbos.t1.orch.SendRuntime/SendRouteRuntime",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SendRouteRuntimeServer).SendRouteRuntime(ctx, req.(*SendAllRoutesRuntimeData))
+		return srv.(SendRuntimeServer).SendRouteRuntime(ctx, req.(*SendAllRoutesRuntimeData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _SendRouteRuntime_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "lbos.t1.orch.SendRouteRuntime",
-	HandlerType: (*SendRouteRuntimeServer)(nil),
+var _SendRuntime_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "lbos.t1.orch.SendRuntime",
+	HandlerType: (*SendRuntimeServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "SendDummyRuntime",
+			Handler:    _SendRuntime_SendDummyRuntime_Handler,
+		},
+		{
 			MethodName: "SendRouteRuntime",
-			Handler:    _SendRouteRuntime_SendRouteRuntime_Handler,
+			Handler:    _SendRuntime_SendRouteRuntime_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

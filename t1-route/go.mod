@@ -1,4 +1,4 @@
-module github.com/khannz/crispy-palm-tree/lbost1a-route
+module github.com/khannz/crispy-palm-tree/t1-route
 
 go 1.15
 

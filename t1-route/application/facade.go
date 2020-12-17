@@ -3,8 +3,8 @@ package application
 import (
 	"time"
 
-	"github.com/khannz/crispy-palm-tree/lbost1a-route/domain"
-	"github.com/khannz/crispy-palm-tree/lbost1a-route/usecase"
+	"github.com/khannz/crispy-palm-tree/t1-route/domain"
+	"github.com/khannz/crispy-palm-tree/t1-route/usecase"
 	"github.com/sirupsen/logrus"
 )
 

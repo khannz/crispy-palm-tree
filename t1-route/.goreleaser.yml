@@ -22,7 +22,7 @@ nfpms:
     file_name_template: "lbost1ar_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
     vendor: thevan4
-    homepage: https://github.com/khannz/crispy-palm-tree/lbost1a-route
+    homepage: https://github.com/khannz/crispy-palm-tree/t1-route
     maintainer: SDN <sdn@*.com>
     description: lbost1ar
     license: Apache-2.0

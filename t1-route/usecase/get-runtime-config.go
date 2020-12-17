@@ -1,6 +1,6 @@
 package usecase
 
-import "github.com/khannz/crispy-palm-tree/lbost1a-route/domain"
+import "github.com/khannz/crispy-palm-tree/t1-route/domain"
 
 type GetRuntimeConfigEntity struct {
 	routeWorker domain.RouteWorker

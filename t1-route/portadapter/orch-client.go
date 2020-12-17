@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	transport "github.com/khannz/crispy-palm-tree/lbost1a-route/grpc-orch"
+	transport "github.com/khannz/crispy-palm-tree/t1-route/grpc-orch"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -39,7 +39,7 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runti
 	}
 	defer conn.Close()
 
-	healthcheckClient := transport.NewSendRouteRuntimeClient(conn)
+	healthcheckClient := transport.NewSendRuntimeClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
