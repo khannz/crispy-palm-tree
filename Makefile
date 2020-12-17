@@ -25,10 +25,12 @@ orch-dl-mods:
 	cd t1-orch && go mod download
 
 orch-grpc:
+	mkdir -p ./t1-orch/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-orch/ --go-grpc_out=./t1-orch/grpc-orch/ ./proto/t1-orch.proto
 	mkdir -p ./t1-orch/grpc-dummy
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-dummy/ --go-grpc_out=./t1-orch/grpc-dummy/ ./proto/dummy.proto
 	mkdir -p ./t1-orch/grpc-route
-	protoc -I ./proto/ --go_out=./t1-orch/grpc-route/ --go-grpc_out=./t1-orch/grpc-route/ ./proto/route.proto
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-route/ --go-grpc_out=./t1-orch/grpc-route/ ./proto/t1-route.proto
 	mkdir -p ./t1-orch/grpc-ipvs
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-ipvs/ --go-grpc_out=./t1-orch/grpc-ipvs/ ./proto/t1-ipvs.proto
 	mkdir -p ./t1-orch/grpc-healthcheck

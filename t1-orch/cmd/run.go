@@ -37,6 +37,9 @@ var rootCmd = &cobra.Command{
 			"t1 orch id":            viperConfig.GetString(t1OrchIDName),
 			"healthcheck interface": viperConfig.GetString(hlckInterfaceName),
 
+			"orch address": viperConfig.GetString(orchAddressName),
+			"orch timeout": viperConfig.GetDuration(orchTimeoutName),
+
 			"id type":       viperConfig.GetString(idTypeName),
 			"hc address":    viperConfig.GetString(healthcheckAddressName),
 			"hc timeout":    viperConfig.GetDuration(responseTimerName),
@@ -56,6 +59,8 @@ var rootCmd = &cobra.Command{
 		}).Info("")
 
 		gracefulShutdown := &domain.GracefulShutdown{}
+
+		// TODO: global locker. consul and get runtime may concurrent. if consul update => retake runtime after apply
 
 		// more about signals: https://en.wikipedia.org/wiki/Signal_(IPC)
 		signalChan := make(chan os.Signal, 2)
@@ -102,19 +107,26 @@ var rootCmd = &cobra.Command{
 			idGenerator,
 			logging)
 
-		// consul worker start
-		consulWorker, err := application.NewConsulWorker(facade,
-			viperConfig.GetString(consulAddressName),
-			viperConfig.GetString(consulSubscribePathName),
-			viperConfig.GetString(consulAppServersPathName),
-			viperConfig.GetString(consulServiceManifestName),
-			logging)
-		if err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to etcd fail: %v", err)
+		// TODO: unimplemented read runtime
+		grpcServer := application.NewGrpcServer(viperConfig.GetString(orchAddressName), facade, logging) // gorutine inside
+		if err := grpcServer.StartServer(); err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)
 		}
-		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to consul")
-		go consulWorker.ConsulConfigWatch()
-		go consulWorker.JobWorker()
+		defer grpcServer.CloseServer()
+
+		// // consul worker start
+		// consulWorker, err := application.NewConsulWorker(facade,
+		// 	viperConfig.GetString(consulAddressName),
+		// 	viperConfig.GetString(consulSubscribePathName),
+		// 	viperConfig.GetString(consulAppServersPathName),
+		// 	viperConfig.GetString(consulServiceManifestName),
+		// 	logging)
+		// if err != nil {
+		// 	logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to consul fail: %v", err)
+		// }
+		// logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to consul")
+		// go consulWorker.ConsulConfigWatch()
+		// go consulWorker.JobWorker()
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("orch is running")
 

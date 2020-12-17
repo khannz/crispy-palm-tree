@@ -26,6 +26,9 @@ const (
 
 	defaultIDType = "nanoid"
 
+	defaultOrchAddress = "/var/run/lbost1ao.sock"
+	defaultOrchTimeout = 2 * time.Second
+
 	defaultDummyAddress = "/var/run/lbost1ad.sock"
 	defaultDummyTimeout = 2 * time.Second
 	defaultRouteAddress = "/var/run/lbost1ar.sock"
@@ -57,6 +60,9 @@ const (
 	maxShutdownTimeName = "max-shutdown-time"
 
 	idTypeName = "id-type"
+
+	orchAddressName = "orch-addr"
+	orchTimeoutName = "orch-timeout"
 
 	healthcheckAddressName = "hc-address"
 	responseTimerName      = "hc-timeout"
@@ -107,6 +113,9 @@ func init() {
 	pflag.String(hlckInterfaceName, defaultHlckInterface, "healthcheck interface")
 
 	pflag.String(idTypeName, defaultIDType, "ID type(nanoid|uuid4)")
+
+	pflag.String(orchAddressName, defaultOrchAddress, "orch address. Example:'/var/run/lbost1ao.sock'")
+	pflag.Duration(orchTimeoutName, defaultOrchTimeout, "orch request timeout")
 
 	pflag.String(healthcheckAddressName, defaultHealthcheckAddress, "Healthcheck address. Example:'127.0.0.1:7000'")
 	pflag.Duration(responseTimerName, defaultResponseTimer, "Healthcheck request timeout")
