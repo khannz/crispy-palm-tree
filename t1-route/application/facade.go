@@ -49,7 +49,7 @@ func (routeFacade *RouteFacade) GetRouteRuntimeConfig(id string) ([]string, erro
 
 func (routeFacade *RouteFacade) TryToSendRuntimeConfig(id string) {
 	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(routeFacade.RouteWorker)
-	newHealthcheckSenderEntity := usecase.NewHealthcheckSenderEntity(routeFacade.OrchestratorWorker)
+	newOrchSenderEntity := usecase.NewOrchSenderEntity(routeFacade.OrchestratorWorker)
 	for {
 		currentConfig, err := newGetRuntimeConfigEntity.GetRouteRuntimeConfig(id)
 		if err != nil {
@@ -61,7 +61,7 @@ func (routeFacade *RouteFacade) TryToSendRuntimeConfig(id string) {
 			continue
 		}
 
-		if err := newHealthcheckSenderEntity.SendToHC(currentConfig, id); err != nil {
+		if err := newOrchSenderEntity.SendToOrch(currentConfig, id); err != nil {
 			routeFacade.Logging.WithFields(logrus.Fields{
 				"entity":   sendRuntimeConfigName,
 				"event id": id,
