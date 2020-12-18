@@ -23,7 +23,7 @@ const (
 
 	defaultIDType = "nanoid"
 
-	defaultHCAddress = "/var/run/lbost1ah.sock"
+	defaultHCAddress = "/var/run/lbost1ao.sock"
 	defaultHCTimeout = 2 * time.Second
 
 	defaultRouteAddress = "/var/run/lbost1aipr.sock"
