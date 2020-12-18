@@ -16,6 +16,7 @@ const facadeApplyName = "facade apply config"
 // T1OrchFacade struct
 type T1OrchFacade struct {
 	MemoryWorker     domain.MemoryWorker
+	TunnelWorker     domain.TunnelWorker
 	RouteWorker      domain.RouteWorker
 	HeathcheckEntity *healthcheck.HeathcheckEntity
 	GracefulShutdown *domain.GracefulShutdown
@@ -26,6 +27,7 @@ type T1OrchFacade struct {
 
 // NewT1OrchFacade ...
 func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
+	tunnelWorker domain.TunnelWorker,
 	routeWorker domain.RouteWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
@@ -34,6 +36,7 @@ func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
 
 	return &T1OrchFacade{
 		MemoryWorker:     memoryWorker,
+		TunnelWorker:     tunnelWorker,
 		RouteWorker:      routeWorker,
 		HeathcheckEntity: hc,
 		GracefulShutdown: gracefulShutdown,

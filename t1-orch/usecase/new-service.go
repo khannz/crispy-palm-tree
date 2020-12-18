@@ -13,6 +13,7 @@ const newServiceName = "new service"
 // NewServiceEntity ...
 type NewServiceEntity struct {
 	memoryWorker     domain.MemoryWorker
+	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
 	hc               *healthcheck.HeathcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
@@ -21,12 +22,14 @@ type NewServiceEntity struct {
 
 // NewNewServiceEntity ... // TODO: naming
 func NewNewServiceEntity(memoryWorker domain.MemoryWorker,
+	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *NewServiceEntity {
 	return &NewServiceEntity{
 		memoryWorker:     memoryWorker,
+		tunnelMaker:      tunnelMaker,
 		routeMaker:       routeMaker,
 		hc:               hc,
 		gracefulShutdown: gracefulShutdown,
@@ -55,7 +58,8 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 	// TODO: at nat checks will be to healthcheck address. may be broken
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrv := range serviceInfo.ApplicationServers {
-			if err := addTunnelRouteIpRule(newService.routeMaker,
+			if err := addTunnelRouteIpRule(newService.tunnelMaker,
+				newService.routeMaker,
 				serviceInfo.IP,
 				appSrv.IP,
 				newServiceID); err != nil {

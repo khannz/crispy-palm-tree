@@ -29,12 +29,14 @@ const (
 	defaultOrchAddress = "/var/run/lbost1ao.sock"
 	defaultOrchTimeout = 2 * time.Second
 
-	defaultDummyAddress = "/var/run/lbost1ad.sock"
-	defaultDummyTimeout = 2 * time.Second
-	defaultRouteAddress = "/var/run/lbost1ar.sock"
-	defaultRouteTimeout = 2 * time.Second
-	defaultIpvsAddress  = "/var/run/lbost1ai.sock"
-	defaultIpvsTimeout  = 2 * time.Second
+	defaultDummyAddress  = "/var/run/lbost1ad.sock"
+	defaultDummyTimeout  = 2 * time.Second
+	defaultRouteAddress  = "/var/run/lbost1ar.sock"
+	defaultRouteTimeout  = 2 * time.Second
+	defaultTunnelAddress = "/var/run/lbost1at.sock"
+	defaultTunnelTimeout = 2 * time.Second
+	defaultIpvsAddress   = "/var/run/lbost1ai.sock"
+	defaultIpvsTimeout   = 2 * time.Second
 
 	defaultHealthcheckAddress = "/var/run/lbost1ah.sock"
 	defaultResponseTimer      = 2 * time.Second
@@ -67,12 +69,14 @@ const (
 	healthcheckAddressName = "hc-address"
 	responseTimerName      = "hc-timeout"
 
-	dummyAddressName = "dummy-addr"
-	dummyTimeoutName = "dummy-timeout"
-	routeAddressName = "route-addr"
-	routeTimeoutName = "route-timeout"
-	ipvsAddressName  = "ipvs-addr"
-	ipvsTimeoutName  = "ipvs-timeout"
+	dummyAddressName  = "dummy-addr"
+	dummyTimeoutName  = "dummy-timeout"
+	routeAddressName  = "route-addr"
+	routeTimeoutName  = "route-timeout"
+	tunnelAddressName = "tunnel-addr"
+	tunnelTimeoutName = "tunnel-timeout"
+	ipvsAddressName   = "ipvs-addr"
+	ipvsTimeoutName   = "ipvs-timeout"
 
 	consulAddressName         = "consul-address"
 	consulSubscribePathName   = "consul-subscribe-path"
@@ -124,6 +128,8 @@ func init() {
 	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy request timeout")
 	pflag.String(routeAddressName, defaultRouteAddress, "route address. Example:'/var/run/lbost1ar.sock'")
 	pflag.Duration(routeTimeoutName, defaultRouteTimeout, "route request timeout")
+	pflag.String(tunnelAddressName, defaultTunnelAddress, "tunnel address. Example:'/var/run/lbost1at.sock'")
+	pflag.Duration(tunnelTimeoutName, defaultTunnelTimeout, "tunnel request timeout")
 	pflag.String(ipvsAddressName, defaultIpvsAddress, "ipvs address. Example:'/var/run/lbost1ai.sock'")
 	pflag.Duration(ipvsTimeoutName, defaultIpvsTimeout, "ipvs request timeout")
 

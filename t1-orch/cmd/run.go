@@ -40,15 +40,17 @@ var rootCmd = &cobra.Command{
 			"orch address": viperConfig.GetString(orchAddressName),
 			"orch timeout": viperConfig.GetDuration(orchTimeoutName),
 
-			"id type":       viperConfig.GetString(idTypeName),
-			"hc address":    viperConfig.GetString(healthcheckAddressName),
-			"hc timeout":    viperConfig.GetDuration(responseTimerName),
-			"route address": viperConfig.GetString(routeAddressName),
-			"route timeout": viperConfig.GetDuration(routeTimeoutName),
-			"dummy address": viperConfig.GetString(dummyAddressName),
-			"dummy timeout": viperConfig.GetDuration(dummyTimeoutName),
-			"ipvs address":  viperConfig.GetString(ipvsAddressName),
-			"ipvs timeout":  viperConfig.GetDuration(ipvsTimeoutName),
+			"id type":        viperConfig.GetString(idTypeName),
+			"hc address":     viperConfig.GetString(healthcheckAddressName),
+			"hc timeout":     viperConfig.GetDuration(responseTimerName),
+			"route address":  viperConfig.GetString(routeAddressName),
+			"route timeout":  viperConfig.GetDuration(routeTimeoutName),
+			"tunnel address": viperConfig.GetString(tunnelAddressName),
+			"tunnel timeout": viperConfig.GetDuration(tunnelTimeoutName),
+			"dummy address":  viperConfig.GetString(dummyAddressName),
+			"dummy timeout":  viperConfig.GetDuration(dummyTimeoutName),
+			"ipvs address":   viperConfig.GetString(ipvsAddressName),
+			"ipvs timeout":   viperConfig.GetDuration(ipvsTimeoutName),
 
 			"consul address":          viperConfig.GetString(consulAddressName),
 			"consul subscribe path":   viperConfig.GetString(consulSubscribePathName),
@@ -71,6 +73,7 @@ var rootCmd = &cobra.Command{
 
 		// Workers start
 		routeWorker := portadapter.NewRouteWorker(viperConfig.GetString(routeAddressName), viperConfig.GetDuration(routeTimeoutName), logging)
+		tunnelWorker := portadapter.NewTunnelWorker(viperConfig.GetString(tunnelAddressName), viperConfig.GetDuration(tunnelTimeoutName), logging)
 
 		ipvsWorker := portadapter.NewIpvsWorker(viperConfig.GetString(ipvsAddressName), viperConfig.GetDuration(ipvsTimeoutName), logging)
 
@@ -101,6 +104,7 @@ var rootCmd = &cobra.Command{
 		// init config end
 
 		facade := application.NewT1OrchFacade(memoryWorker,
+			tunnelWorker,
 			routeWorker,
 			hc,
 			gracefulShutdown,

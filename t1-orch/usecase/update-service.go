@@ -13,6 +13,7 @@ const updateServiceName = "update service"
 // UpdateServiceEntity ...
 type UpdateServiceEntity struct {
 	memoryWorker     domain.MemoryWorker
+	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
 	hc               *healthcheck.HeathcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
@@ -21,12 +22,14 @@ type UpdateServiceEntity struct {
 
 // NewUpdateServiceEntity ... // TODO: naming
 func NewUpdateServiceEntity(memoryWorker domain.MemoryWorker,
+	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *UpdateServiceEntity {
 	return &UpdateServiceEntity{
 		memoryWorker:     memoryWorker,
+		tunnelMaker:      tunnelMaker,
 		routeMaker:       routeMaker,
 		hc:               hc,
 		gracefulShutdown: gracefulShutdown,
@@ -62,7 +65,8 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 	appServersForCreate, _, appServersForRemove := updateService.formDiffForApplicationServersInfo(currentServiceInfo.ApplicationServers, serviceInfo.ApplicationServers)
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrvForAdd := range appServersForCreate {
-			if err := addTunnelRouteIpRule(updateService.routeMaker,
+			if err := addTunnelRouteIpRule(updateService.tunnelMaker,
+				updateService.routeMaker,
 				serviceInfo.IP,
 				appSrvForAdd.IP,
 				updateServiceID); err != nil {
@@ -72,7 +76,11 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 
 		for _, appSrvForRemove := range appServersForRemove {
 			// tunnelStillNeeded := updateService.memoryWorker.NeedTunnelForApplicationServer(appSrvForRemove.IP) // FIXME: never remove tunnels
-			if err := removeRouteTunnelIpRule(updateService.routeMaker, serviceInfo.IP, appSrvForRemove.IP, updateServiceID); err != nil {
+			if err := removeRouteTunnelIpRule(updateService.routeMaker,
+				updateService.tunnelMaker,
+				serviceInfo.IP,
+				appSrvForRemove.IP,
+				updateServiceID); err != nil {
 				return err
 			}
 		}
