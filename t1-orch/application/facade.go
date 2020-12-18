@@ -121,7 +121,12 @@ func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]
 
 func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*domain.ServiceInfo,
 	id string) error {
-	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
+	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker,
+		t1OrchFacade.TunnelWorker,
+		t1OrchFacade.RouteWorker,
+		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.GracefulShutdown,
+		t1OrchFacade.Logging)
 	for _, serviceForCreate := range servicesForCreate {
 		if err := newNewServiceEntity.NewService(serviceForCreate, id); err != nil {
 			return err
@@ -132,7 +137,12 @@ func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*d
 
 func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*domain.ServiceInfo,
 	id string) error {
-	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
+	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker,
+		t1OrchFacade.TunnelWorker,
+		t1OrchFacade.RouteWorker,
+		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.GracefulShutdown,
+		t1OrchFacade.Logging)
 	for _, serviceForRemove := range servicesForRemove {
 		if err := newRemoveServiceEntity.RemoveService(serviceForRemove, id); err != nil {
 			return err
@@ -143,7 +153,12 @@ func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*d
 
 func (t1OrchFacade *T1OrchFacade) UpdateServices(servicesForUpdate map[string]*domain.ServiceInfo,
 	id string) error {
-	newUpdateServiceEntity := usecase.NewUpdateServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
+	newUpdateServiceEntity := usecase.NewUpdateServiceEntity(t1OrchFacade.MemoryWorker,
+		t1OrchFacade.TunnelWorker,
+		t1OrchFacade.RouteWorker,
+		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.GracefulShutdown,
+		t1OrchFacade.Logging)
 	for _, serviceForUpdate := range servicesForUpdate {
 		if err := newUpdateServiceEntity.UpdateService(serviceForUpdate, id); err != nil {
 			return err
@@ -164,7 +179,12 @@ func (t1OrchFacade *T1OrchFacade) RemoveAllConfig() error {
 	if servicesForRemove == nil {
 		return nil
 	}
-	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker, t1OrchFacade.RouteWorker, t1OrchFacade.HeathcheckEntity, t1OrchFacade.GracefulShutdown, t1OrchFacade.Logging)
+	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker,
+		t1OrchFacade.TunnelWorker,
+		t1OrchFacade.RouteWorker,
+		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.GracefulShutdown,
+		t1OrchFacade.Logging)
 	for _, serviceForRemove := range servicesForRemove {
 		if err := newRemoveServiceEntity.RemoveService(serviceForRemove, id); err != nil {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
