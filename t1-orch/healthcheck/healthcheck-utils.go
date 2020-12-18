@@ -125,13 +125,14 @@ func getCopyOfApplicationServersFromService(serviceInfo *domain.ServiceInfo) map
 	return applicationServers
 }
 
-func (hc *HeathcheckEntity) updateInStorage(hcService *domain.ServiceInfo, id string) {
-	if err := hc.memoryWorker.UpdateService(hcService); err != nil {
-		hc.logging.Warnf("can't update service %v from healtchecks: %v",
-			hcService.Address,
-			err)
-	}
-}
+// TODO: rework or remove that
+// func (hc *HeathcheckEntity) updateInStorage(hcService *domain.ServiceInfo, id string) {
+// 	if err := hc.memoryWorker.UpdateService(hcService); err != nil {
+// 		hc.logging.Warnf("can't update service %v from healtchecks: %v",
+// 			hcService.Address,
+// 			err)
+// 	}
+// }
 
 func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(hcService *domain.ServiceInfo, applicationServerInfoKey string, isUpNow bool) {
 	hcService.Lock()

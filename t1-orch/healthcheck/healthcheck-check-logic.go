@@ -65,7 +65,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.S
 	} else {
 		hc.logging.Tracef("service state not changed: is up: %v", hcService.IsUp)
 	}
-	hc.updateInStorage(hcService, newID)
+	// hc.updateInStorage(hcService, newID)
 }
 
 func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.ServiceInfo,

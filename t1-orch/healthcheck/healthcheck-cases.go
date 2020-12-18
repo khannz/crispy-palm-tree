@@ -15,7 +15,7 @@ const healthcheckName = "healthcheck"
 type HeathcheckEntity struct {
 	sync.Mutex
 	runningHeathchecks map[string]*domain.ServiceInfo // TODO: map much better
-	memoryWorker       domain.MemoryWorker
+	// memoryWorker       domain.MemoryWorker
 	healthcheckChecker domain.HealthcheckChecker
 	ipvsadm            domain.IPVSWorker
 	dw                 domain.DummyWorker
@@ -25,7 +25,7 @@ type HeathcheckEntity struct {
 }
 
 // NewHeathcheckEntity ...
-func NewHeathcheckEntity(memoryWorker domain.MemoryWorker,
+func NewHeathcheckEntity( // memoryWorker domain.MemoryWorker,
 	healthcheckChecker domain.HealthcheckChecker,
 	ipvsadm domain.IPVSWorker,
 	dw domain.DummyWorker,
@@ -34,7 +34,7 @@ func NewHeathcheckEntity(memoryWorker domain.MemoryWorker,
 
 	return &HeathcheckEntity{
 		runningHeathchecks: map[string]*domain.ServiceInfo{}, // need for append
-		memoryWorker:       memoryWorker,
+		// memoryWorker:       memoryWorker,
 		healthcheckChecker: healthcheckChecker,
 		ipvsadm:            ipvsadm,
 		dw:                 dw,
