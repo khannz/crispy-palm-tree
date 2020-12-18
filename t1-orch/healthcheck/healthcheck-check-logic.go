@@ -127,7 +127,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 	}
 }
 
-// FIXME: recaftor work for check address, at this moment it looks like magic
+// TODO: recaftor work for check address, at this moment it looks like magic
 func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) bool {
