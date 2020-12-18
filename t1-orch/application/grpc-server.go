@@ -33,11 +33,32 @@ func NewGrpcServer(addr string,
 	}
 }
 
+// SendDummyRuntime ...
+func (gs *GrpcServer) SendDummyRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.SendDummyRuntimeData) (*transport.EmptySendDummyData, error) {
+	// TODO: implement
+	return &transport.EmptySendDummyData{}, nil
+}
+
 // SendRouteRuntime ...
 func (gs *GrpcServer) SendRouteRuntime(ctx context.Context,
 	incomeRouteRuntimeData *transport.SendRouteRuntimeData) (*transport.EmptySendRouteData, error) {
 	// TODO: implement
 	return &transport.EmptySendRouteData{}, nil
+}
+
+// SendTunnelRuntime ...
+func (gs *GrpcServer) SendTunnelRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.SendTunnelRuntimeData) (*transport.EmptySendTunnelData, error) {
+	// TODO: implement
+	return &transport.EmptySendTunnelData{}, nil
+}
+
+// SendIpRuleRuntime ...
+func (gs *GrpcServer) SendIpRuleRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.SendIpRuleRuntimeData) (*transport.EmptySendIpRuleData, error) {
+	// TODO: implement
+	return &transport.EmptySendIpRuleData{}, nil
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
