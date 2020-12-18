@@ -169,14 +169,6 @@ func init() {
 		os.Exit(1)
 	}
 
-	// required values are set // FIXME: set
-	// if viperConfig.GetString(techInterfaceName) == "" {
-	// 	logging.Fatalf("tech interface must be set")
-	// }
-	// if viperConfig.GetString(t1OrchIDName) == "" {
-	// 	logging.Fatalf("t1 orch id must be set")
-	// }
-
 	if viperConfig.GetString(t1OrchIDName) == "" {
 		logging.Fatalf("t1 id must be set")
 	}
