@@ -11,7 +11,7 @@ func addTunnelRouteIpRule(tunnelMaker domain.TunnelWorker,
 	if err := tunnelMaker.AddTunnel(appSrvIP, id); err != nil {
 		return err
 	}
-	// FIXME: appSrvIP may be not dest fro tun. take it from HC address
+	// TODO: appSrvIP may be not dest for tun. need rework that (not only at T1)
 	if err := routeMaker.AddRoute(serviceIP, appSrvIP, id); err != nil {
 		return err
 	}

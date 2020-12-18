@@ -7,5 +7,6 @@ type MemoryWorker interface {
 	GetServices() map[string]*ServiceInfo
 	RemoveService(*ServiceInfo) error
 	UpdateService(*ServiceInfo) error
-	NeedTunnelForApplicationServer(string) bool
+	AddTunnelForApplicationServer(string) bool
+	RemoveTunnelForApplicationServer(string) bool
 }

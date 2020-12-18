@@ -64,29 +64,33 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 	if err != nil {
 		return err
 	}
-	// appServersForUpdate - FIXME: CRITICAL: broken. need logic for count tunnels/routes/rules for add/remove
 	appServersForCreate, _, appServersForRemove := updateService.formDiffForApplicationServersInfo(currentServiceInfo.ApplicationServers, serviceInfo.ApplicationServers)
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrvForAdd := range appServersForCreate {
-			if err := addTunnelRouteIpRule(updateService.tunnelMaker,
-				updateService.routeMaker,
-				updateService.ipRuleWorker,
-				serviceInfo.IP,
-				appSrvForAdd.IP,
-				updateServiceID); err != nil {
-				return err
+			needCreateTunnel := updateService.memoryWorker.AddTunnelForApplicationServer(appSrvForAdd.IP)
+			if needCreateTunnel {
+				if err := addTunnelRouteIpRule(updateService.tunnelMaker,
+					updateService.routeMaker,
+					updateService.ipRuleWorker,
+					serviceInfo.IP,
+					appSrvForAdd.IP,
+					updateServiceID); err != nil {
+					return err
+				}
 			}
 		}
 
 		for _, appSrvForRemove := range appServersForRemove {
-			// tunnelStillNeeded := updateService.memoryWorker.NeedTunnelForApplicationServer(appSrvForRemove.IP) // FIXME: never remove tunnels
-			if err := removeRouteTunnelIpRule(updateService.routeMaker,
-				updateService.tunnelMaker,
-				updateService.ipRuleWorker,
-				serviceInfo.IP,
-				appSrvForRemove.IP,
-				updateServiceID); err != nil {
-				return err
+			needRemoveTunnel := updateService.memoryWorker.RemoveTunnelForApplicationServer(appSrvForRemove.IP)
+			if needRemoveTunnel {
+				if err := removeRouteTunnelIpRule(updateService.routeMaker,
+					updateService.tunnelMaker,
+					updateService.ipRuleWorker,
+					serviceInfo.IP,
+					appSrvForRemove.IP,
+					updateServiceID); err != nil {
+					return err
+				}
 			}
 		}
 	}

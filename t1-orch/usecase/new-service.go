@@ -40,6 +40,8 @@ func NewNewServiceEntity(memoryWorker domain.MemoryWorker,
 	}
 }
 
+// TODO: rollback
+
 // NewService ...
 func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 	newServiceID string) error {
@@ -61,19 +63,18 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 	// TODO: at nat checks will be to healthcheck address. may be broken
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrv := range serviceInfo.ApplicationServers {
-			if err := addTunnelRouteIpRule(newService.tunnelMaker,
-				newService.routeMaker,
-				newService.ipRuleWorker,
-				serviceInfo.IP,
-				appSrv.IP,
-				newServiceID); err != nil {
-				return err
+			needCreateTunnel := newService.memoryWorker.AddTunnelForApplicationServer(appSrv.IP)
+			if needCreateTunnel {
+				if err := addTunnelRouteIpRule(newService.tunnelMaker,
+					newService.routeMaker,
+					newService.ipRuleWorker,
+					serviceInfo.IP,
+					appSrv.IP,
+					newServiceID); err != nil {
+					return err
+				}
 			}
 		}
-	}
-
-	if err := newService.memoryWorker.AddService(serviceInfo); err != nil {
-		return err
 	}
 
 	newService.logging.WithFields(logrus.Fields{
@@ -87,5 +88,10 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 		"entity":   newServiceName,
 		"event id": newServiceID,
 	}).Info("create service in healtchecks")
+
+	if err := newService.memoryWorker.AddService(serviceInfo); err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -60,14 +60,16 @@ func (removeService *RemoveServiceEntity) RemoveService(serviceInfo *domain.Serv
 
 	if serviceInfo.RoutingType == "tunneling" {
 		for _, appSrv := range serviceInfo.ApplicationServers {
-			// tunnelStillNeeded := removeService.memoryWorker.NeedTunnelForApplicationServer(appSrv.IP) // FIXME: never remove tunnels
-			if err := removeRouteTunnelIpRule(removeService.routeMaker,
-				removeService.tunnelMaker,
-				removeService.ipRuleWorker,
-				serviceInfo.IP,
-				appSrv.IP,
-				removeServiceID); err != nil {
-				return err
+			needRemoveTunnel := removeService.memoryWorker.RemoveTunnelForApplicationServer(appSrv.IP)
+			if needRemoveTunnel {
+				if err := removeRouteTunnelIpRule(removeService.routeMaker,
+					removeService.tunnelMaker,
+					removeService.ipRuleWorker,
+					serviceInfo.IP,
+					appSrv.IP,
+					removeServiceID); err != nil {
+					return err
+				}
 			}
 		}
 	}

@@ -25,22 +25,19 @@ func (memoryWorker *MemoryWorker) AddService(serviceInfo *domain.ServiceInfo) er
 
 	memoryWorker.Services[serviceInfo.Address] = serviceInfo
 
-	if serviceInfo.RoutingType == "tunneling" {
-		for _, appSrv := range serviceInfo.ApplicationServers {
-			memoryWorker.addApplicationServer(appSrv.IP)
-		}
-	}
-
 	return nil
 }
 
-func (memoryWorker *MemoryWorker) addApplicationServer(appSrvIP string) {
+func (memoryWorker *MemoryWorker) AddTunnelForApplicationServer(appSrvIP string) bool {
+	memoryWorker.Lock()
+	defer memoryWorker.Unlock()
 	_, isAppSrvIn := memoryWorker.ApplicationServersTunnelInfo[appSrvIP]
 	if isAppSrvIn {
 		memoryWorker.ApplicationServersTunnelInfo[appSrvIP]++
-		return
+		return false
 	}
 	memoryWorker.ApplicationServersTunnelInfo[appSrvIP] = 1
+	return true
 }
 
 func (memoryWorker *MemoryWorker) GetService(serviceAddress string) (*domain.ServiceInfo, error) {
@@ -70,27 +67,25 @@ func (memoryWorker *MemoryWorker) RemoveService(serviceInfo *domain.ServiceInfo)
 
 	delete(memoryWorker.Services, serviceInfo.Address)
 
-	if serviceInfo.RoutingType == "tunneling" {
-		for _, appSrv := range serviceInfo.ApplicationServers {
-			memoryWorker.removeApplicationServer(appSrv.IP)
-		}
-	}
 	return nil
 }
 
-func (memoryWorker *MemoryWorker) removeApplicationServer(appSrvIP string) {
+func (memoryWorker *MemoryWorker) RemoveTunnelForApplicationServer(appSrvIP string) bool {
+	memoryWorker.Lock()
+	defer memoryWorker.Unlock()
+
 	if _, isAppSrvIn := memoryWorker.ApplicationServersTunnelInfo[appSrvIP]; !isAppSrvIn {
-		return
+		return true
 	}
 	if memoryWorker.ApplicationServersTunnelInfo[appSrvIP] == 1 {
 		delete(memoryWorker.Services, appSrvIP)
-		return
+		return true
 	}
 	memoryWorker.ApplicationServersTunnelInfo[appSrvIP]--
+	return false
 }
 
 func (memoryWorker *MemoryWorker) UpdateService(serviceInfo *domain.ServiceInfo) error {
-	// FIXME: need to check app servers: balance for add/remove tunnels is broken
 	memoryWorker.Lock()
 	defer memoryWorker.Unlock()
 	if _, isServiceIn := memoryWorker.Services[serviceInfo.Address]; !isServiceIn {
@@ -98,13 +93,4 @@ func (memoryWorker *MemoryWorker) UpdateService(serviceInfo *domain.ServiceInfo)
 	}
 	memoryWorker.Services[serviceInfo.Address] = serviceInfo
 	return nil
-}
-
-func (memoryWorker *MemoryWorker) NeedTunnelForApplicationServer(appSrvIP string) bool {
-	memoryWorker.Lock()
-	defer memoryWorker.Unlock()
-	if _, isAppSrvIn := memoryWorker.ApplicationServersTunnelInfo[appSrvIP]; isAppSrvIn {
-		return true
-	}
-	return false
 }
