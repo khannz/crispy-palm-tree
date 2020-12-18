@@ -12,20 +12,20 @@ const sendRuntimeConfigName = "send runtime config"
 
 // RouteFacade struct
 type RouteFacade struct {
-	RouteWorker        domain.RouteWorker
+	IpRuleWorker       domain.IpRuleWorker
 	OrchestratorWorker domain.OrchestratorWorker
 	IDgenerator        domain.IDgenerator
 	Logging            *logrus.Logger
 }
 
 // NewRouteFacade ...
-func NewRouteFacade(ipRuleWorker domain.RouteWorker,
+func NewRouteFacade(ipRuleWorker domain.IpRuleWorker,
 	OrchestratorWorker domain.OrchestratorWorker,
 	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *RouteFacade {
 
 	return &RouteFacade{
-		RouteWorker:        ipRuleWorker,
+		IpRuleWorker:       ipRuleWorker,
 		OrchestratorWorker: OrchestratorWorker,
 		IDgenerator:        idGenerator,
 		Logging:            logging,
@@ -33,22 +33,22 @@ func NewRouteFacade(ipRuleWorker domain.RouteWorker,
 }
 
 func (ipRuleFacade *RouteFacade) AddIPRule(hcTunDestIP string, id string) error {
-	newAddToRouteEntity := usecase.NewAddToRouteEntity(ipRuleFacade.RouteWorker)
+	newAddToRouteEntity := usecase.NewAddToRouteEntity(ipRuleFacade.IpRuleWorker)
 	return newAddToRouteEntity.AddIPRule(hcTunDestIP, id)
 }
 
 func (ipRuleFacade *RouteFacade) RemoveIPRule(hcTunDestIP string, id string) error {
-	newAddToRouteEntity := usecase.NewRemoveIPRuleEntity(ipRuleFacade.RouteWorker)
+	newAddToRouteEntity := usecase.NewRemoveIPRuleEntity(ipRuleFacade.IpRuleWorker)
 	return newAddToRouteEntity.RemoveIPRule(hcTunDestIP, id)
 }
 
 func (ipRuleFacade *RouteFacade) GetIPRuleRuntimeConfig(id string) (map[int]struct{}, error) {
-	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(ipRuleFacade.RouteWorker)
+	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(ipRuleFacade.IpRuleWorker)
 	return newGetRuntimeConfigEntity.GetIPRuleRuntimeConfig(id)
 }
 
 func (ipRuleFacade *RouteFacade) TryToSendRuntimeConfig(id string) {
-	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(ipRuleFacade.RouteWorker)
+	newGetRuntimeConfigEntity := usecase.NewGetRuntimeConfigEntity(ipRuleFacade.IpRuleWorker)
 	newHealthcheckSenderEntity := usecase.NewHealthcheckSenderEntity(ipRuleFacade.OrchestratorWorker)
 	for {
 		currentConfig, err := newGetRuntimeConfigEntity.GetIPRuleRuntimeConfig(id)

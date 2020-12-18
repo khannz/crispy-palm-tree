@@ -3,10 +3,10 @@ package usecase
 import "github.com/khannz/crispy-palm-tree/t1-ipruler/domain"
 
 type AddToRouteEntity struct {
-	ipRuleWorker domain.RouteWorker
+	ipRuleWorker domain.IpRuleWorker
 }
 
-func NewAddToRouteEntity(ipRuleWorker domain.RouteWorker) *AddToRouteEntity {
+func NewAddToRouteEntity(ipRuleWorker domain.IpRuleWorker) *AddToRouteEntity {
 	return &AddToRouteEntity{ipRuleWorker: ipRuleWorker}
 }
 
