@@ -60,7 +60,7 @@ func (gs *GrpcServer) RemoveTunnel(ctx context.Context, incomeTunnelData *transp
 		"entity":   grpcRouteName,
 		"event id": incomeTunnelData.Id,
 	}).Infof("got job remove from tunnel service %v", incomeTunnelData)
-	if err := gs.facade.RemoveTunnel(incomeTunnelData.HcTunDestIP, incomeTunnelData.NeedRemoveTunnel, incomeTunnelData.Id); err != nil {
+	if err := gs.facade.RemoveTunnel(incomeTunnelData.HcTunDestIP, incomeTunnelData.Id); err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
 			"entity":   grpcRouteName,
 			"event id": incomeTunnelData.Id,

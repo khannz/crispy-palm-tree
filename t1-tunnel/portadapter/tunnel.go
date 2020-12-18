@@ -120,7 +120,7 @@ func newRpFilter(tunnelName string, id string, logging *logrus.Logger) {
 	}
 }
 
-func (tunnelEntity *TunnelEntity) RemoveTunnel(hcTunDestIP string, needRemoveTunnel bool, id string) error {
+func (tunnelEntity *TunnelEntity) RemoveTunnel(hcTunDestIP string, id string) error {
 	tunnelEntity.Lock()
 	defer tunnelEntity.Unlock()
 
@@ -147,14 +147,12 @@ func (tunnelEntity *TunnelEntity) RemoveTunnel(hcTunDestIP string, needRemoveTun
 		return err
 	}
 
-	if needRemoveTunnel {
-		if err := tunnelEntity.downAndRemoveOldLink(tunnelName, links, id); err != nil {
-			tunnelEntity.logging.WithFields(logrus.Fields{
-				"entity":   tunnelWorkerName,
-				"event id": id,
-			}).Errorf("down and remove link fail: %v", err)
-			return err
-		}
+	if err := tunnelEntity.downAndRemoveOldLink(tunnelName, links, id); err != nil {
+		tunnelEntity.logging.WithFields(logrus.Fields{
+			"entity":   tunnelWorkerName,
+			"event id": id,
+		}).Errorf("down and remove link fail: %v", err)
+		return err
 	}
 
 	return nil

@@ -1,17 +1,15 @@
 syntax = "proto3";
 package lbos.t1.tunnel;
 
-
 service TunnelGetWorker {
-  rpc AddTunnel (TunnelData) returns (EmptyTunnelData) {}
-  rpc RemoveTunnel (TunnelData) returns (EmptyTunnelData) {}
+  rpc AddTunnel(TunnelData) returns (EmptyTunnelData) {}
+  rpc RemoveTunnel(TunnelData) returns (EmptyTunnelData) {}
   rpc GetTunnelRuntime(EmptyTunnelData) returns (GetTunnelRuntimeData) {}
 }
 
 message TunnelData {
   string hcTunDestIP = 1;
-  bool needRemoveTunnel = 2;
-  string id = 3;
+  string id = 2;
 }
 
 message GetTunnelRuntimeData {
@@ -19,6 +17,4 @@ message GetTunnelRuntimeData {
   string id = 2;
 }
 
-message EmptyTunnelData {
-  string id = 1;
-}
+message EmptyTunnelData { string id = 1; }

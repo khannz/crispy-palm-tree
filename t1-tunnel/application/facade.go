@@ -37,9 +37,9 @@ func (routeFacade *TunnelFacade) AddTunnel(hcTunDestIP string, id string) error 
 	return newAddToTunnelEntity.AddTunnel(hcTunDestIP, id)
 }
 
-func (routeFacade *TunnelFacade) RemoveTunnel(hcTunDestIP string, needRemoveTunnel bool, id string) error {
+func (routeFacade *TunnelFacade) RemoveTunnel(hcTunDestIP string, id string) error {
 	newAddToTunnelEntity := usecase.NewRemoveTunnelEntity(routeFacade.TunnelWorker)
-	return newAddToTunnelEntity.RemoveTunnel(hcTunDestIP, needRemoveTunnel, id)
+	return newAddToTunnelEntity.RemoveTunnel(hcTunDestIP, id)
 }
 
 func (routeFacade *TunnelFacade) GetTunnelRuntime(id string) (map[string]struct{}, error) {

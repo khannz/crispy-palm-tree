@@ -10,6 +10,6 @@ func NewRemoveTunnelEntity(routeWorker domain.TunnelWorker) *RemoveTunnelEntity 
 	return &RemoveTunnelEntity{routeWorker: routeWorker}
 }
 
-func (removeTunnelEntity *RemoveTunnelEntity) RemoveTunnel(hcTunDestIP string, needRemoveTunnel bool, id string) error {
-	return removeTunnelEntity.routeWorker.RemoveTunnel(hcTunDestIP, needRemoveTunnel, id)
+func (removeTunnelEntity *RemoveTunnelEntity) RemoveTunnel(hcTunDestIP string, id string) error {
+	return removeTunnelEntity.routeWorker.RemoveTunnel(hcTunDestIP, id)
 }
