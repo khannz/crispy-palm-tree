@@ -57,7 +57,7 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendTunnelRuntimeConfig(runt
 func convertRuntimeConfig(runtimeConfig map[string]struct{}) map[string]int32 {
 	convertedRuntimeConfig := make(map[string]int32, len(runtimeConfig))
 	for k := range runtimeConfig {
-		convertedRuntimeConfig[k] = 0
+		convertedRuntimeConfig[k] = 0 // TODO: why zero 32??? refactor that
 	}
 	return convertedRuntimeConfig
 }
