@@ -122,19 +122,19 @@ var rootCmd = &cobra.Command{
 		}
 		defer grpcServer.CloseServer()
 
-		// // consul worker start
-		// consulWorker, err := application.NewConsulWorker(facade,
-		// 	viperConfig.GetString(consulAddressName),
-		// 	viperConfig.GetString(consulSubscribePathName),
-		// 	viperConfig.GetString(consulAppServersPathName),
-		// 	viperConfig.GetString(consulServiceManifestName),
-		// 	logging)
-		// if err != nil {
-		// 	logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to consul fail: %v", err)
-		// }
-		// logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to consul")
-		// go consulWorker.ConsulConfigWatch()
-		// go consulWorker.JobWorker()
+		// consul worker start
+		consulWorker, err := application.NewConsulWorker(facade,
+			viperConfig.GetString(consulAddressName),
+			viperConfig.GetString(consulSubscribePathName),
+			viperConfig.GetString(consulAppServersPathName),
+			viperConfig.GetString(consulServiceManifestName),
+			logging)
+		if err != nil {
+			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to consul fail: %v", err)
+		}
+		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to consul")
+		go consulWorker.ConsulConfigWatch()
+		go consulWorker.JobWorker()
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("orch is running")
 
