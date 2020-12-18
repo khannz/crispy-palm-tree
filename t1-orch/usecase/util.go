@@ -3,8 +3,9 @@ package usecase
 import "github.com/khannz/crispy-palm-tree/t1-orch/domain"
 
 func addTunnelRouteIpRule(tunnelMaker domain.TunnelWorker,
-	routeMaker domain.RouteWorker, serviceIP string,
-	// FIXME: rule make
+	routeMaker domain.RouteWorker,
+	ipRuleWorker domain.IpRuleWorker,
+	serviceIP string,
 	appSrvIP string,
 	id string) error {
 	if err := tunnelMaker.AddTunnel(appSrvIP, id); err != nil {
@@ -15,15 +16,15 @@ func addTunnelRouteIpRule(tunnelMaker domain.TunnelWorker,
 		return err
 	}
 
-	// if err := newService.ipruleMaker.AddIPRule(); err != nil { FIXME:
-	// 	return err
-	// }
+	if err := ipRuleWorker.AddIPRule(appSrvIP, id); err != nil {
+		return err
+	}
 	return nil
 }
 
 func removeRouteTunnelIpRule(routeMaker domain.RouteWorker,
 	tunnelMaker domain.TunnelWorker,
-	// FIXME: rule rem
+	ipRuleWorker domain.IpRuleWorker,
 	serviceIP string,
 	appSrvIP string,
 	id string) error {
@@ -35,8 +36,8 @@ func removeRouteTunnelIpRule(routeMaker domain.RouteWorker,
 		return err
 	}
 
-	// if err := newService.ipruleMaker.AddIPRule(); err != nil { FIXME:
-	// 	return err
-	// }
+	if err := ipRuleWorker.RemoveIPRule(appSrvIP, id); err != nil {
+		return err
+	}
 	return nil
 }

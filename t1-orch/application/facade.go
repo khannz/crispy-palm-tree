@@ -18,6 +18,7 @@ type T1OrchFacade struct {
 	MemoryWorker     domain.MemoryWorker
 	TunnelWorker     domain.TunnelWorker
 	RouteWorker      domain.RouteWorker
+	IpRuleWorker     domain.IpRuleWorker
 	HeathcheckEntity *healthcheck.HeathcheckEntity
 	GracefulShutdown *domain.GracefulShutdown
 	IDgenerator      domain.IDgenerator
@@ -29,6 +30,7 @@ type T1OrchFacade struct {
 func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
 	tunnelWorker domain.TunnelWorker,
 	routeWorker domain.RouteWorker,
+	ipRuleWorker domain.IpRuleWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	idGenerator domain.IDgenerator,
@@ -38,6 +40,7 @@ func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
 		MemoryWorker:     memoryWorker,
 		TunnelWorker:     tunnelWorker,
 		RouteWorker:      routeWorker,
+		IpRuleWorker:     ipRuleWorker,
 		HeathcheckEntity: hc,
 		GracefulShutdown: gracefulShutdown,
 		IDgenerator:      idGenerator,
@@ -124,6 +127,7 @@ func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*d
 	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker,
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
+		t1OrchFacade.IpRuleWorker,
 		t1OrchFacade.HeathcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)
@@ -140,6 +144,7 @@ func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*d
 	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker,
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
+		t1OrchFacade.IpRuleWorker,
 		t1OrchFacade.HeathcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)
@@ -156,6 +161,7 @@ func (t1OrchFacade *T1OrchFacade) UpdateServices(servicesForUpdate map[string]*d
 	newUpdateServiceEntity := usecase.NewUpdateServiceEntity(t1OrchFacade.MemoryWorker,
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
+		t1OrchFacade.IpRuleWorker,
 		t1OrchFacade.HeathcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)
@@ -182,6 +188,7 @@ func (t1OrchFacade *T1OrchFacade) RemoveAllConfig() error {
 	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker,
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
+		t1OrchFacade.IpRuleWorker,
 		t1OrchFacade.HeathcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)

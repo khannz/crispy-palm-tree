@@ -15,6 +15,7 @@ type NewServiceEntity struct {
 	memoryWorker     domain.MemoryWorker
 	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
+	ipRuleWorker     domain.IpRuleWorker
 	hc               *healthcheck.HeathcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
@@ -24,6 +25,7 @@ type NewServiceEntity struct {
 func NewNewServiceEntity(memoryWorker domain.MemoryWorker,
 	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
+	ipRuleWorker domain.IpRuleWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *NewServiceEntity {
@@ -31,6 +33,7 @@ func NewNewServiceEntity(memoryWorker domain.MemoryWorker,
 		memoryWorker:     memoryWorker,
 		tunnelMaker:      tunnelMaker,
 		routeMaker:       routeMaker,
+		ipRuleWorker:     ipRuleWorker,
 		hc:               hc,
 		gracefulShutdown: gracefulShutdown,
 		logging:          logging,
@@ -60,6 +63,7 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 		for _, appSrv := range serviceInfo.ApplicationServers {
 			if err := addTunnelRouteIpRule(newService.tunnelMaker,
 				newService.routeMaker,
+				newService.ipRuleWorker,
 				serviceInfo.IP,
 				appSrv.IP,
 				newServiceID); err != nil {

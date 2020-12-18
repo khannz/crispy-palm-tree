@@ -33,6 +33,8 @@ orch-grpc:
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-route/ --go-grpc_out=./t1-orch/grpc-route/ ./proto/t1-route.proto
 	mkdir -p ./t1-orch/grpc-tunnel
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-tunnel/ --go-grpc_out=./t1-orch/grpc-tunnel/ ./proto/t1-tunnel.proto
+	mkdir -p ./t1-orch/grpc-ipruler
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-ipruler/ --go-grpc_out=./t1-orch/grpc-ipruler/ ./proto/t1-ipruler.proto
 	mkdir -p ./t1-orch/grpc-ipvs
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-ipvs/ --go-grpc_out=./t1-orch/grpc-ipvs/ ./proto/t1-ipvs.proto
 	mkdir -p ./t1-orch/grpc-healthcheck

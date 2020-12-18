@@ -5,6 +5,7 @@ service SendDummyRuntime {
   rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
   rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
   rpc SendTunnelRuntime(SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
+  rpc SendIpRuleRuntime(SendIpRuleRuntimeData) returns (EmptySendIpRuleData) {}
 }
 
 message SendDummyRuntimeData {
@@ -27,3 +28,10 @@ message SendTunnelRuntimeData {
 }
 
 message EmptySendTunnelData { string id = 1; }
+
+message SendIpRuleRuntimeData {
+  map<int64, EmptySendIpRuleData> fwmarks = 1;
+  string id = 2;
+}
+
+message EmptySendIpRuleData { string id = 1; }

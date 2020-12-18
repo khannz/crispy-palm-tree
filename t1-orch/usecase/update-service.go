@@ -15,6 +15,7 @@ type UpdateServiceEntity struct {
 	memoryWorker     domain.MemoryWorker
 	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
+	ipRuleWorker     domain.IpRuleWorker
 	hc               *healthcheck.HeathcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
@@ -24,6 +25,7 @@ type UpdateServiceEntity struct {
 func NewUpdateServiceEntity(memoryWorker domain.MemoryWorker,
 	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
+	ipRuleWorker domain.IpRuleWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *UpdateServiceEntity {
@@ -31,6 +33,7 @@ func NewUpdateServiceEntity(memoryWorker domain.MemoryWorker,
 		memoryWorker:     memoryWorker,
 		tunnelMaker:      tunnelMaker,
 		routeMaker:       routeMaker,
+		ipRuleWorker:     ipRuleWorker,
 		hc:               hc,
 		gracefulShutdown: gracefulShutdown,
 		logging:          logging,
@@ -67,6 +70,7 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 		for _, appSrvForAdd := range appServersForCreate {
 			if err := addTunnelRouteIpRule(updateService.tunnelMaker,
 				updateService.routeMaker,
+				updateService.ipRuleWorker,
 				serviceInfo.IP,
 				appSrvForAdd.IP,
 				updateServiceID); err != nil {
@@ -78,6 +82,7 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 			// tunnelStillNeeded := updateService.memoryWorker.NeedTunnelForApplicationServer(appSrvForRemove.IP) // FIXME: never remove tunnels
 			if err := removeRouteTunnelIpRule(updateService.routeMaker,
 				updateService.tunnelMaker,
+				updateService.ipRuleWorker,
 				serviceInfo.IP,
 				appSrvForRemove.IP,
 				updateServiceID); err != nil {

@@ -15,6 +15,7 @@ type RemoveServiceEntity struct {
 	memoryWorker     domain.MemoryWorker
 	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
+	ipRuleWorker     domain.IpRuleWorker
 	hc               *healthcheck.HeathcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
@@ -24,6 +25,7 @@ type RemoveServiceEntity struct {
 func NewRemoveServiceEntity(memoryWorker domain.MemoryWorker,
 	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
+	ipRuleWorker domain.IpRuleWorker,
 	hc *healthcheck.HeathcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *RemoveServiceEntity {
@@ -31,6 +33,7 @@ func NewRemoveServiceEntity(memoryWorker domain.MemoryWorker,
 		memoryWorker:     memoryWorker,
 		tunnelMaker:      tunnelMaker,
 		routeMaker:       routeMaker,
+		ipRuleWorker:     ipRuleWorker,
 		hc:               hc,
 		gracefulShutdown: gracefulShutdown,
 		logging:          logging,
@@ -60,6 +63,7 @@ func (removeService *RemoveServiceEntity) RemoveService(serviceInfo *domain.Serv
 			// tunnelStillNeeded := removeService.memoryWorker.NeedTunnelForApplicationServer(appSrv.IP) // FIXME: never remove tunnels
 			if err := removeRouteTunnelIpRule(removeService.routeMaker,
 				removeService.tunnelMaker,
+				removeService.ipRuleWorker,
 				serviceInfo.IP,
 				appSrv.IP,
 				removeServiceID); err != nil {

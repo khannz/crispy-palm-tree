@@ -35,6 +35,8 @@ const (
 	defaultRouteTimeout  = 2 * time.Second
 	defaultTunnelAddress = "/var/run/lbost1at.sock"
 	defaultTunnelTimeout = 2 * time.Second
+	defaultIpRuleAddress = "/var/run/lbost1aipr.sock"
+	defaultIpRuleTimeout = 2 * time.Second
 	defaultIpvsAddress   = "/var/run/lbost1ai.sock"
 	defaultIpvsTimeout   = 2 * time.Second
 
@@ -75,6 +77,8 @@ const (
 	routeTimeoutName  = "route-timeout"
 	tunnelAddressName = "tunnel-addr"
 	tunnelTimeoutName = "tunnel-timeout"
+	ipRuleAddressName = "ip-rule-addr"
+	ipRuleTimeoutName = "ip-rule-timeout"
 	ipvsAddressName   = "ipvs-addr"
 	ipvsTimeoutName   = "ipvs-timeout"
 
@@ -130,6 +134,8 @@ func init() {
 	pflag.Duration(routeTimeoutName, defaultRouteTimeout, "route request timeout")
 	pflag.String(tunnelAddressName, defaultTunnelAddress, "tunnel address. Example:'/var/run/lbost1at.sock'")
 	pflag.Duration(tunnelTimeoutName, defaultTunnelTimeout, "tunnel request timeout")
+	pflag.String(ipRuleAddressName, defaultIpRuleAddress, "ip rule address. Example:'/var/run/lbost1aipr.sock'")
+	pflag.Duration(ipRuleTimeoutName, defaultIpRuleTimeout, "ip rule request timeout")
 	pflag.String(ipvsAddressName, defaultIpvsAddress, "ipvs address. Example:'/var/run/lbost1ai.sock'")
 	pflag.Duration(ipvsTimeoutName, defaultIpvsTimeout, "ipvs request timeout")
 
