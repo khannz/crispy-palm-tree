@@ -79,13 +79,13 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 	newService.logging.WithFields(logrus.Fields{
 		"entity":   newServiceName,
 		"event id": newServiceID,
-	}).Info("update service at healtchecks")
+	}).Info("create service in healtchecks")
 	if err := newService.hc.NewServiceToHealtchecks(serviceInfo, newServiceID); err != nil {
 		return fmt.Errorf("error when change service in healthcheck: %v", err)
 	}
 	newService.logging.WithFields(logrus.Fields{
 		"entity":   newServiceName,
 		"event id": newServiceID,
-	}).Info("updated service at healtchecks")
+	}).Info("create service in healtchecks")
 	return nil
 }
