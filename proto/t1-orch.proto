@@ -1,10 +1,9 @@
 syntax = "proto3";
 package lbos.t1.orch;
 
-
-service SendRuntime {
-  rpc SendDummyRuntime (SendDummyRuntimeData) returns (EmptySendDummyData) {}
-  rpc SendTunnelRuntime (SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
+service SendDummyRuntime {
+  rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
+  rpc SendTunnelRuntime(SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
 }
 
 message SendDummyRuntimeData {
@@ -12,15 +11,11 @@ message SendDummyRuntimeData {
   string id = 2;
 }
 
-message EmptySendDummyData {
-  string id = 1;
-}
+message EmptySendDummyData { string id = 1; }
 
 message SendTunnelRuntimeData {
   map<string, int32> tunnels = 1;
   string id = 2;
 }
 
-message EmptySendTunnelData {
-  string id = 1;
-}
+message EmptySendTunnelData { string id = 1; }
