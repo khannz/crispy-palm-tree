@@ -70,7 +70,8 @@ func (ipRuleWorker *IpRuleWorker) RemoveIPRule(hcTunDestIP string, id string) er
 	return err
 }
 
-func (ipRuleWorker *IpRuleWorker) GetIPRuleRuntimeConfig(id string) (map[int]struct{}, error) {
+// GetIPRulerRuntime ...
+func (ipRuleWorker *IpRuleWorker) GetIPRulerRuntime(id string) (map[int]struct{}, error) {
 	withContextDialer := makeDialer(ipRuleWorker.address, 2*time.Second)
 
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)

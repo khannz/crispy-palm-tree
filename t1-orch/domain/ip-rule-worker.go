@@ -4,5 +4,5 @@ package domain
 type IpRuleWorker interface {
 	AddIPRule(string, string) error
 	RemoveIPRule(string, string) error
-	GetIPRuleRuntimeConfig(string) (map[int]struct{}, error)
+	GetIPRulerRuntime(string) (map[int]struct{}, error)
 }
