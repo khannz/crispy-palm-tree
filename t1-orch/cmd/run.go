@@ -76,7 +76,7 @@ var rootCmd = &cobra.Command{
 		// Workers start
 		routeWorker := portadapter.NewRouteWorker(viperConfig.GetString(routeAddressName), viperConfig.GetDuration(routeTimeoutName), logging)
 		tunnelWorker := portadapter.NewTunnelWorker(viperConfig.GetString(tunnelAddressName), viperConfig.GetDuration(tunnelTimeoutName), logging)
-		ipRuleWorker := portadapter.NewIpRuleWorker(viperConfig.GetString(tunnelAddressName), viperConfig.GetDuration(tunnelTimeoutName), logging)
+		ipRuleWorker := portadapter.NewIpRuleWorker(viperConfig.GetString(ipRuleAddressName), viperConfig.GetDuration(ipRuleTimeoutName), logging)
 
 		ipvsWorker := portadapter.NewIpvsWorker(viperConfig.GetString(ipvsAddressName), viperConfig.GetDuration(ipvsTimeoutName), logging)
 
