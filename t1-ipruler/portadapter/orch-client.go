@@ -40,7 +40,7 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runti
 	}
 	defer conn.Close()
 
-	healthcheckClient := transport.NewSendRuntimeClient(conn)
+	healthcheckClient := transport.NewSendDummyRuntimeClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
