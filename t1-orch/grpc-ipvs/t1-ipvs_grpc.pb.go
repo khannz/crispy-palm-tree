@@ -117,8 +117,8 @@ type UnsafeIPVSGetWokerServer interface {
 	mustEmbedUnimplementedIPVSGetWokerServer()
 }
 
-func RegisterIPVSGetWokerServer(s *grpc.Server, srv IPVSGetWokerServer) {
-	s.RegisterService(&_IPVSGetWoker_serviceDesc, srv)
+func RegisterIPVSGetWokerServer(s grpc.ServiceRegistrar, srv IPVSGetWokerServer) {
+	s.RegisterService(&IPVSGetWoker_ServiceDesc, srv)
 }
 
 func _IPVSGetWoker_NewIPVSService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -211,7 +211,10 @@ func _IPVSGetWoker_GetIPVSRuntime_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-var _IPVSGetWoker_serviceDesc = grpc.ServiceDesc{
+// IPVSGetWoker_ServiceDesc is the grpc.ServiceDesc for IPVSGetWoker service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var IPVSGetWoker_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "lbos.t1.ipvs.IPVSGetWoker",
 	HandlerType: (*IPVSGetWokerServer)(nil),
 	Methods: []grpc.MethodDesc{

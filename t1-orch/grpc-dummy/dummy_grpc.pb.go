@@ -89,8 +89,8 @@ type UnsafeDummyGetWorkerServer interface {
 	mustEmbedUnimplementedDummyGetWorkerServer()
 }
 
-func RegisterDummyGetWorkerServer(s *grpc.Server, srv DummyGetWorkerServer) {
-	s.RegisterService(&_DummyGetWorker_serviceDesc, srv)
+func RegisterDummyGetWorkerServer(s grpc.ServiceRegistrar, srv DummyGetWorkerServer) {
+	s.RegisterService(&DummyGetWorker_ServiceDesc, srv)
 }
 
 func _DummyGetWorker_AddToDummy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -147,7 +147,10 @@ func _DummyGetWorker_GetDummyRuntime_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-var _DummyGetWorker_serviceDesc = grpc.ServiceDesc{
+// DummyGetWorker_ServiceDesc is the grpc.ServiceDesc for DummyGetWorker service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var DummyGetWorker_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "lbos.t1.dummy.DummyGetWorker",
 	HandlerType: (*DummyGetWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{

@@ -103,8 +103,8 @@ type UnsafeSendDummyRuntimeServer interface {
 	mustEmbedUnimplementedSendDummyRuntimeServer()
 }
 
-func RegisterSendDummyRuntimeServer(s *grpc.Server, srv SendDummyRuntimeServer) {
-	s.RegisterService(&_SendDummyRuntime_serviceDesc, srv)
+func RegisterSendDummyRuntimeServer(s grpc.ServiceRegistrar, srv SendDummyRuntimeServer) {
+	s.RegisterService(&SendDummyRuntime_ServiceDesc, srv)
 }
 
 func _SendDummyRuntime_SendDummyRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -179,7 +179,10 @@ func _SendDummyRuntime_SendIpRuleRuntime_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-var _SendDummyRuntime_serviceDesc = grpc.ServiceDesc{
+// SendDummyRuntime_ServiceDesc is the grpc.ServiceDesc for SendDummyRuntime service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var SendDummyRuntime_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "lbos.t1.orch.SendDummyRuntime",
 	HandlerType: (*SendDummyRuntimeServer)(nil),
 	Methods: []grpc.MethodDesc{
