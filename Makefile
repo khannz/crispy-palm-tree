@@ -35,8 +35,8 @@ ipruler-rpm-snapshot:
 	cd t1-ipruler && goreleaser --snapshot --skip-publish --rm-dist
 
 ipruler-bin:
-	cd t1-ipruler && CGO_ENABLED=0 go build -o lbost1ad
+	cd t1-ipruler && CGO_ENABLED=0 go build -o lbost1aipr
 
 ipruler-clean:
 	rm -rf ./t1-ipruler/dist
-	rm -f ./t1-ipruler/lbost1ad
+	rm -f ./t1-ipruler/lbost1aipr
