@@ -1,6 +1,23 @@
 syntax = "proto3";
 package lbos.t1.orch;
 
+service SendIPVSRuntime {
+  rpc SendIPVSRuntime(PbSendIPVSRawServicesData) returns (EmptySendIPVSData) {}
+}
+
+message EmptySendIPVSData {
+  string id = 1;
+}
+
+message PbSendIPVSRawServicesData {
+  map<string, PbSendRawIPVSServiceData> rawServicesData = 1;
+  string id = 2;
+}
+
+message PbSendRawIPVSServiceData {
+  map<string, uint32> rawServiceData = 1;
+  string id = 2;
+}
 
 service SendDummyRuntime {
   rpc SendDummyRuntime (SendDummyRuntimeData) returns (EmptySendDummyData) {}
