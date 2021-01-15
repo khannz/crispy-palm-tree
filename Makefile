@@ -60,3 +60,23 @@ tunnel-bin:
 tunnel-clean:
 	rm -rf ./t1-tunnel/dist
 	rm -f ./t1-tunnel/lbost1at
+
+route-dl-mods:
+	cd t1-route && go mod download
+
+route-grpc:
+	mkdir -p ./t1-route/grpc-route
+	mkdir -p ./t1-route/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-route/grpc-route/ --go-grpc_out=./t1-route/grpc-route/ ./proto/t1-route.proto
+	protoc -I ./proto/ --go_out=./t1-route/grpc-orch/ --go-grpc_out=./t1-route/grpc-orch/ ./proto/t1-orch.proto
+
+# TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
+route-rpm-snapshot:
+	cd t1-route && goreleaser --snapshot --skip-publish --rm-dist
+
+route-bin:
+	cd t1-route && CGO_ENABLED=0 go build -o lbost1ar
+
+route-clean:
+	rm -rf ./t1-route/dist
+	rm -f ./t1-route/lbost1ad
