@@ -1,0 +1,51 @@
+env:
+  - GO111MODULE=on
+before:
+  hooks:
+    - go mod download
+builds:
+  - env:
+    - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+    targets:
+      - linux_amd64
+    main: .
+    binary: "lbost1aipr"
+
+nfpms:
+  -
+    id: 1
+    package_name: lbost1aipr
+    file_name_template: "lbost1aipr_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+    vendor: thevan4
+    homepage: https://github.com/khannz/crispy-palm-tree/t1-ipruler
+    maintainer: SDN <sdn@*.com>
+    description: lbost1aipr
+    license: Apache-2.0
+    formats:
+        - rpm
+    bindir: /opt/lbost1aipr
+    overrides:
+      rpm:
+        replacements:
+          amd64: x86_64
+        dependencies:
+          - ipvsadm
+        files:
+          "bundle/rpm.lbost1aipr.service": "/lib/systemd/system/lbost1aipr.service"
+        # empty_folders:
+        #   - /bootflash/lbost1aipr
+        scripts:
+          preinstall: "bundle/rpm.preinstall.sh"
+          postinstall: "bundle/rpm.postinstall.sh"
+          preremove: "bundle/rpm.preremove.sh"
+          postremove: "bundle/rpm.postremove.sh"
+
+archives:
+  - name_template: 'lbost1aipr_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    replacements:
+      amd64: x86_64
