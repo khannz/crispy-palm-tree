@@ -20,21 +20,3 @@ dummy-bin:
 dummy-clean:
 	rm -rf ./t1-dummy/dist
 	rm -f ./t1-dummy/lbost1ad
-
-healthcheck-dl-mods:
-	cd t1-healthcheck && go mod download
-
-healthcheck-grpc:
-	mkdir -p ./t1-healthcheck/grpc-healthcheck
-	protoc -I ./proto/ --go_out=./t1-healthcheck/grpc-healthcheck/ --go-grpc_out=./t1-healthcheck/grpc-healthcheck/ ./proto/healthcheck.proto
-
-# TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
-healthcheck-rpm-snapshot:
-	cd t1-healthcheck && goreleaser --snapshot --skip-publish --rm-dist
-
-healthcheck-bin:
-	cd t1-healthcheck && CGO_ENABLED=0 go build -o lbost1ah
-
-healthcheck-clean:
-	rm -rf ./t1-healthcheck/dist
-	rm -f ./t1-healthcheck/lbost1ad
