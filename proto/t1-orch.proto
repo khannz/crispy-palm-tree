@@ -1,11 +1,29 @@
 syntax = "proto3";
 package lbos.t1.orch;
 
+service SendIPVSRuntime {
+  rpc SendIPVSRuntime(PbSendIPVSRawServicesData) returns (EmptySendIPVSData) {}
+}
+
+message EmptySendIPVSData {
+  string id = 1;
+}
+
+message PbSendIPVSRawServicesData {
+  map<string, PbSendRawIPVSServiceData> rawServicesData = 1;
+  string id = 2;
+}
+
+message PbSendRawIPVSServiceData {
+  map<string, uint32> rawServiceData = 1;
+  string id = 2;
+}
+
 service SendDummyRuntime {
   rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
-  rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
-  rpc SendTunnelRuntime(SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
   rpc SendIpRuleRuntime(SendIpRuleRuntimeData) returns (EmptySendIpRuleData) {}
+  rpc SendTunnelRuntime(SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
+  rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
 }
 
 message SendDummyRuntimeData {
@@ -13,25 +31,25 @@ message SendDummyRuntimeData {
   string id = 2;
 }
 
-message EmptySendDummyData { string id = 1; }
-
-message SendRouteRuntimeData {
-  repeated string routeData = 1; // TODO: need example
-  string id = 2;
-}
-
-message EmptySendRouteData { string id = 1; }
-
-message SendTunnelRuntimeData {
-  map<string, int32> tunnels = 1; // TODO: need example
-  string id = 2;
-}
-
-message EmptySendTunnelData { string id = 1; }
+message EmptySendDummyData {string id = 1;}
 
 message SendIpRuleRuntimeData {
   map<int64, EmptySendIpRuleData> fwmarks = 1;
   string id = 2;
 }
 
-message EmptySendIpRuleData { string id = 1; }
+message EmptySendIpRuleData {string id = 1;}
+
+message SendRouteRuntimeData {
+  repeated string routeData = 1; // TODO: need example
+  string id = 2;
+}
+
+message EmptySendRouteData {string id = 1;}
+
+message SendTunnelRuntimeData {
+  map<string, int32> tunnels = 1; // TODO: need example
+  string id = 2;
+}
+
+message EmptySendTunnelData {string id = 1;}
