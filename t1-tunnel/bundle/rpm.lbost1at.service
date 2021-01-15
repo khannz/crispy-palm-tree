@@ -1,0 +1,20 @@
+[Unit]
+Description=Software network load balancer service
+ConditionPathExists=/opt/lbost1at/lbost1at
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+LimitNOFILE=1024
+Restart=on-failure
+RestartSec=10
+WorkingDirectory=/opt/lbost1at
+ExecStartPre=mkdir -p /run/lbost1at
+ExecStart=/opt/lbost1at/lbost1at run
+KillSignal=SIGINT
+SendSIGKILL=no
+PermissionsStartOnly=true
+[Install]
+WantedBy=multi-user.target

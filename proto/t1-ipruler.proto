@@ -1,0 +1,20 @@
+syntax = "proto3";
+package lbos.t1.ipruler;
+
+service IPRulerGetWorker {
+  rpc AddToIPRuler(IpData) returns (EmptyGetIPRulerData) {}
+  rpc RemoveFromIPRuler(IpData) returns (EmptyGetIPRulerData) {}
+  rpc GetIPRulerRuntime(EmptyGetIPRulerData) returns (GetIPRulerRuntimeData) {}
+}
+
+message IpData {
+  string tunDestIP = 1;
+  string id = 2;
+}
+
+message GetIPRulerRuntimeData {
+  map<int64, EmptyGetIPRulerData> fwmarks = 1;
+  string id = 2;
+}
+
+message EmptyGetIPRulerData { string id = 1; }

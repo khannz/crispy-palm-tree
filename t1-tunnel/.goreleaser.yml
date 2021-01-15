@@ -1,0 +1,48 @@
+env:
+  - GO111MODULE=on
+before:
+  hooks:
+    - go mod download
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+    targets:
+      - linux_amd64
+    main: .
+    binary: "lbost1at"
+
+nfpms:
+  - id: 1
+    package_name: lbost1at
+    file_name_template: "lbost1at_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+    vendor: thevan4
+    homepage: https://github.com/khannz/crispy-palm-tree/t1-tunnel
+    maintainer: SDN <sdn@*.com>
+    description: lbost1at
+    license: Apache-2.0
+    formats:
+      - rpm
+    bindir: /opt/lbost1at
+    overrides:
+      rpm:
+        replacements:
+          amd64: x86_64
+        files:
+          "bundle/rpm.lbost1at.service": "/lib/systemd/system/lbost1at.service"
+        # empty_folders:
+        #   - /bootflash/lbost1at
+        scripts:
+          preinstall: "bundle/rpm.preinstall.sh"
+          postinstall: "bundle/rpm.postinstall.sh"
+          preremove: "bundle/rpm.preremove.sh"
+          postremove: "bundle/rpm.postremove.sh"
+
+archives:
+  - name_template: "lbost1at_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    replacements:
+      amd64: x86_64

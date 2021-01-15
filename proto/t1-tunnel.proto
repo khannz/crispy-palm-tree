@@ -1,0 +1,20 @@
+syntax = "proto3";
+package lbos.t1.tunnel;
+
+service TunnelGetWorker {
+  rpc AddTunnel(TunnelData) returns (EmptyTunnelData) {}
+  rpc RemoveTunnel(TunnelData) returns (EmptyTunnelData) {}
+  rpc GetTunnelRuntime(EmptyTunnelData) returns (GetTunnelRuntimeData) {}
+}
+
+message TunnelData {
+  string hcTunDestIP = 1;
+  string id = 2;
+}
+
+message GetTunnelRuntimeData {
+  map<string, int32> tunnels = 1;
+  string id = 2;
+}
+
+message EmptyTunnelData { string id = 1; }
