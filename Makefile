@@ -20,3 +20,23 @@ dummy-bin:
 dummy-clean:
 	rm -rf ./t1-dummy/dist
 	rm -f ./t1-dummy/lbost1ad
+
+tunnel-dl-mods:
+	cd t1-tunnel && go mod download
+
+tunnel-grpc:
+	mkdir -p ./t1-tunnel/grpc-tunnel
+	mkdir -p ./t1-tunnel/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-tunnel/grpc-tunnel/ --go-grpc_out=./t1-tunnel/grpc-tunnel/ ./proto/t1-tunnel.proto
+	protoc -I ./proto/ --go_out=./t1-tunnel/grpc-orch/ --go-grpc_out=./t1-tunnel/grpc-orch/ ./proto/t1-orch.proto
+
+# TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
+tunnel-rpm-snapshot:
+	cd t1-tunnel && goreleaser --snapshot --skip-publish --rm-dist
+
+tunnel-bin:
+	cd t1-tunnel && CGO_ENABLED=0 go build -o lbost1at
+
+tunnel-clean:
+	rm -rf ./t1-tunnel/dist
+	rm -f ./t1-tunnel/lbost1at
