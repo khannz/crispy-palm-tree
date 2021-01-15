@@ -38,16 +38,18 @@ message SendIpRuleRuntimeData {
   string id = 2;
 }
 
-message SendTunnelRuntimeData {
-  map<string, int32> tunnels = 1;
-  string id = 2;
-}
+message EmptySendIpRuleData {string id = 1;}
 
 message SendRouteRuntimeData {
-  repeated string routeData = 1;
+  repeated string routeData = 1; // TODO: need example
   string id = 2;
 }
 
-message EmptySendIpRuleData {string id = 1;}
-message EmptySendTunnelData {string id = 1;}
 message EmptySendRouteData {string id = 1;}
+
+message SendTunnelRuntimeData {
+  map<string, int32> tunnels = 1; // TODO: need example
+  string id = 2;
+}
+
+message EmptySendTunnelData {string id = 1;}

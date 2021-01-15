@@ -1,0 +1,182 @@
+package run
+
+import (
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	logger "github.com/thevan4/logrus-wrapper"
+)
+
+// Default values
+const (
+	defaultConfigFilePath   = "./lbost1ao.yaml"
+	defaultLogOutput        = "stdout"
+	defaultLogLevel         = "trace"
+	defaultLogFormat        = "text"
+	defaultSystemLogTag     = ""
+	defaultLogEventLocation = true
+
+	defaultT1OrchID      = "test1" // required
+	defaultHlckInterface = ""      // required
+
+	defaultIDType = "nanoid"
+
+	defaultOrchAddress = "/var/run/lbost1ao.sock"
+	defaultOrchTimeout = 2 * time.Second
+
+	defaultDummyAddress  = "/var/run/lbost1ad.sock"
+	defaultDummyTimeout  = 2 * time.Second
+	defaultRouteAddress  = "/var/run/lbost1ar.sock"
+	defaultRouteTimeout  = 2 * time.Second
+	defaultTunnelAddress = "/var/run/lbost1at.sock"
+	defaultTunnelTimeout = 2 * time.Second
+	defaultIpRuleAddress = "/var/run/lbost1aipr.sock"
+	defaultIpRuleTimeout = 2 * time.Second
+	defaultIpvsAddress   = "/var/run/lbost1ai.sock"
+	defaultIpvsTimeout   = 2 * time.Second
+
+	defaultHealthcheckAddress = "/var/run/lbost1ah.sock"
+	defaultResponseTimer      = 2 * time.Second
+
+	defaultConsulAddress         = "127.0.0.1:18700"
+	defaultConsulSubscribePath   = "lbos/t1-cluster-1/"
+	defaultConsulAppServersPath  = "app-servers/"
+	defaultConsulServiceManifest = "manifest"
+)
+
+// Config names
+const (
+	configFilePathName   = "config-file-path"
+	logOutputName        = "log-output"
+	logLevelName         = "log-level"
+	logFormatName        = "log-format"
+	syslogTagName        = "syslog-tag"
+	logEventLocationName = "log-event-location"
+
+	t1OrchIDName      = "t1-id"
+	hlckInterfaceName = "hlck-interface"
+
+	maxShutdownTimeName = "max-shutdown-time"
+
+	idTypeName = "id-type"
+
+	orchAddressName = "orch-addr"
+	orchTimeoutName = "orch-timeout"
+
+	healthcheckAddressName = "hc-address"
+	responseTimerName      = "hc-timeout"
+
+	dummyAddressName  = "dummy-addr"
+	dummyTimeoutName  = "dummy-timeout"
+	routeAddressName  = "route-addr"
+	routeTimeoutName  = "route-timeout"
+	tunnelAddressName = "tunnel-addr"
+	tunnelTimeoutName = "tunnel-timeout"
+	ipRuleAddressName = "ip-rule-addr"
+	ipRuleTimeoutName = "ip-rule-timeout"
+	ipvsAddressName   = "ipvs-addr"
+	ipvsTimeoutName   = "ipvs-timeout"
+
+	consulAddressName         = "consul-address"
+	consulSubscribePathName   = "consul-subscribe-path"
+	consulAppServersPathName  = "consul-app-servers-path"
+	consulServiceManifestName = "consul-manifest-name"
+)
+
+// For builds with ldflags
+var (
+	version   = "unknown"
+	buildTime = "unknown"
+	// 	commit  = "TBD @ ldflags"
+	// 	branch  = "TBD @ ldflags"
+)
+
+var (
+	viperConfig *viper.Viper
+	logging     *logrus.Logger
+)
+
+func init() {
+	var err error
+	viperConfig = viper.New()
+	// work with env
+	viperConfig.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viperConfig.AutomaticEnv()
+
+	// work with flags
+	pflag.StringP(configFilePathName, "c", defaultConfigFilePath, "Path to config file. Example value: './nw-lb.yaml'")
+	pflag.String(logOutputName, defaultLogOutput, "Log output. Example values: 'stdout', 'syslog'")
+	pflag.String(logLevelName, defaultLogLevel, "Log level. Example values: 'info', 'debug', 'trace'")
+	pflag.String(logFormatName, defaultLogFormat, "Log format. Example values: 'text', 'json'")
+	pflag.String(syslogTagName, defaultSystemLogTag, "Syslog tag. Example: 'trac-dgen'")
+	pflag.Bool(logEventLocationName, defaultLogEventLocation, "Log event location (like python)")
+
+	pflag.String(t1OrchIDName, defaultT1OrchID, "t1 orch id")
+
+	pflag.String(hlckInterfaceName, defaultHlckInterface, "healthcheck interface")
+
+	pflag.String(idTypeName, defaultIDType, "ID type(nanoid|uuid4)")
+
+	pflag.String(orchAddressName, defaultOrchAddress, "orch address. Example:'/var/run/lbost1ao.sock'")
+	pflag.Duration(orchTimeoutName, defaultOrchTimeout, "orch request timeout")
+
+	pflag.String(healthcheckAddressName, defaultHealthcheckAddress, "Healthcheck address. Example:'127.0.0.1:7000'")
+	pflag.Duration(responseTimerName, defaultResponseTimer, "Healthcheck request timeout")
+
+	pflag.String(dummyAddressName, defaultDummyAddress, "dummy address. Example:'/var/run/lbost1ad.sock'")
+	pflag.Duration(dummyTimeoutName, defaultDummyTimeout, "dummy request timeout")
+	pflag.String(routeAddressName, defaultRouteAddress, "route address. Example:'/var/run/lbost1ar.sock'")
+	pflag.Duration(routeTimeoutName, defaultRouteTimeout, "route request timeout")
+	pflag.String(tunnelAddressName, defaultTunnelAddress, "tunnel address. Example:'/var/run/lbost1at.sock'")
+	pflag.Duration(tunnelTimeoutName, defaultTunnelTimeout, "tunnel request timeout")
+	pflag.String(ipRuleAddressName, defaultIpRuleAddress, "ip rule address. Example:'/var/run/lbost1aipr.sock'")
+	pflag.Duration(ipRuleTimeoutName, defaultIpRuleTimeout, "ip rule request timeout")
+	pflag.String(ipvsAddressName, defaultIpvsAddress, "ipvs address. Example:'/var/run/lbost1ai.sock'")
+	pflag.Duration(ipvsTimeoutName, defaultIpvsTimeout, "ipvs request timeout")
+
+	pflag.String(consulAddressName, defaultConsulAddress, "consul address")
+	pflag.String(consulSubscribePathName, defaultConsulSubscribePath, "consul subscribe path")
+	pflag.String(consulAppServersPathName, defaultConsulAppServersPath, "consul app servers path")
+	pflag.String(consulServiceManifestName, defaultConsulServiceManifest, "consul service manifest")
+
+	pflag.Parse()
+	if err := viperConfig.BindPFlags(pflag.CommandLine); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// work with config file
+	viperConfig.SetConfigFile(viperConfig.GetString(configFilePathName))
+	if err := viperConfig.ReadInConfig(); err != nil {
+		fmt.Println(err)
+	}
+
+	// init logs
+	newLogger := &logger.Logger{
+		Output:           []string{viperConfig.GetString(logOutputName)},
+		Level:            viperConfig.GetString(logLevelName),
+		Formatter:        viperConfig.GetString(logFormatName),
+		LogEventLocation: viperConfig.GetBool(logEventLocationName),
+	}
+	logging, err = logger.NewLogrusLogger(newLogger)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if viperConfig.GetString(t1OrchIDName) == "" {
+		logging.Fatalf("t1 id must be set")
+	}
+
+	switch viperConfig.GetString(idTypeName) {
+	case "nanoid":
+	case "id4":
+	default:
+		logging.Fatalf("unsuported id type: %v; supported types: nanoid|id4", viperConfig.GetString(idTypeName))
+	}
+}
