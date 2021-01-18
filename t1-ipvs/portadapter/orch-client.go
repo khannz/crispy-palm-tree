@@ -39,12 +39,12 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendIPVSRuntime(runtimeConfi
 	}
 	defer conn.Close()
 
-	healthcheckClient := transport.NewSendIPVSRuntimeClient(conn)
+	healthcheckClient := transport.NewSendRuntimeClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
 	pbRuntime := convertInternalServicesToPbServices(runtimeConfig, id)
-	_, err = healthcheckClient.SendIPVSRuntime(sendCtx, pbRuntime)
+	_, err = healthcheckClient.IPVSRuntime(sendCtx, pbRuntime)
 	return err
 }
 
@@ -69,7 +69,7 @@ func convertInternalToPbApplicationServers(internalApplicationServers map[string
 	return pbApplicationServers
 }
 
-func convertInternalServicesToPbServices(internalServices map[string]map[string]uint16, id string) *transport.PbSendIPVSRawServicesData {
+func convertInternalServicesToPbServices(internalServices map[string]map[string]uint16, id string) *transport.PbIPVSRawServicesData {
 	pbServices := make(map[string]*transport.PbSendRawIPVSServiceData, len(internalServices))
 	for k, v := range internalServices {
 		applicationServers := &transport.PbSendRawIPVSServiceData{
@@ -78,7 +78,7 @@ func convertInternalServicesToPbServices(internalServices map[string]map[string]
 		pbServices[k] = applicationServers
 	}
 
-	return &transport.PbSendIPVSRawServicesData{
+	return &transport.PbIPVSRawServicesData{
 		RawServicesData: pbServices,
 		Id:              id,
 	}
