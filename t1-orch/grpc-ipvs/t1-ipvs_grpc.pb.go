@@ -13,10 +13,10 @@ import (
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion7
 
-// IPVSGetWokerClient is the client API for IPVSGetWoker service.
+// IPVSGetWorkerClient is the client API for IPVSGetWorker service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type IPVSGetWokerClient interface {
+type IPVSGetWorkerClient interface {
 	NewIPVSService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error)
 	AddIPVSApplicationServersForService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error)
 	RemoveIPVSService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error)
@@ -24,219 +24,219 @@ type IPVSGetWokerClient interface {
 	GetIPVSRuntime(ctx context.Context, in *EmptyGetIPVSData, opts ...grpc.CallOption) (*PbGetIPVSRawServicesData, error)
 }
 
-type iPVSGetWokerClient struct {
+type iPVSGetWorkerClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewIPVSGetWokerClient(cc grpc.ClientConnInterface) IPVSGetWokerClient {
-	return &iPVSGetWokerClient{cc}
+func NewIPVSGetWorkerClient(cc grpc.ClientConnInterface) IPVSGetWorkerClient {
+	return &iPVSGetWorkerClient{cc}
 }
 
-func (c *iPVSGetWokerClient) NewIPVSService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
+func (c *iPVSGetWorkerClient) NewIPVSService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
 	out := new(EmptyGetIPVSData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWoker/NewIPVSService", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWorker/NewIPVSService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iPVSGetWokerClient) AddIPVSApplicationServersForService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
+func (c *iPVSGetWorkerClient) AddIPVSApplicationServersForService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
 	out := new(EmptyGetIPVSData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWoker/AddIPVSApplicationServersForService", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWorker/AddIPVSApplicationServersForService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iPVSGetWokerClient) RemoveIPVSService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
+func (c *iPVSGetWorkerClient) RemoveIPVSService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
 	out := new(EmptyGetIPVSData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWoker/RemoveIPVSService", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWorker/RemoveIPVSService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iPVSGetWokerClient) RemoveIPVSApplicationServersFromService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
+func (c *iPVSGetWorkerClient) RemoveIPVSApplicationServersFromService(ctx context.Context, in *PbGetIPVSServiceData, opts ...grpc.CallOption) (*EmptyGetIPVSData, error) {
 	out := new(EmptyGetIPVSData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWoker/RemoveIPVSApplicationServersFromService", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWorker/RemoveIPVSApplicationServersFromService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iPVSGetWokerClient) GetIPVSRuntime(ctx context.Context, in *EmptyGetIPVSData, opts ...grpc.CallOption) (*PbGetIPVSRawServicesData, error) {
+func (c *iPVSGetWorkerClient) GetIPVSRuntime(ctx context.Context, in *EmptyGetIPVSData, opts ...grpc.CallOption) (*PbGetIPVSRawServicesData, error) {
 	out := new(PbGetIPVSRawServicesData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWoker/GetIPVSRuntime", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lbos.t1.ipvs.IPVSGetWorker/GetIPVSRuntime", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// IPVSGetWokerServer is the server API for IPVSGetWoker service.
-// All implementations must embed UnimplementedIPVSGetWokerServer
+// IPVSGetWorkerServer is the server API for IPVSGetWorker service.
+// All implementations must embed UnimplementedIPVSGetWorkerServer
 // for forward compatibility
-type IPVSGetWokerServer interface {
+type IPVSGetWorkerServer interface {
 	NewIPVSService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error)
 	AddIPVSApplicationServersForService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error)
 	RemoveIPVSService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error)
 	RemoveIPVSApplicationServersFromService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error)
 	GetIPVSRuntime(context.Context, *EmptyGetIPVSData) (*PbGetIPVSRawServicesData, error)
-	mustEmbedUnimplementedIPVSGetWokerServer()
+	mustEmbedUnimplementedIPVSGetWorkerServer()
 }
 
-// UnimplementedIPVSGetWokerServer must be embedded to have forward compatible implementations.
-type UnimplementedIPVSGetWokerServer struct {
+// UnimplementedIPVSGetWorkerServer must be embedded to have forward compatible implementations.
+type UnimplementedIPVSGetWorkerServer struct {
 }
 
-func (UnimplementedIPVSGetWokerServer) NewIPVSService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
+func (UnimplementedIPVSGetWorkerServer) NewIPVSService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NewIPVSService not implemented")
 }
-func (UnimplementedIPVSGetWokerServer) AddIPVSApplicationServersForService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
+func (UnimplementedIPVSGetWorkerServer) AddIPVSApplicationServersForService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddIPVSApplicationServersForService not implemented")
 }
-func (UnimplementedIPVSGetWokerServer) RemoveIPVSService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
+func (UnimplementedIPVSGetWorkerServer) RemoveIPVSService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveIPVSService not implemented")
 }
-func (UnimplementedIPVSGetWokerServer) RemoveIPVSApplicationServersFromService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
+func (UnimplementedIPVSGetWorkerServer) RemoveIPVSApplicationServersFromService(context.Context, *PbGetIPVSServiceData) (*EmptyGetIPVSData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveIPVSApplicationServersFromService not implemented")
 }
-func (UnimplementedIPVSGetWokerServer) GetIPVSRuntime(context.Context, *EmptyGetIPVSData) (*PbGetIPVSRawServicesData, error) {
+func (UnimplementedIPVSGetWorkerServer) GetIPVSRuntime(context.Context, *EmptyGetIPVSData) (*PbGetIPVSRawServicesData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetIPVSRuntime not implemented")
 }
-func (UnimplementedIPVSGetWokerServer) mustEmbedUnimplementedIPVSGetWokerServer() {}
+func (UnimplementedIPVSGetWorkerServer) mustEmbedUnimplementedIPVSGetWorkerServer() {}
 
-// UnsafeIPVSGetWokerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to IPVSGetWokerServer will
+// UnsafeIPVSGetWorkerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to IPVSGetWorkerServer will
 // result in compilation errors.
-type UnsafeIPVSGetWokerServer interface {
-	mustEmbedUnimplementedIPVSGetWokerServer()
+type UnsafeIPVSGetWorkerServer interface {
+	mustEmbedUnimplementedIPVSGetWorkerServer()
 }
 
-func RegisterIPVSGetWokerServer(s grpc.ServiceRegistrar, srv IPVSGetWokerServer) {
-	s.RegisterService(&IPVSGetWoker_ServiceDesc, srv)
+func RegisterIPVSGetWorkerServer(s grpc.ServiceRegistrar, srv IPVSGetWorkerServer) {
+	s.RegisterService(&IPVSGetWorker_ServiceDesc, srv)
 }
 
-func _IPVSGetWoker_NewIPVSService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IPVSGetWorker_NewIPVSService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PbGetIPVSServiceData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IPVSGetWokerServer).NewIPVSService(ctx, in)
+		return srv.(IPVSGetWorkerServer).NewIPVSService(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.ipvs.IPVSGetWoker/NewIPVSService",
+		FullMethod: "/lbos.t1.ipvs.IPVSGetWorker/NewIPVSService",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IPVSGetWokerServer).NewIPVSService(ctx, req.(*PbGetIPVSServiceData))
+		return srv.(IPVSGetWorkerServer).NewIPVSService(ctx, req.(*PbGetIPVSServiceData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IPVSGetWoker_AddIPVSApplicationServersForService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IPVSGetWorker_AddIPVSApplicationServersForService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PbGetIPVSServiceData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IPVSGetWokerServer).AddIPVSApplicationServersForService(ctx, in)
+		return srv.(IPVSGetWorkerServer).AddIPVSApplicationServersForService(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.ipvs.IPVSGetWoker/AddIPVSApplicationServersForService",
+		FullMethod: "/lbos.t1.ipvs.IPVSGetWorker/AddIPVSApplicationServersForService",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IPVSGetWokerServer).AddIPVSApplicationServersForService(ctx, req.(*PbGetIPVSServiceData))
+		return srv.(IPVSGetWorkerServer).AddIPVSApplicationServersForService(ctx, req.(*PbGetIPVSServiceData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IPVSGetWoker_RemoveIPVSService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IPVSGetWorker_RemoveIPVSService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PbGetIPVSServiceData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IPVSGetWokerServer).RemoveIPVSService(ctx, in)
+		return srv.(IPVSGetWorkerServer).RemoveIPVSService(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.ipvs.IPVSGetWoker/RemoveIPVSService",
+		FullMethod: "/lbos.t1.ipvs.IPVSGetWorker/RemoveIPVSService",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IPVSGetWokerServer).RemoveIPVSService(ctx, req.(*PbGetIPVSServiceData))
+		return srv.(IPVSGetWorkerServer).RemoveIPVSService(ctx, req.(*PbGetIPVSServiceData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IPVSGetWoker_RemoveIPVSApplicationServersFromService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IPVSGetWorker_RemoveIPVSApplicationServersFromService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PbGetIPVSServiceData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IPVSGetWokerServer).RemoveIPVSApplicationServersFromService(ctx, in)
+		return srv.(IPVSGetWorkerServer).RemoveIPVSApplicationServersFromService(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.ipvs.IPVSGetWoker/RemoveIPVSApplicationServersFromService",
+		FullMethod: "/lbos.t1.ipvs.IPVSGetWorker/RemoveIPVSApplicationServersFromService",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IPVSGetWokerServer).RemoveIPVSApplicationServersFromService(ctx, req.(*PbGetIPVSServiceData))
+		return srv.(IPVSGetWorkerServer).RemoveIPVSApplicationServersFromService(ctx, req.(*PbGetIPVSServiceData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IPVSGetWoker_GetIPVSRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IPVSGetWorker_GetIPVSRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EmptyGetIPVSData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IPVSGetWokerServer).GetIPVSRuntime(ctx, in)
+		return srv.(IPVSGetWorkerServer).GetIPVSRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.ipvs.IPVSGetWoker/GetIPVSRuntime",
+		FullMethod: "/lbos.t1.ipvs.IPVSGetWorker/GetIPVSRuntime",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IPVSGetWokerServer).GetIPVSRuntime(ctx, req.(*EmptyGetIPVSData))
+		return srv.(IPVSGetWorkerServer).GetIPVSRuntime(ctx, req.(*EmptyGetIPVSData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// IPVSGetWoker_ServiceDesc is the grpc.ServiceDesc for IPVSGetWoker service.
+// IPVSGetWorker_ServiceDesc is the grpc.ServiceDesc for IPVSGetWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var IPVSGetWoker_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "lbos.t1.ipvs.IPVSGetWoker",
-	HandlerType: (*IPVSGetWokerServer)(nil),
+var IPVSGetWorker_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "lbos.t1.ipvs.IPVSGetWorker",
+	HandlerType: (*IPVSGetWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "NewIPVSService",
-			Handler:    _IPVSGetWoker_NewIPVSService_Handler,
+			Handler:    _IPVSGetWorker_NewIPVSService_Handler,
 		},
 		{
 			MethodName: "AddIPVSApplicationServersForService",
-			Handler:    _IPVSGetWoker_AddIPVSApplicationServersForService_Handler,
+			Handler:    _IPVSGetWorker_AddIPVSApplicationServersForService_Handler,
 		},
 		{
 			MethodName: "RemoveIPVSService",
-			Handler:    _IPVSGetWoker_RemoveIPVSService_Handler,
+			Handler:    _IPVSGetWorker_RemoveIPVSService_Handler,
 		},
 		{
 			MethodName: "RemoveIPVSApplicationServersFromService",
-			Handler:    _IPVSGetWoker_RemoveIPVSApplicationServersFromService_Handler,
+			Handler:    _IPVSGetWorker_RemoveIPVSApplicationServersFromService_Handler,
 		},
 		{
 			MethodName: "GetIPVSRuntime",
-			Handler:    _IPVSGetWoker_GetIPVSRuntime_Handler,
+			Handler:    _IPVSGetWorker_GetIPVSRuntime_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

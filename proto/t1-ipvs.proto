@@ -1,8 +1,12 @@
 syntax = "proto3";
 package lbos.t1.ipvs;
 
-message EmptyGetIPVSData {
-  string id = 1;
+service IPVSGetWorker {
+  rpc NewIPVSService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc AddIPVSApplicationServersForService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc RemoveIPVSService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc RemoveIPVSApplicationServersFromService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
+  rpc GetIPVSRuntime(EmptyGetIPVSData) returns (PbGetIPVSRawServicesData) {}
 }
 
 message PbGetIPVSRawServicesData {
@@ -12,11 +16,6 @@ message PbGetIPVSRawServicesData {
 
 message PbGetRawIPVSServiceData {
   map<string, uint32> rawServiceData = 1;
-  string id = 2;
-}
-
-message PbGetIPVSServicesData {
-  map<string, PbGetIPVSServiceData> services = 1; // string - vip+port
   string id = 2;
 }
 
@@ -30,10 +29,6 @@ message PbGetIPVSServiceData {
   string id = 7;
 }
 
-service IPVSGetWoker {
-  rpc NewIPVSService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
-  rpc AddIPVSApplicationServersForService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
-  rpc RemoveIPVSService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
-  rpc RemoveIPVSApplicationServersFromService (PbGetIPVSServiceData) returns (EmptyGetIPVSData) {}
-  rpc GetIPVSRuntime(EmptyGetIPVSData) returns (PbGetIPVSRawServicesData) {}
+message EmptyGetIPVSData {
+  string id = 1;
 }

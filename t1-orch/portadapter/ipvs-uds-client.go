@@ -40,7 +40,7 @@ func (ipvsWorker *IpvsWorker) NewIPVSService(vip string,
 	}
 	defer conn.Close()
 
-	ipvsClient := transport.NewIPVSGetWokerClient(conn)
+	ipvsClient := transport.NewIPVSGetWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
@@ -75,7 +75,7 @@ func (ipvsWorker *IpvsWorker) AddIPVSApplicationServersForService(vip string,
 	}
 	defer conn.Close()
 
-	ipvsClient := transport.NewIPVSGetWokerClient(conn)
+	ipvsClient := transport.NewIPVSGetWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
@@ -106,7 +106,7 @@ func (ipvsWorker *IpvsWorker) RemoveIPVSService(vip string,
 	}
 	defer conn.Close()
 
-	ipvsClient := transport.NewIPVSGetWokerClient(conn)
+	ipvsClient := transport.NewIPVSGetWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
@@ -141,7 +141,7 @@ func (ipvsWorker *IpvsWorker) RemoveIPVSApplicationServersFromService(vip string
 	}
 	defer conn.Close()
 
-	ipvsClient := transport.NewIPVSGetWokerClient(conn)
+	ipvsClient := transport.NewIPVSGetWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
@@ -169,7 +169,7 @@ func (ipvsWorker *IpvsWorker) GetIPVSRuntime(id string) (map[string]map[string]u
 	}
 	defer conn.Close()
 
-	ipvsClient := transport.NewIPVSGetWokerClient(conn)
+	ipvsClient := transport.NewIPVSGetWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 

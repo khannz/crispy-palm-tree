@@ -20,7 +20,7 @@ type GrpcServer struct {
 	facade  *IPVSFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	transport.UnimplementedIPVSGetWokerServer
+	transport.UnimplementedIPVSGetWorkerServer
 }
 
 func NewGrpcServer(addr string,
@@ -220,7 +220,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	transport.RegisterIPVSGetWokerServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterIPVSGetWorkerServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.serve(lis)
 	return nil
 }
