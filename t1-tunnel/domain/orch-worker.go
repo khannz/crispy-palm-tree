@@ -2,5 +2,5 @@ package domain
 
 // OrchestratorWorker ...
 type OrchestratorWorker interface {
-	SendTunnelRuntimeConfig(map[string]struct{}, string) error
+	TunnelRuntimeConfig(map[string]struct{}, string) error
 }

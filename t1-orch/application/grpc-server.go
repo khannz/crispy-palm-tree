@@ -47,11 +47,11 @@ func (gs *GrpcServer) SendRouteRuntime(ctx context.Context,
 	return &transport.EmptySendRouteData{}, nil
 }
 
-// SendTunnelRuntime ...
-func (gs *GrpcServer) SendTunnelRuntime(ctx context.Context,
-	incomeDummyRuntimeData *transport.SendTunnelRuntimeData) (*transport.EmptySendTunnelData, error) {
+// TunnelRuntime ...
+func (gs *GrpcServer) TunnelRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.TunnelRuntimeData) (*transport.EmptyTunnelData, error) {
 	// TODO: implement
-	return &transport.EmptySendTunnelData{}, nil
+	return &transport.EmptyTunnelData{}, nil
 }
 
 // IpRuleRuntime ...

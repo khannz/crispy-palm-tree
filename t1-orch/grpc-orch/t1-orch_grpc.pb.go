@@ -20,7 +20,7 @@ type SendRuntimeClient interface {
 	DummyRuntime(ctx context.Context, in *DummyRuntimeData, opts ...grpc.CallOption) (*EmptyDummyData, error)
 	IPVSRuntime(ctx context.Context, in *PbIPVSRawServicesData, opts ...grpc.CallOption) (*EmptyIPVSData, error)
 	IpRuleRuntime(ctx context.Context, in *IpRuleRuntimeData, opts ...grpc.CallOption) (*EmptyIpRuleData, error)
-	SendTunnelRuntime(ctx context.Context, in *SendTunnelRuntimeData, opts ...grpc.CallOption) (*EmptySendTunnelData, error)
+	TunnelRuntime(ctx context.Context, in *TunnelRuntimeData, opts ...grpc.CallOption) (*EmptyTunnelData, error)
 	SendRouteRuntime(ctx context.Context, in *SendRouteRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error)
 }
 
@@ -59,9 +59,9 @@ func (c *sendRuntimeClient) IpRuleRuntime(ctx context.Context, in *IpRuleRuntime
 	return out, nil
 }
 
-func (c *sendRuntimeClient) SendTunnelRuntime(ctx context.Context, in *SendTunnelRuntimeData, opts ...grpc.CallOption) (*EmptySendTunnelData, error) {
-	out := new(EmptySendTunnelData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/SendTunnelRuntime", in, out, opts...)
+func (c *sendRuntimeClient) TunnelRuntime(ctx context.Context, in *TunnelRuntimeData, opts ...grpc.CallOption) (*EmptyTunnelData, error) {
+	out := new(EmptyTunnelData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/TunnelRuntime", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ type SendRuntimeServer interface {
 	DummyRuntime(context.Context, *DummyRuntimeData) (*EmptyDummyData, error)
 	IPVSRuntime(context.Context, *PbIPVSRawServicesData) (*EmptyIPVSData, error)
 	IpRuleRuntime(context.Context, *IpRuleRuntimeData) (*EmptyIpRuleData, error)
-	SendTunnelRuntime(context.Context, *SendTunnelRuntimeData) (*EmptySendTunnelData, error)
+	TunnelRuntime(context.Context, *TunnelRuntimeData) (*EmptyTunnelData, error)
 	SendRouteRuntime(context.Context, *SendRouteRuntimeData) (*EmptySendRouteData, error)
 	mustEmbedUnimplementedSendRuntimeServer()
 }
@@ -102,8 +102,8 @@ func (UnimplementedSendRuntimeServer) IPVSRuntime(context.Context, *PbIPVSRawSer
 func (UnimplementedSendRuntimeServer) IpRuleRuntime(context.Context, *IpRuleRuntimeData) (*EmptyIpRuleData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IpRuleRuntime not implemented")
 }
-func (UnimplementedSendRuntimeServer) SendTunnelRuntime(context.Context, *SendTunnelRuntimeData) (*EmptySendTunnelData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendTunnelRuntime not implemented")
+func (UnimplementedSendRuntimeServer) TunnelRuntime(context.Context, *TunnelRuntimeData) (*EmptyTunnelData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TunnelRuntime not implemented")
 }
 func (UnimplementedSendRuntimeServer) SendRouteRuntime(context.Context, *SendRouteRuntimeData) (*EmptySendRouteData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendRouteRuntime not implemented")
@@ -175,20 +175,20 @@ func _SendRuntime_IpRuleRuntime_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SendRuntime_SendTunnelRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendTunnelRuntimeData)
+func _SendRuntime_TunnelRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TunnelRuntimeData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SendRuntimeServer).SendTunnelRuntime(ctx, in)
+		return srv.(SendRuntimeServer).TunnelRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.orch.SendRuntime/SendTunnelRuntime",
+		FullMethod: "/lbos.t1.orch.SendRuntime/TunnelRuntime",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SendRuntimeServer).SendTunnelRuntime(ctx, req.(*SendTunnelRuntimeData))
+		return srv.(SendRuntimeServer).TunnelRuntime(ctx, req.(*TunnelRuntimeData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -231,8 +231,8 @@ var SendRuntime_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SendRuntime_IpRuleRuntime_Handler,
 		},
 		{
-			MethodName: "SendTunnelRuntime",
-			Handler:    _SendRuntime_SendTunnelRuntime_Handler,
+			MethodName: "TunnelRuntime",
+			Handler:    _SendRuntime_TunnelRuntime_Handler,
 		},
 		{
 			MethodName: "SendRouteRuntime",
