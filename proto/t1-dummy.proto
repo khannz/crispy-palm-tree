@@ -2,10 +2,10 @@ syntax = "proto3";
 package lbos.t1.dummy;
 
 
-service DummyGetWorker {
-  rpc AddToDummy (IpData) returns (EmptyGetDummyData) {}
-  rpc RemoveFromDummy (IpData) returns (EmptyGetDummyData) {}
-  rpc GetDummyRuntime(EmptyGetDummyData) returns (GetDummyRuntimeData) {}
+service DummyWorker {
+  rpc AddToDummy (IpData) returns (EmptyDummyData) {}
+  rpc RemoveFromDummy (IpData) returns (EmptyDummyData) {}
+  rpc GetDummyRuntime(EmptyDummyData) returns (GetDummyRuntimeData) {}
 }
 
 message IpData {
@@ -18,6 +18,6 @@ message GetDummyRuntimeData {
   string id = 2;
 }
 
-message EmptyGetDummyData {
+message EmptyDummyData {
   string id = 1;
 }

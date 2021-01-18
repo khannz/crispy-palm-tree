@@ -19,19 +19,19 @@ message PbSendRawIPVSServiceData {
   string id = 2;
 }
 
-service SendDummyRuntime {
-  rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
+service SendRuntime {
+  rpc DummyRuntime(DummyRuntimeData) returns (EmptyDummyData) {}
   rpc SendIpRuleRuntime(SendIpRuleRuntimeData) returns (EmptySendIpRuleData) {}
   rpc SendTunnelRuntime(SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
   rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
 }
 
-message SendDummyRuntimeData {
-  map<string, EmptySendDummyData> services = 1;
+message DummyRuntimeData {
+  map<string, EmptyDummyData> services = 1;
   string id = 2;
 }
 
-message EmptySendDummyData {string id = 1;}
+message EmptyDummyData {string id = 1;}
 
 message SendIpRuleRuntimeData {
   map<int64, EmptySendIpRuleData> fwmarks = 1;

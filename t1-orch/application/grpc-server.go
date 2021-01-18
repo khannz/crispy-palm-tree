@@ -20,7 +20,7 @@ type GrpcServer struct {
 	facade  *T1OrchFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	transport.UnimplementedSendDummyRuntimeServer
+	transport.UnimplementedSendRuntimeServer
 }
 
 func NewGrpcServer(addr string,
@@ -33,11 +33,11 @@ func NewGrpcServer(addr string,
 	}
 }
 
-// SendDummyRuntime ...
-func (gs *GrpcServer) SendDummyRuntime(ctx context.Context,
-	incomeDummyRuntimeData *transport.SendDummyRuntimeData) (*transport.EmptySendDummyData, error) {
+// DummyRuntime ...
+func (gs *GrpcServer) DummyRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.DummyRuntimeData) (*transport.EmptyDummyData, error) {
 	// TODO: implement
-	return &transport.EmptySendDummyData{}, nil
+	return &transport.EmptyDummyData{}, nil
 }
 
 // SendRouteRuntime ...
@@ -72,7 +72,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	transport.RegisterSendDummyRuntimeServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterSendRuntimeServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.serve(lis)
 	return nil
 }

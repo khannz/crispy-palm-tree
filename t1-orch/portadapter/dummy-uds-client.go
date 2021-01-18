@@ -35,7 +35,7 @@ func (dummyWorker *DummyWorker) AddToDummy(ip string, id string) error {
 	}
 	defer conn.Close()
 
-	dummyClient := transport.NewDummyGetWorkerClient(conn)
+	dummyClient := transport.NewDummyWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
@@ -58,7 +58,7 @@ func (dummyWorker *DummyWorker) RemoveFromDummy(ip string, id string) error {
 	}
 	defer conn.Close()
 
-	dummyClient := transport.NewDummyGetWorkerClient(conn)
+	dummyClient := transport.NewDummyWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
@@ -81,11 +81,11 @@ func (dummyWorker *DummyWorker) GetDummyRuntimeConfig(id string) (map[string]str
 	}
 	defer conn.Close()
 
-	dummyClient := transport.NewDummyGetWorkerClient(conn)
+	dummyClient := transport.NewDummyWorkerClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
-	pbGetDummy := &transport.EmptyGetDummyData{Id: id}
+	pbGetDummy := &transport.EmptyDummyData{Id: id}
 	pbDummyRuntimeData, err := dummyClient.GetDummyRuntime(sendCtx, pbGetDummy)
 	if err != nil {
 		return nil, err
