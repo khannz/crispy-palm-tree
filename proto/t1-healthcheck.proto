@@ -1,5 +1,5 @@
 syntax = "proto3";
-package lbos.t1.dummy;
+package lbos.t1.healthcheck;
 
 import "google/protobuf/duration.proto";
 
