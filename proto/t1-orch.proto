@@ -4,7 +4,7 @@ package lbos.t1.orch;
 service SendRuntime {
   rpc DummyRuntime(DummyRuntimeData) returns (EmptyDummyData) {}
   rpc IPVSRuntime(PbIPVSRawServicesData) returns (EmptyIPVSData) {}
-  rpc SendIpRuleRuntime(SendIpRuleRuntimeData) returns (EmptySendIpRuleData) {}
+  rpc IpRuleRuntime(IpRuleRuntimeData) returns (EmptyIpRuleData) {}
   rpc SendTunnelRuntime(SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
   rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
 }
@@ -30,12 +30,12 @@ message EmptyIPVSData {
   string id = 1;
 }
 
-message SendIpRuleRuntimeData {
-  map<int64, EmptySendIpRuleData> fwmarks = 1;
+message IpRuleRuntimeData {
+  map<int64, int32> fwmarks = 1;
   string id = 2;
 }
 
-message EmptySendIpRuleData {string id = 1;}
+message EmptyIpRuleData {string id = 1;}
 
 message SendTunnelRuntimeData {
   map<string, int32> tunnels = 1; // TODO: need example

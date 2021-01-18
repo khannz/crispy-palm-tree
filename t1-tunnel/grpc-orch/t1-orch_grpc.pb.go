@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 type SendRuntimeClient interface {
 	DummyRuntime(ctx context.Context, in *DummyRuntimeData, opts ...grpc.CallOption) (*EmptyDummyData, error)
 	IPVSRuntime(ctx context.Context, in *PbIPVSRawServicesData, opts ...grpc.CallOption) (*EmptyIPVSData, error)
-	SendIpRuleRuntime(ctx context.Context, in *SendIpRuleRuntimeData, opts ...grpc.CallOption) (*EmptySendIpRuleData, error)
+	IpRuleRuntime(ctx context.Context, in *IpRuleRuntimeData, opts ...grpc.CallOption) (*EmptyIpRuleData, error)
 	SendTunnelRuntime(ctx context.Context, in *SendTunnelRuntimeData, opts ...grpc.CallOption) (*EmptySendTunnelData, error)
 	SendRouteRuntime(ctx context.Context, in *SendRouteRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error)
 }
@@ -50,9 +50,9 @@ func (c *sendRuntimeClient) IPVSRuntime(ctx context.Context, in *PbIPVSRawServic
 	return out, nil
 }
 
-func (c *sendRuntimeClient) SendIpRuleRuntime(ctx context.Context, in *SendIpRuleRuntimeData, opts ...grpc.CallOption) (*EmptySendIpRuleData, error) {
-	out := new(EmptySendIpRuleData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/SendIpRuleRuntime", in, out, opts...)
+func (c *sendRuntimeClient) IpRuleRuntime(ctx context.Context, in *IpRuleRuntimeData, opts ...grpc.CallOption) (*EmptyIpRuleData, error) {
+	out := new(EmptyIpRuleData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/IpRuleRuntime", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (c *sendRuntimeClient) SendRouteRuntime(ctx context.Context, in *SendRouteR
 type SendRuntimeServer interface {
 	DummyRuntime(context.Context, *DummyRuntimeData) (*EmptyDummyData, error)
 	IPVSRuntime(context.Context, *PbIPVSRawServicesData) (*EmptyIPVSData, error)
-	SendIpRuleRuntime(context.Context, *SendIpRuleRuntimeData) (*EmptySendIpRuleData, error)
+	IpRuleRuntime(context.Context, *IpRuleRuntimeData) (*EmptyIpRuleData, error)
 	SendTunnelRuntime(context.Context, *SendTunnelRuntimeData) (*EmptySendTunnelData, error)
 	SendRouteRuntime(context.Context, *SendRouteRuntimeData) (*EmptySendRouteData, error)
 	mustEmbedUnimplementedSendRuntimeServer()
@@ -99,8 +99,8 @@ func (UnimplementedSendRuntimeServer) DummyRuntime(context.Context, *DummyRuntim
 func (UnimplementedSendRuntimeServer) IPVSRuntime(context.Context, *PbIPVSRawServicesData) (*EmptyIPVSData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IPVSRuntime not implemented")
 }
-func (UnimplementedSendRuntimeServer) SendIpRuleRuntime(context.Context, *SendIpRuleRuntimeData) (*EmptySendIpRuleData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendIpRuleRuntime not implemented")
+func (UnimplementedSendRuntimeServer) IpRuleRuntime(context.Context, *IpRuleRuntimeData) (*EmptyIpRuleData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IpRuleRuntime not implemented")
 }
 func (UnimplementedSendRuntimeServer) SendTunnelRuntime(context.Context, *SendTunnelRuntimeData) (*EmptySendTunnelData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendTunnelRuntime not implemented")
@@ -157,20 +157,20 @@ func _SendRuntime_IPVSRuntime_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SendRuntime_SendIpRuleRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendIpRuleRuntimeData)
+func _SendRuntime_IpRuleRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IpRuleRuntimeData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SendRuntimeServer).SendIpRuleRuntime(ctx, in)
+		return srv.(SendRuntimeServer).IpRuleRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.orch.SendRuntime/SendIpRuleRuntime",
+		FullMethod: "/lbos.t1.orch.SendRuntime/IpRuleRuntime",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SendRuntimeServer).SendIpRuleRuntime(ctx, req.(*SendIpRuleRuntimeData))
+		return srv.(SendRuntimeServer).IpRuleRuntime(ctx, req.(*IpRuleRuntimeData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -227,8 +227,8 @@ var SendRuntime_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SendRuntime_IPVSRuntime_Handler,
 		},
 		{
-			MethodName: "SendIpRuleRuntime",
-			Handler:    _SendRuntime_SendIpRuleRuntime_Handler,
+			MethodName: "IpRuleRuntime",
+			Handler:    _SendRuntime_IpRuleRuntime_Handler,
 		},
 		{
 			MethodName: "SendTunnelRuntime",
