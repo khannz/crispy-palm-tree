@@ -148,3 +148,41 @@ ipvs-bin:
 ipvs-clean:
 	rm -rf ./t1-ipvs/dist
 	rm -f ./t1-ipvs/lbost1ai
+
+all-grpc:
+	mkdir -p ./t1-orch/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-orch/ --go-grpc_out=./t1-orch/grpc-orch/ ./proto/t1-orch.proto
+	mkdir -p ./t1-orch/grpc-dummy
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-dummy/ --go-grpc_out=./t1-orch/grpc-dummy/ ./proto/t1-dummy.proto
+	mkdir -p ./t1-orch/grpc-route
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-route/ --go-grpc_out=./t1-orch/grpc-route/ ./proto/t1-route.proto
+	mkdir -p ./t1-orch/grpc-tunnel
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-tunnel/ --go-grpc_out=./t1-orch/grpc-tunnel/ ./proto/t1-tunnel.proto
+	mkdir -p ./t1-orch/grpc-ipruler
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-ipruler/ --go-grpc_out=./t1-orch/grpc-ipruler/ ./proto/t1-ipruler.proto
+	mkdir -p ./t1-orch/grpc-ipvs
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-ipvs/ --go-grpc_out=./t1-orch/grpc-ipvs/ ./proto/t1-ipvs.proto
+	mkdir -p ./t1-orch/grpc-healthcheck
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-healthcheck/ --go-grpc_out=./t1-orch/grpc-healthcheck/ ./proto/t1-healthcheck.proto
+	mkdir -p ./t1-dummy/grpc-dummy
+	mkdir -p ./t1-dummy/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-dummy/grpc-dummy/ --go-grpc_out=./t1-dummy/grpc-dummy/ ./proto/t1-dummy.proto
+	protoc -I ./proto/ --go_out=./t1-dummy/grpc-orch/ --go-grpc_out=./t1-dummy/grpc-orch/ ./proto/t1-orch.proto
+	mkdir -p ./t1-ipruler/grpc-ipruler
+	mkdir -p ./t1-ipruler/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-ipruler/grpc-ipruler/ --go-grpc_out=./t1-ipruler/grpc-ipruler/ ./proto/t1-ipruler.proto
+	protoc -I ./proto/ --go_out=./t1-ipruler/grpc-orch/ --go-grpc_out=./t1-ipruler/grpc-orch/ ./proto/t1-orch.proto
+	mkdir -p ./t1-tunnel/grpc-tunnel
+	mkdir -p ./t1-tunnel/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-tunnel/grpc-tunnel/ --go-grpc_out=./t1-tunnel/grpc-tunnel/ ./proto/t1-tunnel.proto
+	protoc -I ./proto/ --go_out=./t1-tunnel/grpc-orch/ --go-grpc_out=./t1-tunnel/grpc-orch/ ./proto/t1-orch.proto
+	mkdir -p ./t1-route/grpc-route
+	mkdir -p ./t1-route/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-route/grpc-route/ --go-grpc_out=./t1-route/grpc-route/ ./proto/t1-route.proto
+	protoc -I ./proto/ --go_out=./t1-route/grpc-orch/ --go-grpc_out=./t1-route/grpc-orch/ ./proto/t1-orch.proto
+	mkdir -p ./t1-healthcheck/grpc-healthcheck
+	protoc -I ./proto/ --go_out=./t1-healthcheck/grpc-healthcheck/ --go-grpc_out=./t1-healthcheck/grpc-healthcheck/ ./proto/t1-healthcheck.proto
+	mkdir -p ./t1-ipvs/grpc-ipvs
+	mkdir -p ./t1-ipvs/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-ipvs/grpc-ipvs/ --go-grpc_out=./t1-ipvs/grpc-ipvs/ ./proto/t1-ipvs.proto
+	protoc -I ./proto/ --go_out=./t1-ipvs/grpc-orch/ --go-grpc_out=./t1-ipvs/grpc-orch/ ./proto/t1-orch.proto
