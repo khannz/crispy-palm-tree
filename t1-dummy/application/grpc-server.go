@@ -121,10 +121,9 @@ func (grpcServer *GrpcServer) CloseServer() {
 }
 
 func convertRuntimeConfigToPbRuntimeConfig(runtimeConfig map[string]struct{}, id string) *transport.GetDummyRuntimeData {
-	ed := &transport.EmptyGetDummyData{}
-	pbMap := make(map[string]*transport.EmptyGetDummyData)
+	pbMap := make(map[string]int32)
 	for k := range runtimeConfig {
-		pbMap[k] = ed
+		pbMap[k] = 0
 	}
 
 	return &transport.GetDummyRuntimeData{
