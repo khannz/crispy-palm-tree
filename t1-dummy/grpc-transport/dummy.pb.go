@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.23.0
 // 	protoc        v3.12.4
-// source: dummy.proto
+// source: t1-dummy.proto
 
 package transport
 

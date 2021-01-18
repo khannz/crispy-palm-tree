@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.23.0
 // 	protoc        v3.12.4
-// source: healthcheck.proto
+// source: t-1healthcheck.proto
 
 package lbos_t1_dummy
 

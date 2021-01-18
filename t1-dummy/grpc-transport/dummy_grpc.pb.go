@@ -165,5 +165,5 @@ var _DummyGetWorker_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "dummy.proto",
+	Metadata: "t1-dummy.proto",
 }
