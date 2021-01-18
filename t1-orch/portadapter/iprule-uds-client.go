@@ -92,7 +92,7 @@ func (ipRuleWorker *IpRuleWorker) GetIPRulerRuntime(id string) (map[int]struct{}
 	return convertedIpRuls, err
 }
 
-func convertIpRuls(pbIpRules map[int64]*transport.EmptyGetIPRulerData) map[int]struct{} {
+func convertIpRuls(pbIpRules map[int64]int32) map[int]struct{} {
 	convertedMap := make(map[int]struct{}, len(pbIpRules))
 	for k := range pbIpRules {
 		convertedMap[int(k)] = struct{}{} // FIXME: may be broken

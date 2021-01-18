@@ -96,10 +96,10 @@ func (gs *GrpcServer) GetIPRulerRuntime(ctx context.Context, incomeEmptyData *tr
 	return pbCurrentConfig, nil
 }
 
-func convertMapToPbMap(currentConfig map[int]struct{}) map[int64]*transport.EmptyGetIPRulerData {
-	convertedCurrentConfig := make(map[int64]*transport.EmptyGetIPRulerData, len(currentConfig))
+func convertMapToPbMap(currentConfig map[int]struct{}) map[int64]int32 {
+	convertedCurrentConfig := make(map[int64]int32, len(currentConfig))
 	for cc := range currentConfig {
-		convertedCurrentConfig[int64(cc)] = &transport.EmptyGetIPRulerData{}
+		convertedCurrentConfig[int64(cc)] = 0
 	}
 	return convertedCurrentConfig
 }
