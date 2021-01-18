@@ -10,7 +10,7 @@ service SendRuntime {
 }
 
 message DummyRuntimeData {
-  map<string, EmptyDummyData> services = 1;
+  map<string, int32> services = 1;
   string id = 2;
 }
 

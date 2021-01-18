@@ -62,10 +62,9 @@ func makeDialer(addr string, t time.Duration) func(ctx context.Context, addr str
 }
 
 func convertRuntimeConfigToPbRuntimeConfig(runtimeConfig map[string]struct{}, id string) *transport.DummyRuntimeData {
-	ed := &transport.EmptyDummyData{}
-	pbMap := make(map[string]*transport.EmptyDummyData)
+	pbMap := make(map[string]int32, len(runtimeConfig))
 	for k := range runtimeConfig {
-		pbMap[k] = ed
+		pbMap[k] = 0
 	}
 
 	return &transport.DummyRuntimeData{
