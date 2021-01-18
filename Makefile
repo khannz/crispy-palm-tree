@@ -7,7 +7,7 @@ dummy-dl-mods:
 dummy-grpc:
 	mkdir -p ./t1-dummy/grpc-dummy
 	mkdir -p ./t1-dummy/grpc-orch
-	protoc -I ./proto/ --go_out=./t1-dummy/grpc-dummy/ --go-grpc_out=./t1-dummy/grpc-dummy/ ./proto/dummy.proto
+	protoc -I ./proto/ --go_out=./t1-dummy/grpc-dummy/ --go-grpc_out=./t1-dummy/grpc-dummy/ ./proto/t1-dummy.proto
 	protoc -I ./proto/ --go_out=./t1-dummy/grpc-orch/ --go-grpc_out=./t1-dummy/grpc-orch/ ./proto/t1-orch.proto
 
 # TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
@@ -88,7 +88,7 @@ orch-grpc:
 	mkdir -p ./t1-orch/grpc-orch
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-orch/ --go-grpc_out=./t1-orch/grpc-orch/ ./proto/t1-orch.proto
 	mkdir -p ./t1-orch/grpc-dummy
-	protoc -I ./proto/ --go_out=./t1-orch/grpc-dummy/ --go-grpc_out=./t1-orch/grpc-dummy/ ./proto/dummy.proto
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-dummy/ --go-grpc_out=./t1-orch/grpc-dummy/ ./proto/t1-dummy.proto
 	mkdir -p ./t1-orch/grpc-route
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-route/ --go-grpc_out=./t1-orch/grpc-route/ ./proto/t1-route.proto
 	mkdir -p ./t1-orch/grpc-tunnel
@@ -98,7 +98,7 @@ orch-grpc:
 	mkdir -p ./t1-orch/grpc-ipvs
 	protoc -I ./proto/ --go_out=./t1-orch/grpc-ipvs/ --go-grpc_out=./t1-orch/grpc-ipvs/ ./proto/t1-ipvs.proto
 	mkdir -p ./t1-orch/grpc-healthcheck
-	protoc -I ./proto/ --go_out=./t1-orch/grpc-healthcheck/ --go-grpc_out=./t1-orch/grpc-healthcheck/ ./proto/healthcheck.proto
+	protoc -I ./proto/ --go_out=./t1-orch/grpc-healthcheck/ --go-grpc_out=./t1-orch/grpc-healthcheck/ ./proto/t1-healthcheck.proto
 
 # TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
 orch-rpm-snapshot:
@@ -110,3 +110,41 @@ orch-bin:
 orch-clean:
 	rm -rf ./t1-orch/dist
 	rm -f ./t1-orch/lbost1ao
+
+healthcheck-dl-mods:
+	cd t1-healthcheck && go mod download
+
+healthcheck-grpc:
+	mkdir -p ./t1-healthcheck/grpc-healthcheck
+	protoc -I ./proto/ --go_out=./t1-healthcheck/grpc-healthcheck/ --go-grpc_out=./t1-healthcheck/grpc-healthcheck/ ./proto/t1-healthcheck.proto
+
+# TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
+healthcheck-rpm-snapshot:
+	cd t1-healthcheck && goreleaser --snapshot --skip-publish --rm-dist
+
+healthcheck-bin:
+	cd t1-healthcheck && CGO_ENABLED=0 go build -o lbost1ah
+
+healthcheck-clean:
+	rm -rf ./t1-healthcheck/dist
+	rm -f ./t1-healthcheck/lbost1ah
+
+ipvs-dl-mods:
+	cd t1-ipvs && go mod download
+
+ipvs-grpc:
+	mkdir -p ./t1-ipvs/grpc-ipvs
+	mkdir -p ./t1-ipvs/grpc-orch
+	protoc -I ./proto/ --go_out=./t1-ipvs/grpc-ipvs/ --go-grpc_out=./t1-ipvs/grpc-ipvs/ ./proto/t1-ipvs.proto
+	protoc -I ./proto/ --go_out=./t1-ipvs/grpc-orch/ --go-grpc_out=./t1-ipvs/grpc-orch/ ./proto/t1-orch.proto
+
+# TODO: build with flags: go generate & CGO_ENABLED=0 go build -o lbost1ah -ldflags="-X 'github.com/khannz/crispy-palm-tree/cmd.version=v0.2.0' -X 'github.com/khannz/crispy-palm-tree/cmd.buildTime=$(date)'"
+ipvs-rpm-snapshot:
+	cd t1-ipvs && goreleaser --snapshot --skip-publish --rm-dist
+
+ipvs-bin:
+	cd t1-ipvs && CGO_ENABLED=0 go build -o lbost1ai
+
+ipvs-clean:
+	rm -rf ./t1-ipvs/dist
+	rm -f ./t1-ipvs/lbost1ai

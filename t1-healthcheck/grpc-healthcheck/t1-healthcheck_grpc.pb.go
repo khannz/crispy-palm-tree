@@ -117,8 +117,8 @@ type UnsafeHealthcheckWorkerServer interface {
 	mustEmbedUnimplementedHealthcheckWorkerServer()
 }
 
-func RegisterHealthcheckWorkerServer(s *grpc.Server, srv HealthcheckWorkerServer) {
-	s.RegisterService(&_HealthcheckWorker_serviceDesc, srv)
+func RegisterHealthcheckWorkerServer(s grpc.ServiceRegistrar, srv HealthcheckWorkerServer) {
+	s.RegisterService(&HealthcheckWorker_ServiceDesc, srv)
 }
 
 func _HealthcheckWorker_IsHttpAdvancedCheckOk_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -211,7 +211,10 @@ func _HealthcheckWorker_IsTcpCheckOk_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-var _HealthcheckWorker_serviceDesc = grpc.ServiceDesc{
+// HealthcheckWorker_ServiceDesc is the grpc.ServiceDesc for HealthcheckWorker service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var HealthcheckWorker_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "lbos.t1.dummy.HealthcheckWorker",
 	HandlerType: (*HealthcheckWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{
@@ -237,5 +240,5 @@ var _HealthcheckWorker_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "healthcheck.proto",
+	Metadata: "t1-healthcheck.proto",
 }

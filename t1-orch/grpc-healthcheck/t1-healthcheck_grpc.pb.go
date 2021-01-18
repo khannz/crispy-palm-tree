@@ -240,5 +240,5 @@ var HealthcheckWorker_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "healthcheck.proto",
+	Metadata: "t1-healthcheck.proto",
 }
