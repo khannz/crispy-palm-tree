@@ -21,7 +21,7 @@ type SendRuntimeClient interface {
 	IPVSRuntime(ctx context.Context, in *PbIPVSRawServicesData, opts ...grpc.CallOption) (*EmptyIPVSData, error)
 	IpRuleRuntime(ctx context.Context, in *IpRuleRuntimeData, opts ...grpc.CallOption) (*EmptyIpRuleData, error)
 	TunnelRuntime(ctx context.Context, in *TunnelRuntimeData, opts ...grpc.CallOption) (*EmptyTunnelData, error)
-	SendRouteRuntime(ctx context.Context, in *SendRouteRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error)
+	RouteRuntime(ctx context.Context, in *RouteRuntimeData, opts ...grpc.CallOption) (*EmptyRouteData, error)
 }
 
 type sendRuntimeClient struct {
@@ -68,9 +68,9 @@ func (c *sendRuntimeClient) TunnelRuntime(ctx context.Context, in *TunnelRuntime
 	return out, nil
 }
 
-func (c *sendRuntimeClient) SendRouteRuntime(ctx context.Context, in *SendRouteRuntimeData, opts ...grpc.CallOption) (*EmptySendRouteData, error) {
-	out := new(EmptySendRouteData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/SendRouteRuntime", in, out, opts...)
+func (c *sendRuntimeClient) RouteRuntime(ctx context.Context, in *RouteRuntimeData, opts ...grpc.CallOption) (*EmptyRouteData, error) {
+	out := new(EmptyRouteData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/RouteRuntime", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ type SendRuntimeServer interface {
 	IPVSRuntime(context.Context, *PbIPVSRawServicesData) (*EmptyIPVSData, error)
 	IpRuleRuntime(context.Context, *IpRuleRuntimeData) (*EmptyIpRuleData, error)
 	TunnelRuntime(context.Context, *TunnelRuntimeData) (*EmptyTunnelData, error)
-	SendRouteRuntime(context.Context, *SendRouteRuntimeData) (*EmptySendRouteData, error)
+	RouteRuntime(context.Context, *RouteRuntimeData) (*EmptyRouteData, error)
 	mustEmbedUnimplementedSendRuntimeServer()
 }
 
@@ -105,8 +105,8 @@ func (UnimplementedSendRuntimeServer) IpRuleRuntime(context.Context, *IpRuleRunt
 func (UnimplementedSendRuntimeServer) TunnelRuntime(context.Context, *TunnelRuntimeData) (*EmptyTunnelData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TunnelRuntime not implemented")
 }
-func (UnimplementedSendRuntimeServer) SendRouteRuntime(context.Context, *SendRouteRuntimeData) (*EmptySendRouteData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendRouteRuntime not implemented")
+func (UnimplementedSendRuntimeServer) RouteRuntime(context.Context, *RouteRuntimeData) (*EmptyRouteData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RouteRuntime not implemented")
 }
 func (UnimplementedSendRuntimeServer) mustEmbedUnimplementedSendRuntimeServer() {}
 
@@ -193,20 +193,20 @@ func _SendRuntime_TunnelRuntime_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SendRuntime_SendRouteRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendRouteRuntimeData)
+func _SendRuntime_RouteRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RouteRuntimeData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SendRuntimeServer).SendRouteRuntime(ctx, in)
+		return srv.(SendRuntimeServer).RouteRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.orch.SendRuntime/SendRouteRuntime",
+		FullMethod: "/lbos.t1.orch.SendRuntime/RouteRuntime",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SendRuntimeServer).SendRouteRuntime(ctx, req.(*SendRouteRuntimeData))
+		return srv.(SendRuntimeServer).RouteRuntime(ctx, req.(*RouteRuntimeData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -235,8 +235,8 @@ var SendRuntime_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SendRuntime_TunnelRuntime_Handler,
 		},
 		{
-			MethodName: "SendRouteRuntime",
-			Handler:    _SendRuntime_SendRouteRuntime_Handler,
+			MethodName: "RouteRuntime",
+			Handler:    _SendRuntime_RouteRuntime_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

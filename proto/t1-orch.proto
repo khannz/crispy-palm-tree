@@ -6,7 +6,7 @@ service SendRuntime {
   rpc IPVSRuntime(PbIPVSRawServicesData) returns (EmptyIPVSData) {}
   rpc IpRuleRuntime(IpRuleRuntimeData) returns (EmptyIpRuleData) {}
   rpc TunnelRuntime(TunnelRuntimeData) returns (EmptyTunnelData) {}
-  rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
+  rpc RouteRuntime(RouteRuntimeData) returns (EmptyRouteData) {}
 }
 
 message DummyRuntimeData {
@@ -44,9 +44,9 @@ message TunnelRuntimeData {
 
 message EmptyTunnelData {string id = 1;}
 
-message SendRouteRuntimeData {
+message RouteRuntimeData {
   repeated string routeData = 1; // TODO: need example
   string id = 2;
 }
 
-message EmptySendRouteData {string id = 1;}
+message EmptyRouteData {string id = 1;}

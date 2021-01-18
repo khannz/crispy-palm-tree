@@ -40,11 +40,11 @@ func (gs *GrpcServer) DummyRuntime(ctx context.Context,
 	return &transport.EmptyDummyData{}, nil
 }
 
-// SendRouteRuntime ...
-func (gs *GrpcServer) SendRouteRuntime(ctx context.Context,
-	incomeRouteRuntimeData *transport.SendRouteRuntimeData) (*transport.EmptySendRouteData, error) {
+// RouteRuntime ...
+func (gs *GrpcServer) RouteRuntime(ctx context.Context,
+	incomeRouteRuntimeData *transport.RouteRuntimeData) (*transport.EmptyRouteData, error) {
 	// TODO: implement
-	return &transport.EmptySendRouteData{}, nil
+	return &transport.EmptyRouteData{}, nil
 }
 
 // TunnelRuntime ...

@@ -2,5 +2,5 @@ package domain
 
 // OrchestratorWorker ...
 type OrchestratorWorker interface {
-	SendRouteRuntimeConfig(map[int]struct{}, string) error
+	RouteRuntimeConfig(map[int]struct{}, string) error
 }

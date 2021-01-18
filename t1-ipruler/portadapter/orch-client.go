@@ -27,7 +27,7 @@ func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logg
 	}
 }
 
-func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runtimeConfig map[int]struct{},
+func (orchestratorWorker *OrchestratorWorkerEntity) RouteRuntimeConfig(runtimeConfig map[int]struct{},
 	id string) error {
 	convertedRuntimeConfig := convertMapToPbMap(runtimeConfig)
 

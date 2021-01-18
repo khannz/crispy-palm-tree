@@ -11,5 +11,5 @@ func NewOrchSenderEntity(OrchestratorWorker domain.OrchestratorWorker) *OrchSend
 }
 
 func (orchSenderEntity *OrchSenderEntity) SendToOrch(runtimeConfig []string, id string) error {
-	return orchSenderEntity.OrchestratorWorker.SendRouteRuntimeConfig(runtimeConfig, id)
+	return orchSenderEntity.OrchestratorWorker.RouteRuntimeConfig(runtimeConfig, id)
 }
