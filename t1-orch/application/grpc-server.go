@@ -20,7 +20,7 @@ type GrpcServer struct {
 	facade  *T1OrchFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	transport.UnimplementedSendDummyRuntimeServer
+	transport.UnimplementedSendRuntimeServer
 }
 
 func NewGrpcServer(addr string,
@@ -33,32 +33,32 @@ func NewGrpcServer(addr string,
 	}
 }
 
-// SendDummyRuntime ...
-func (gs *GrpcServer) SendDummyRuntime(ctx context.Context,
-	incomeDummyRuntimeData *transport.SendDummyRuntimeData) (*transport.EmptySendDummyData, error) {
+// DummyRuntime ...
+func (gs *GrpcServer) DummyRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.DummyRuntimeData) (*transport.EmptyDummyData, error) {
 	// TODO: implement
-	return &transport.EmptySendDummyData{}, nil
+	return &transport.EmptyDummyData{}, nil
 }
 
-// SendRouteRuntime ...
-func (gs *GrpcServer) SendRouteRuntime(ctx context.Context,
-	incomeRouteRuntimeData *transport.SendRouteRuntimeData) (*transport.EmptySendRouteData, error) {
+// RouteRuntime ...
+func (gs *GrpcServer) RouteRuntime(ctx context.Context,
+	incomeRouteRuntimeData *transport.RouteRuntimeData) (*transport.EmptyRouteData, error) {
 	// TODO: implement
-	return &transport.EmptySendRouteData{}, nil
+	return &transport.EmptyRouteData{}, nil
 }
 
-// SendTunnelRuntime ...
-func (gs *GrpcServer) SendTunnelRuntime(ctx context.Context,
-	incomeDummyRuntimeData *transport.SendTunnelRuntimeData) (*transport.EmptySendTunnelData, error) {
+// TunnelRuntime ...
+func (gs *GrpcServer) TunnelRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.TunnelRuntimeData) (*transport.EmptyTunnelData, error) {
 	// TODO: implement
-	return &transport.EmptySendTunnelData{}, nil
+	return &transport.EmptyTunnelData{}, nil
 }
 
-// SendIpRuleRuntime ...
-func (gs *GrpcServer) SendIpRuleRuntime(ctx context.Context,
-	incomeDummyRuntimeData *transport.SendIpRuleRuntimeData) (*transport.EmptySendIpRuleData, error) {
+// IpRuleRuntime ...
+func (gs *GrpcServer) IpRuleRuntime(ctx context.Context,
+	incomeDummyRuntimeData *transport.IpRuleRuntimeData) (*transport.EmptyIpRuleData, error) {
 	// TODO: implement
-	return &transport.EmptySendIpRuleData{}, nil
+	return &transport.EmptyIpRuleData{}, nil
 }
 
 func (grpcServer *GrpcServer) StartServer() error {
@@ -72,7 +72,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	transport.RegisterSendDummyRuntimeServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterSendRuntimeServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.serve(lis)
 	return nil
 }

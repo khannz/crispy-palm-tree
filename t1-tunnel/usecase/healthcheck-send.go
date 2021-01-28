@@ -11,5 +11,5 @@ func NewHealthcheckSenderEntity(OrchestratorWorker domain.OrchestratorWorker) *H
 }
 
 func (HealthcheckSenderEntity *HealthcheckSenderEntity) SendToHC(runtimeConfig map[string]struct{}, id string) error {
-	return HealthcheckSenderEntity.OrchestratorWorker.SendTunnelRuntimeConfig(runtimeConfig, id)
+	return HealthcheckSenderEntity.OrchestratorWorker.TunnelRuntimeConfig(runtimeConfig, id)
 }

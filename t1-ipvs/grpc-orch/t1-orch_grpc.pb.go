@@ -13,83 +13,230 @@ import (
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion7
 
-// SendIPVSRuntimeClient is the client API for SendIPVSRuntime service.
+// SendRuntimeClient is the client API for SendRuntime service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type SendIPVSRuntimeClient interface {
-	SendIPVSRuntime(ctx context.Context, in *PbSendIPVSRawServicesData, opts ...grpc.CallOption) (*EmptySendIPVSData, error)
+type SendRuntimeClient interface {
+	DummyRuntime(ctx context.Context, in *DummyRuntimeData, opts ...grpc.CallOption) (*EmptyDummyData, error)
+	IPVSRuntime(ctx context.Context, in *PbIPVSRawServicesData, opts ...grpc.CallOption) (*EmptyIPVSData, error)
+	IpRuleRuntime(ctx context.Context, in *IpRuleRuntimeData, opts ...grpc.CallOption) (*EmptyIpRuleData, error)
+	TunnelRuntime(ctx context.Context, in *TunnelRuntimeData, opts ...grpc.CallOption) (*EmptyTunnelData, error)
+	RouteRuntime(ctx context.Context, in *RouteRuntimeData, opts ...grpc.CallOption) (*EmptyRouteData, error)
 }
 
-type sendIPVSRuntimeClient struct {
+type sendRuntimeClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewSendIPVSRuntimeClient(cc grpc.ClientConnInterface) SendIPVSRuntimeClient {
-	return &sendIPVSRuntimeClient{cc}
+func NewSendRuntimeClient(cc grpc.ClientConnInterface) SendRuntimeClient {
+	return &sendRuntimeClient{cc}
 }
 
-func (c *sendIPVSRuntimeClient) SendIPVSRuntime(ctx context.Context, in *PbSendIPVSRawServicesData, opts ...grpc.CallOption) (*EmptySendIPVSData, error) {
-	out := new(EmptySendIPVSData)
-	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendIPVSRuntime/SendIPVSRuntime", in, out, opts...)
+func (c *sendRuntimeClient) DummyRuntime(ctx context.Context, in *DummyRuntimeData, opts ...grpc.CallOption) (*EmptyDummyData, error) {
+	out := new(EmptyDummyData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/DummyRuntime", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// SendIPVSRuntimeServer is the server API for SendIPVSRuntime service.
-// All implementations must embed UnimplementedSendIPVSRuntimeServer
+func (c *sendRuntimeClient) IPVSRuntime(ctx context.Context, in *PbIPVSRawServicesData, opts ...grpc.CallOption) (*EmptyIPVSData, error) {
+	out := new(EmptyIPVSData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/IPVSRuntime", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sendRuntimeClient) IpRuleRuntime(ctx context.Context, in *IpRuleRuntimeData, opts ...grpc.CallOption) (*EmptyIpRuleData, error) {
+	out := new(EmptyIpRuleData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/IpRuleRuntime", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sendRuntimeClient) TunnelRuntime(ctx context.Context, in *TunnelRuntimeData, opts ...grpc.CallOption) (*EmptyTunnelData, error) {
+	out := new(EmptyTunnelData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/TunnelRuntime", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sendRuntimeClient) RouteRuntime(ctx context.Context, in *RouteRuntimeData, opts ...grpc.CallOption) (*EmptyRouteData, error) {
+	out := new(EmptyRouteData)
+	err := c.cc.Invoke(ctx, "/lbos.t1.orch.SendRuntime/RouteRuntime", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SendRuntimeServer is the server API for SendRuntime service.
+// All implementations must embed UnimplementedSendRuntimeServer
 // for forward compatibility
-type SendIPVSRuntimeServer interface {
-	SendIPVSRuntime(context.Context, *PbSendIPVSRawServicesData) (*EmptySendIPVSData, error)
-	mustEmbedUnimplementedSendIPVSRuntimeServer()
+type SendRuntimeServer interface {
+	DummyRuntime(context.Context, *DummyRuntimeData) (*EmptyDummyData, error)
+	IPVSRuntime(context.Context, *PbIPVSRawServicesData) (*EmptyIPVSData, error)
+	IpRuleRuntime(context.Context, *IpRuleRuntimeData) (*EmptyIpRuleData, error)
+	TunnelRuntime(context.Context, *TunnelRuntimeData) (*EmptyTunnelData, error)
+	RouteRuntime(context.Context, *RouteRuntimeData) (*EmptyRouteData, error)
+	mustEmbedUnimplementedSendRuntimeServer()
 }
 
-// UnimplementedSendIPVSRuntimeServer must be embedded to have forward compatible implementations.
-type UnimplementedSendIPVSRuntimeServer struct {
+// UnimplementedSendRuntimeServer must be embedded to have forward compatible implementations.
+type UnimplementedSendRuntimeServer struct {
 }
 
-func (UnimplementedSendIPVSRuntimeServer) SendIPVSRuntime(context.Context, *PbSendIPVSRawServicesData) (*EmptySendIPVSData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendIPVSRuntime not implemented")
+func (UnimplementedSendRuntimeServer) DummyRuntime(context.Context, *DummyRuntimeData) (*EmptyDummyData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DummyRuntime not implemented")
 }
-func (UnimplementedSendIPVSRuntimeServer) mustEmbedUnimplementedSendIPVSRuntimeServer() {}
+func (UnimplementedSendRuntimeServer) IPVSRuntime(context.Context, *PbIPVSRawServicesData) (*EmptyIPVSData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IPVSRuntime not implemented")
+}
+func (UnimplementedSendRuntimeServer) IpRuleRuntime(context.Context, *IpRuleRuntimeData) (*EmptyIpRuleData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IpRuleRuntime not implemented")
+}
+func (UnimplementedSendRuntimeServer) TunnelRuntime(context.Context, *TunnelRuntimeData) (*EmptyTunnelData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TunnelRuntime not implemented")
+}
+func (UnimplementedSendRuntimeServer) RouteRuntime(context.Context, *RouteRuntimeData) (*EmptyRouteData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RouteRuntime not implemented")
+}
+func (UnimplementedSendRuntimeServer) mustEmbedUnimplementedSendRuntimeServer() {}
 
-// UnsafeSendIPVSRuntimeServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to SendIPVSRuntimeServer will
+// UnsafeSendRuntimeServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SendRuntimeServer will
 // result in compilation errors.
-type UnsafeSendIPVSRuntimeServer interface {
-	mustEmbedUnimplementedSendIPVSRuntimeServer()
+type UnsafeSendRuntimeServer interface {
+	mustEmbedUnimplementedSendRuntimeServer()
 }
 
-func RegisterSendIPVSRuntimeServer(s *grpc.Server, srv SendIPVSRuntimeServer) {
-	s.RegisterService(&_SendIPVSRuntime_serviceDesc, srv)
+func RegisterSendRuntimeServer(s grpc.ServiceRegistrar, srv SendRuntimeServer) {
+	s.RegisterService(&SendRuntime_ServiceDesc, srv)
 }
 
-func _SendIPVSRuntime_SendIPVSRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PbSendIPVSRawServicesData)
+func _SendRuntime_DummyRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DummyRuntimeData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SendIPVSRuntimeServer).SendIPVSRuntime(ctx, in)
+		return srv.(SendRuntimeServer).DummyRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/lbos.t1.orch.SendIPVSRuntime/SendIPVSRuntime",
+		FullMethod: "/lbos.t1.orch.SendRuntime/DummyRuntime",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SendIPVSRuntimeServer).SendIPVSRuntime(ctx, req.(*PbSendIPVSRawServicesData))
+		return srv.(SendRuntimeServer).DummyRuntime(ctx, req.(*DummyRuntimeData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _SendIPVSRuntime_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "lbos.t1.orch.SendIPVSRuntime",
-	HandlerType: (*SendIPVSRuntimeServer)(nil),
+func _SendRuntime_IPVSRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PbIPVSRawServicesData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SendRuntimeServer).IPVSRuntime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/lbos.t1.orch.SendRuntime/IPVSRuntime",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SendRuntimeServer).IPVSRuntime(ctx, req.(*PbIPVSRawServicesData))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SendRuntime_IpRuleRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IpRuleRuntimeData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SendRuntimeServer).IpRuleRuntime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/lbos.t1.orch.SendRuntime/IpRuleRuntime",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SendRuntimeServer).IpRuleRuntime(ctx, req.(*IpRuleRuntimeData))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SendRuntime_TunnelRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TunnelRuntimeData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SendRuntimeServer).TunnelRuntime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/lbos.t1.orch.SendRuntime/TunnelRuntime",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SendRuntimeServer).TunnelRuntime(ctx, req.(*TunnelRuntimeData))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SendRuntime_RouteRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RouteRuntimeData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SendRuntimeServer).RouteRuntime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/lbos.t1.orch.SendRuntime/RouteRuntime",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SendRuntimeServer).RouteRuntime(ctx, req.(*RouteRuntimeData))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// SendRuntime_ServiceDesc is the grpc.ServiceDesc for SendRuntime service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var SendRuntime_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "lbos.t1.orch.SendRuntime",
+	HandlerType: (*SendRuntimeServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SendIPVSRuntime",
-			Handler:    _SendIPVSRuntime_SendIPVSRuntime_Handler,
+			MethodName: "DummyRuntime",
+			Handler:    _SendRuntime_DummyRuntime_Handler,
+		},
+		{
+			MethodName: "IPVSRuntime",
+			Handler:    _SendRuntime_IPVSRuntime_Handler,
+		},
+		{
+			MethodName: "IpRuleRuntime",
+			Handler:    _SendRuntime_IpRuleRuntime_Handler,
+		},
+		{
+			MethodName: "TunnelRuntime",
+			Handler:    _SendRuntime_TunnelRuntime_Handler,
+		},
+		{
+			MethodName: "RouteRuntime",
+			Handler:    _SendRuntime_RouteRuntime_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

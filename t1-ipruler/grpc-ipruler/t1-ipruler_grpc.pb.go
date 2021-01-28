@@ -89,8 +89,8 @@ type UnsafeIPRulerGetWorkerServer interface {
 	mustEmbedUnimplementedIPRulerGetWorkerServer()
 }
 
-func RegisterIPRulerGetWorkerServer(s *grpc.Server, srv IPRulerGetWorkerServer) {
-	s.RegisterService(&_IPRulerGetWorker_serviceDesc, srv)
+func RegisterIPRulerGetWorkerServer(s grpc.ServiceRegistrar, srv IPRulerGetWorkerServer) {
+	s.RegisterService(&IPRulerGetWorker_ServiceDesc, srv)
 }
 
 func _IPRulerGetWorker_AddToIPRuler_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -147,7 +147,10 @@ func _IPRulerGetWorker_GetIPRulerRuntime_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-var _IPRulerGetWorker_serviceDesc = grpc.ServiceDesc{
+// IPRulerGetWorker_ServiceDesc is the grpc.ServiceDesc for IPRulerGetWorker service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var IPRulerGetWorker_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "lbos.t1.ipruler.IPRulerGetWorker",
 	HandlerType: (*IPRulerGetWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{

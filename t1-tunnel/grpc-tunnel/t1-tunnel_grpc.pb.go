@@ -89,8 +89,8 @@ type UnsafeTunnelGetWorkerServer interface {
 	mustEmbedUnimplementedTunnelGetWorkerServer()
 }
 
-func RegisterTunnelGetWorkerServer(s *grpc.Server, srv TunnelGetWorkerServer) {
-	s.RegisterService(&_TunnelGetWorker_serviceDesc, srv)
+func RegisterTunnelGetWorkerServer(s grpc.ServiceRegistrar, srv TunnelGetWorkerServer) {
+	s.RegisterService(&TunnelGetWorker_ServiceDesc, srv)
 }
 
 func _TunnelGetWorker_AddTunnel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -147,7 +147,10 @@ func _TunnelGetWorker_GetTunnelRuntime_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-var _TunnelGetWorker_serviceDesc = grpc.ServiceDesc{
+// TunnelGetWorker_ServiceDesc is the grpc.ServiceDesc for TunnelGetWorker service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var TunnelGetWorker_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "lbos.t1.tunnel.TunnelGetWorker",
 	HandlerType: (*TunnelGetWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{

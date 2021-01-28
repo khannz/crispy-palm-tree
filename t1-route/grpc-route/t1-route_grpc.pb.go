@@ -89,8 +89,8 @@ type UnsafeRouteGetWorkerServer interface {
 	mustEmbedUnimplementedRouteGetWorkerServer()
 }
 
-func RegisterRouteGetWorkerServer(s *grpc.Server, srv RouteGetWorkerServer) {
-	s.RegisterService(&_RouteGetWorker_serviceDesc, srv)
+func RegisterRouteGetWorkerServer(s grpc.ServiceRegistrar, srv RouteGetWorkerServer) {
+	s.RegisterService(&RouteGetWorker_ServiceDesc, srv)
 }
 
 func _RouteGetWorker_AddRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -147,7 +147,10 @@ func _RouteGetWorker_GetRouteRuntimeConfig_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
-var _RouteGetWorker_serviceDesc = grpc.ServiceDesc{
+// RouteGetWorker_ServiceDesc is the grpc.ServiceDesc for RouteGetWorker service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var RouteGetWorker_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "lbos.t1.route.RouteGetWorker",
 	HandlerType: (*RouteGetWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{

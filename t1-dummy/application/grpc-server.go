@@ -20,7 +20,7 @@ type GrpcServer struct {
 	facade  *DummyFacade
 	grpcSrv *grpc.Server
 	logging *logrus.Logger
-	transport.UnimplementedDummyGetWorkerServer
+	transport.UnimplementedDummyWorkerServer
 }
 
 func NewGrpcServer(addr string,
@@ -34,7 +34,7 @@ func NewGrpcServer(addr string,
 }
 
 // AddToDummy implements portadapter.AddToDummy
-func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyGetDummyData, error) {
+func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyDummyData, error) {
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcDummyName,
 		"event id": incomeDummyData.Id,
@@ -44,18 +44,18 @@ func (gs *GrpcServer) AddToDummy(ctx context.Context, incomeDummyData *transport
 			"entity":   grpcDummyName,
 			"event id": incomeDummyData.Id,
 		}).Errorf("failed job add to dummy service %v", incomeDummyData)
-		return &transport.EmptyGetDummyData{}, err
+		return &transport.EmptyDummyData{}, err
 	}
 
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcDummyName,
 		"event id": incomeDummyData.Id,
 	}).Infof("completed job add to dummy service %v", incomeDummyData)
-	return &transport.EmptyGetDummyData{}, nil
+	return &transport.EmptyDummyData{}, nil
 }
 
 // RemoveFromDummy implements portadapter.RemoveFromDummy
-func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyGetDummyData, error) {
+func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeDummyData *transport.IpData) (*transport.EmptyDummyData, error) {
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcDummyName,
 		"event id": incomeDummyData.Id,
@@ -65,18 +65,18 @@ func (gs *GrpcServer) RemoveFromDummy(ctx context.Context, incomeDummyData *tran
 			"entity":   grpcDummyName,
 			"event id": incomeDummyData.Id,
 		}).Errorf("failed job remove from dummy service %v", incomeDummyData)
-		return &transport.EmptyGetDummyData{}, err
+		return &transport.EmptyDummyData{}, err
 	}
 
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcDummyName,
 		"event id": incomeDummyData.Id,
 	}).Infof("completed job remove from dummy service %v", incomeDummyData)
-	return &transport.EmptyGetDummyData{}, nil
+	return &transport.EmptyDummyData{}, nil
 }
 
 // GetDummyRuntime ...
-func (gs *GrpcServer) GetDummyRuntime(ctx context.Context, incomeEmptyData *transport.EmptyGetDummyData) (*transport.GetDummyRuntimeData, error) {
+func (gs *GrpcServer) GetDummyRuntime(ctx context.Context, incomeEmptyData *transport.EmptyDummyData) (*transport.GetDummyRuntimeData, error) {
 	currentConfig, err := gs.facade.GetDummyRuntimeConfig(incomeEmptyData.Id)
 	if err != nil {
 		gs.facade.Logging.WithFields(logrus.Fields{
@@ -100,7 +100,7 @@ func (grpcServer *GrpcServer) StartServer() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
-	transport.RegisterDummyGetWorkerServer(grpcServer.grpcSrv, grpcServer)
+	transport.RegisterDummyWorkerServer(grpcServer.grpcSrv, grpcServer)
 	go grpcServer.serve(lis)
 	return nil
 }
@@ -121,10 +121,9 @@ func (grpcServer *GrpcServer) CloseServer() {
 }
 
 func convertRuntimeConfigToPbRuntimeConfig(runtimeConfig map[string]struct{}, id string) *transport.GetDummyRuntimeData {
-	ed := &transport.EmptyGetDummyData{}
-	pbMap := make(map[string]*transport.EmptyGetDummyData)
+	pbMap := make(map[string]int32)
 	for k := range runtimeConfig {
-		pbMap[k] = ed
+		pbMap[k] = 0
 	}
 
 	return &transport.GetDummyRuntimeData{

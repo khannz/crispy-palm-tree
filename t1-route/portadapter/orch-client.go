@@ -27,7 +27,7 @@ func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logg
 	}
 }
 
-func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runtimeConfig []string,
+func (orchestratorWorker *OrchestratorWorkerEntity) RouteRuntimeConfig(runtimeConfig []string,
 	id string) error {
 	withContextDialer := makeDialer(orchestratorWorker.address, 2*time.Second)
 
@@ -39,16 +39,16 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runti
 	}
 	defer conn.Close()
 
-	orchClient := transport.NewSendDummyRuntimeClient(conn)
+	orchClient := transport.NewSendRuntimeClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
-	pbRuntimeConfig := &transport.SendRouteRuntimeData{
+	pbRuntimeConfig := &transport.RouteRuntimeData{
 		RouteData: runtimeConfig,
 		Id:        id,
 	}
 
-	_, err = orchClient.SendRouteRuntime(sendCtx, pbRuntimeConfig)
+	_, err = orchClient.RouteRuntime(sendCtx, pbRuntimeConfig)
 	return err
 }
 

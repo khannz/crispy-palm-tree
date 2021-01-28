@@ -1,0 +1,23 @@
+syntax = "proto3";
+package lbos.t1.dummy;
+
+
+service DummyWorker {
+  rpc AddToDummy (IpData) returns (EmptyDummyData) {}
+  rpc RemoveFromDummy (IpData) returns (EmptyDummyData) {}
+  rpc GetDummyRuntime(EmptyDummyData) returns (GetDummyRuntimeData) {}
+}
+
+message IpData {
+  string ip = 1;
+  string id = 2;
+}
+
+message GetDummyRuntimeData {
+  map<string, int32> services = 1;
+  string id = 2;
+}
+
+message EmptyDummyData {
+  string id = 1;
+}

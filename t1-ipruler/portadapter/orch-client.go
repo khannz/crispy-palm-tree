@@ -27,7 +27,7 @@ func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logg
 	}
 }
 
-func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runtimeConfig map[int]struct{},
+func (orchestratorWorker *OrchestratorWorkerEntity) RouteRuntimeConfig(runtimeConfig map[int]struct{},
 	id string) error {
 	convertedRuntimeConfig := convertMapToPbMap(runtimeConfig)
 
@@ -40,23 +40,23 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendRouteRuntimeConfig(runti
 	}
 	defer conn.Close()
 
-	healthcheckClient := transport.NewSendDummyRuntimeClient(conn)
+	healthcheckClient := transport.NewSendRuntimeClient(conn)
 	sendCtx, sendCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer sendCancel()
 
-	pbRuntimeConfig := &transport.SendIpRuleRuntimeData{
+	pbRuntimeConfig := &transport.IpRuleRuntimeData{
 		Fwmarks: convertedRuntimeConfig,
 		Id:      id,
 	}
 
-	_, err = healthcheckClient.SendIpRuleRuntime(sendCtx, pbRuntimeConfig)
+	_, err = healthcheckClient.IpRuleRuntime(sendCtx, pbRuntimeConfig)
 	return err
 }
 
-func convertMapToPbMap(currentConfig map[int]struct{}) map[int64]*transport.EmptySendIpRuleData {
-	convertedCurrentConfig := make(map[int64]*transport.EmptySendIpRuleData, len(currentConfig))
+func convertMapToPbMap(currentConfig map[int]struct{}) map[int64]int32 {
+	convertedCurrentConfig := make(map[int64]int32, len(currentConfig))
 	for cc := range currentConfig {
-		convertedCurrentConfig[int64(cc)] = &transport.EmptySendIpRuleData{}
+		convertedCurrentConfig[int64(cc)] = 0
 	}
 	return convertedCurrentConfig
 }

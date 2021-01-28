@@ -1,15 +1,22 @@
 syntax = "proto3";
 package lbos.t1.orch;
 
-service SendIPVSRuntime {
-  rpc SendIPVSRuntime(PbSendIPVSRawServicesData) returns (EmptySendIPVSData) {}
+service SendRuntime {
+  rpc DummyRuntime(DummyRuntimeData) returns (EmptyDummyData) {}
+  rpc IPVSRuntime(PbIPVSRawServicesData) returns (EmptyIPVSData) {}
+  rpc IpRuleRuntime(IpRuleRuntimeData) returns (EmptyIpRuleData) {}
+  rpc TunnelRuntime(TunnelRuntimeData) returns (EmptyTunnelData) {}
+  rpc RouteRuntime(RouteRuntimeData) returns (EmptyRouteData) {}
 }
 
-message EmptySendIPVSData {
-  string id = 1;
+message DummyRuntimeData {
+  map<string, int32> services = 1;
+  string id = 2;
 }
 
-message PbSendIPVSRawServicesData {
+message EmptyDummyData {string id = 1;}
+
+message PbIPVSRawServicesData {
   map<string, PbSendRawIPVSServiceData> rawServicesData = 1;
   string id = 2;
 }
@@ -19,37 +26,27 @@ message PbSendRawIPVSServiceData {
   string id = 2;
 }
 
-service SendDummyRuntime {
-  rpc SendDummyRuntime(SendDummyRuntimeData) returns (EmptySendDummyData) {}
-  rpc SendIpRuleRuntime(SendIpRuleRuntimeData) returns (EmptySendIpRuleData) {}
-  rpc SendTunnelRuntime(SendTunnelRuntimeData) returns (EmptySendTunnelData) {}
-  rpc SendRouteRuntime(SendRouteRuntimeData) returns (EmptySendRouteData) {}
+message EmptyIPVSData {
+  string id = 1;
 }
 
-message SendDummyRuntimeData {
-  map<string, EmptySendDummyData> services = 1;
+message IpRuleRuntimeData {
+  map<int64, int32> fwmarks = 1;
   string id = 2;
 }
 
-message EmptySendDummyData {string id = 1;}
+message EmptyIpRuleData {string id = 1;}
 
-message SendIpRuleRuntimeData {
-  map<int64, EmptySendIpRuleData> fwmarks = 1;
-  string id = 2;
-}
-
-message EmptySendIpRuleData {string id = 1;}
-
-message SendRouteRuntimeData {
-  repeated string routeData = 1; // TODO: need example
-  string id = 2;
-}
-
-message EmptySendRouteData {string id = 1;}
-
-message SendTunnelRuntimeData {
+message TunnelRuntimeData {
   map<string, int32> tunnels = 1; // TODO: need example
   string id = 2;
 }
 
-message EmptySendTunnelData {string id = 1;}
+message EmptyTunnelData {string id = 1;}
+
+message RouteRuntimeData {
+  repeated string routeData = 1; // TODO: need example
+  string id = 2;
+}
+
+message EmptyRouteData {string id = 1;}
