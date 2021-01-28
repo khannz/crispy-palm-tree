@@ -18,13 +18,12 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "lbost1ad",
-	Short: "dummy customizer ;-)",
+	Use:   "lbost1ao",
+	Short: "lbos orchestrator ;-)",
 }
 
 var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "lbos orchestrator 😉",
+	Use: "run",
 	Run: func(cmd *cobra.Command, args []string) {
 		idGenerator := chooseIDGenerator()
 		idForRootProcess := idGenerator.NewID()
