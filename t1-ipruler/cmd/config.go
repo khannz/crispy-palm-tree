@@ -111,11 +111,6 @@ func initLogger() {
 }
 
 func validateValues() {
-	// required values are set
-	if viper.GetString("dummy-interface") == "" {
-		logging.Fatalf("tech interface must be set")
-	}
-
 	switch viper.GetString("id-type") {
 	case "nanoid":
 	case "id4":
