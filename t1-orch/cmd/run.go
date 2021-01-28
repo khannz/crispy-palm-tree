@@ -14,13 +14,19 @@ import (
 	"github.com/khannz/crispy-palm-tree/t1-orch/portadapter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var rootCmd = &cobra.Command{
+	Use:   "lbost1ad",
+	Short: "dummy customizer ;-)",
+}
+
+var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "lbos orchestrator 😉",
 	Run: func(cmd *cobra.Command, args []string) {
-		idGenerator := chooseIDGenerator(viperConfig.GetString(idTypeName))
+		idGenerator := chooseIDGenerator()
 		idForRootProcess := idGenerator.NewID()
 
 		// validate fields
@@ -28,38 +34,38 @@ var rootCmd = &cobra.Command{
 			"version":          version,
 			"build time":       buildTime,
 			"event id":         idForRootProcess,
-			"config file path": viperConfig.GetString(configFilePathName),
-			"log format":       viperConfig.GetString(logFormatName),
-			"log level":        viperConfig.GetString(logLevelName),
-			"log output":       viperConfig.GetString(logOutputName),
-			"syslog tag":       viperConfig.GetString(syslogTagName),
+			"config file path": viper.GetString("config-file-path"),
+			"log format":       viper.GetString("log-format"),
+			"log level":        viper.GetString("log-level"),
+			"log output":       viper.GetString("log-output"),
+			"syslog tag":       viper.GetString("syslog-tag"),
 
-			"t1 orch id":            viperConfig.GetString(t1OrchIDName),
-			"healthcheck interface": viperConfig.GetString(hlckInterfaceName),
+			"t1 orch id":            viper.GetString("t1-id"),
+			"healthcheck interface": viper.GetString("hlck-interface"),
 
-			"orch address": viperConfig.GetString(orchAddressName),
-			"orch timeout": viperConfig.GetDuration(orchTimeoutName),
+			"orch address": viper.GetString("orch-addr"),
+			"orch timeout": viper.GetDuration("orch-timeout"),
 
-			"id type":         viperConfig.GetString(idTypeName),
-			"hc address":      viperConfig.GetString(healthcheckAddressName),
-			"hc timeout":      viperConfig.GetDuration(responseTimerName),
-			"route address":   viperConfig.GetString(routeAddressName),
-			"route timeout":   viperConfig.GetDuration(routeTimeoutName),
-			"tunnel address":  viperConfig.GetString(tunnelAddressName),
-			"tunnel timeout":  viperConfig.GetDuration(tunnelTimeoutName),
-			"ip rule address": viperConfig.GetString(ipRuleAddressName),
-			"ip rule timeout": viperConfig.GetDuration(ipRuleTimeoutName),
-			"dummy address":   viperConfig.GetString(dummyAddressName),
-			"dummy timeout":   viperConfig.GetDuration(dummyTimeoutName),
-			"ipvs address":    viperConfig.GetString(ipvsAddressName),
-			"ipvs timeout":    viperConfig.GetDuration(ipvsTimeoutName),
+			"id type":         viper.GetString("id-type"),
+			"hc address":      viper.GetString("hc-address"),
+			"hc timeout":      viper.GetDuration("hc-timeout"),
+			"route address":   viper.GetString("route-addr"),
+			"route timeout":   viper.GetDuration("route-timeout"),
+			"tunnel address":  viper.GetString("tunnel-addr"),
+			"tunnel timeout":  viper.GetDuration("tunnel-timeout"),
+			"ip rule address": viper.GetString("ip-rule-addr"),
+			"ip rule timeout": viper.GetDuration("ip-rule-timeout"),
+			"dummy address":   viper.GetString("dummy-addr"),
+			"dummy timeout":   viper.GetDuration("dummy-timeout"),
+			"ipvs address":    viper.GetString("ipvs-addr"),
+			"ipvs timeout":    viper.GetDuration("ipvs-timeout"),
 
-			"consul address":          viperConfig.GetString(consulAddressName),
-			"consul subscribe path":   viperConfig.GetString(consulSubscribePathName),
-			"consul app servers path": viperConfig.GetString(consulAppServersPathName),
-			"consul service manifest": viperConfig.GetString(consulServiceManifestName),
+			"consul address":          viper.GetString("consul-address"),
+			"consul subscribe path":   viper.GetString("consul-subscribe-path"),
+			"consul app servers path": viper.GetString("consul-app-servers-path"),
+			"consul service manifest": viper.GetString("consul-manifest-name"),
 
-			"t1 id": viperConfig.GetString(t1OrchIDName),
+			"t1 id": viper.GetString("t1-id"),
 		}).Info("")
 
 		gracefulShutdown := &domain.GracefulShutdown{}
@@ -74,13 +80,13 @@ var rootCmd = &cobra.Command{
 			syscall.SIGQUIT)
 
 		// Workers start
-		routeWorker := portadapter.NewRouteWorker(viperConfig.GetString(routeAddressName), viperConfig.GetDuration(routeTimeoutName), logging)
-		tunnelWorker := portadapter.NewTunnelWorker(viperConfig.GetString(tunnelAddressName), viperConfig.GetDuration(tunnelTimeoutName), logging)
-		ipRuleWorker := portadapter.NewIpRuleWorker(viperConfig.GetString(ipRuleAddressName), viperConfig.GetDuration(ipRuleTimeoutName), logging)
+		routeWorker := portadapter.NewRouteWorker(viper.GetString("route-addr"), viper.GetDuration("route-timeout"), logging)
+		tunnelWorker := portadapter.NewTunnelWorker(viper.GetString("tunnel-addr"), viper.GetDuration("tunnel-timeout"), logging)
+		ipRuleWorker := portadapter.NewIpRuleWorker(viper.GetString("ip-rule-addr"), viper.GetDuration("ip-rule-timeout"), logging)
 
-		ipvsWorker := portadapter.NewIpvsWorker(viperConfig.GetString(ipvsAddressName), viperConfig.GetDuration(ipvsTimeoutName), logging)
+		ipvsWorker := portadapter.NewIpvsWorker(viper.GetString("ipvs-addr"), viper.GetDuration("ipvs-timeout"), logging)
 
-		dummyWorker := portadapter.NewDummyWorker(viperConfig.GetString(dummyAddressName), viperConfig.GetDuration(dummyTimeoutName), logging)
+		dummyWorker := portadapter.NewDummyWorker(viper.GetString("dummy-addr"), viper.GetDuration("dummy-timeout"), logging)
 
 		// mem init
 		memoryWorker := &portadapter.MemoryWorker{
@@ -89,7 +95,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		//  healthchecks start
-		healthcheckChecker, err := portadapter.NewHealthcheckChecker(viperConfig.GetString(healthcheckAddressName), viperConfig.GetDuration(responseTimerName), logging)
+		healthcheckChecker, err := portadapter.NewHealthcheckChecker(viper.GetString("hc-address"), viper.GetDuration("hc-timeout"), logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to healthchecks fail: %v", err)
 		}
@@ -116,7 +122,7 @@ var rootCmd = &cobra.Command{
 			logging)
 
 		// TODO: unimplemented read runtime
-		grpcServer := application.NewGrpcServer(viperConfig.GetString(orchAddressName), facade, logging) // gorutine inside
+		grpcServer := application.NewGrpcServer(viper.GetString("orch-addr"), facade, logging) // gorutine inside
 		if err := grpcServer.StartServer(); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)
 		}
@@ -124,10 +130,10 @@ var rootCmd = &cobra.Command{
 
 		// consul worker start
 		consulWorker, err := application.NewConsulWorker(facade,
-			viperConfig.GetString(consulAddressName),
-			viperConfig.GetString(consulSubscribePathName),
-			viperConfig.GetString(consulAppServersPathName),
-			viperConfig.GetString(consulServiceManifestName),
+			viper.GetString("consul-address"),
+			viper.GetString("consul-subscribe-path"),
+			viper.GetString("consul-app-servers-path"),
+			viper.GetString("consul-manifest-name"),
 			logging)
 		if err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to consul fail: %v", err)
@@ -142,12 +148,12 @@ var rootCmd = &cobra.Command{
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("got shutdown signal")
 
-		gracefulShutdownUsecases(gracefulShutdown, viperConfig.GetDuration(maxShutdownTimeName), logging)
+		gracefulShutdownUsecases(gracefulShutdown, viper.GetDuration("max-shutdown-time"), logging)
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("rest API is Done")
 
 		// gracefulShutdown.ShutdownNow = false // TODO: so dirty trick
-		// if err := facade.DisableRuntimeSettings(viperConfig.GetBool(mockMode), idForRootProcess); err != nil {
+		// if err := facade.DisableRuntimeSettings(viper.GetBool(mockMode), idForRootProcess); err != nil {
 		// 	logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Warnf("disable runtime settings errors: %v", err)
 		// }
 
@@ -195,8 +201,8 @@ func Execute() {
 	}
 }
 
-func chooseIDGenerator(idType string) domain.IDgenerator {
-	switch viperConfig.GetString(idTypeName) {
+func chooseIDGenerator() domain.IDgenerator {
+	switch viper.GetString("id-type") {
 	case "nanoid":
 		return portadapter.NewIDGenerator()
 	case "uuid4":
