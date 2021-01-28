@@ -11,13 +11,18 @@ import (
 	"github.com/khannz/crispy-palm-tree/lbost1a-ipvs/portadapter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "run",
-	Short: "lbost1ai 😉",
+	Use:   "lbost1ad",
+	Short: "dummy customizer ;-)",
+}
+
+var runCmd = &cobra.Command{
+	Use: "run",
 	Run: func(cmd *cobra.Command, args []string) {
-		idGenerator := chooseIDGenerator(viperConfig.GetString(idTypeName))
+		idGenerator := chooseIDGenerator()
 		idForRootProcess := idGenerator.NewID()
 
 		// validate fields
@@ -25,16 +30,16 @@ var rootCmd = &cobra.Command{
 			"version":          version,
 			"build time":       buildTime,
 			"event id":         idForRootProcess,
-			"config file path": viperConfig.GetString(configFilePathName),
-			"log format":       viperConfig.GetString(logFormatName),
-			"log level":        viperConfig.GetString(logLevelName),
-			"log output":       viperConfig.GetString(logOutputName),
-			"syslog tag":       viperConfig.GetString(syslogTagName),
+			"config file path": viper.GetString("config-file-path"),
+			"log format":       viper.GetString("log-format"),
+			"log level":        viper.GetString("log-level"),
+			"log output":       viper.GetString("log-output"),
+			"syslog tag":       viper.GetString("syslog-tag"),
 
-			"hc address":   viperConfig.GetString(hcAddressName),
-			"hc timeout":   viperConfig.GetDuration(hcTimeoutName),
-			"ipvs address": viperConfig.GetString(ipvsAddressName),
-			"id type":      viperConfig.GetString(idTypeName),
+			"hc address":   viper.GetString("orch-address"),
+			"hc timeout":   viper.GetDuration("orch-timeout"),
+			"ipvs address": viper.GetString("ipvs-address"),
+			"id type":      viper.GetString("id-type"),
 		}).Info("")
 
 		// more about signals: https://en.wikipedia.org/wiki/Signal_(IPC)
@@ -52,8 +57,8 @@ var rootCmd = &cobra.Command{
 		// ipvsadmConfigurator end
 
 		// orchestratorWorker start
-		hw := portadapter.NewOrchestratorWorkerEntity(viperConfig.GetString(hcAddressName),
-			viperConfig.GetDuration(hcTimeoutName),
+		hw := portadapter.NewOrchestratorWorkerEntity(viper.GetString("orch-address"),
+			viper.GetDuration("orch-timeout"),
 			logging)
 		// orchestratorWorker end
 
@@ -69,7 +74,7 @@ var rootCmd = &cobra.Command{
 		go facade.TryToSendRuntimeConfig(idForSendRuntimeConfig)
 
 		// up grpc api
-		grpcServer := application.NewGrpcServer(viperConfig.GetString(ipvsAddressName), facade, logging) // gorutine inside
+		grpcServer := application.NewGrpcServer(viper.GetString("ipvs-address"), facade, logging) // gorutine inside
 		if err := grpcServer.StartServer(); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)
 		}
@@ -93,8 +98,8 @@ func Execute() {
 	}
 }
 
-func chooseIDGenerator(idType string) domain.IDgenerator {
-	switch viperConfig.GetString(idTypeName) {
+func chooseIDGenerator() domain.IDgenerator {
+	switch viper.GetString("id-type") {
 	case "nanoid":
 		return portadapter.NewIDGenerator()
 	case "uuid4":
