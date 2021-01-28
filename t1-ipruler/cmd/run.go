@@ -15,7 +15,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "lbost1ad",
+	Use:   "lbost1aipr",
 	Short: "ip rule customizer ;-)",
 }
 

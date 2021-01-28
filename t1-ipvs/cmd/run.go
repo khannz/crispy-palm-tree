@@ -15,8 +15,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "lbost1ad",
-	Short: "dummy customizer ;-)",
+	Use:   "lbost1ar",
+	Short: "ipvs customizer ;-)",
 }
 
 var runCmd = &cobra.Command{
