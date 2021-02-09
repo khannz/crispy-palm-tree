@@ -33,7 +33,7 @@ func init() {
 		"config-file-path",
 		"c",
 		"./lbost1ad.yaml",
-		"Path to config file. Example value: './nw-lb.yaml'")
+		"Path to config file. Example value: './lbost1ad.yaml'")
 	rootCmd.PersistentFlags().String("log-output",
 		"stdout",
 		"Log output. Example values: 'stdout', 'syslog'")
@@ -77,21 +77,25 @@ func init() {
 		os.Exit(1)
 	}
 
-	initLogger()
-	validateValues()
-
 	rootCmd.AddCommand(runCmd)
 }
 
 func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	}
+	initEnv()
+	initCfgFile()
+	initLogger()
+	validateValues()
+}
 
+func initEnv() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
+}
 
+func initCfgFile() {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+	}
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Println("can't read config from file, error:", err)
 	}
@@ -120,8 +124,8 @@ func validateValues() {
 
 	switch viper.GetString("id-type") {
 	case "nanoid":
-	case "id4":
+	case "uuid4":
 	default:
-		logging.Fatalf("unsuported id type: %v; supported types: nanoid|id4", viper.GetString("id-type"))
+		logging.Fatalf("unsuported id type: %v; supported types: nanoid|uuid4", viper.GetString("id-type"))
 	}
 }
