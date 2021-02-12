@@ -16,7 +16,7 @@ type NewServiceEntity struct {
 	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
 	ipRuleWorker     domain.IpRuleWorker
-	hc               *healthcheck.HeathcheckEntity
+	hc               *healthcheck.HealthcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
 }
@@ -26,7 +26,7 @@ func NewNewServiceEntity(memoryWorker domain.MemoryWorker,
 	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
 	ipRuleWorker domain.IpRuleWorker,
-	hc *healthcheck.HeathcheckEntity,
+	hc *healthcheck.HealthcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *NewServiceEntity {
 	return &NewServiceEntity{
@@ -80,14 +80,14 @@ func (newService *NewServiceEntity) NewService(serviceInfo *domain.ServiceInfo,
 	newService.logging.WithFields(logrus.Fields{
 		"entity":   newServiceName,
 		"event id": newServiceID,
-	}).Info("create service in healtchecks")
-	if err := newService.hc.NewServiceToHealtchecks(serviceInfo, newServiceID); err != nil {
+	}).Info("create service in healthchecks")
+	if err := newService.hc.NewServiceToHealthchecks(serviceInfo, newServiceID); err != nil {
 		return fmt.Errorf("error when change service in healthcheck: %v", err)
 	}
 	newService.logging.WithFields(logrus.Fields{
 		"entity":   newServiceName,
 		"event id": newServiceID,
-	}).Info("create service in healtchecks")
+	}).Info("create service in healthchecks")
 
 	if err := newService.memoryWorker.AddService(serviceInfo); err != nil {
 		return err

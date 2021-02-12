@@ -100,7 +100,7 @@ var runCmd = &cobra.Command{
 		}
 		defer healthcheckChecker.Conn.Close()
 
-		hc := healthcheck.NewHeathcheckEntity( // memoryWorker,
+		hc := healthcheck.NewHealthcheckEntity( // memoryWorker,
 			healthcheckChecker,
 			ipvsWorker,
 			dummyWorker,

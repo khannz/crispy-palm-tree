@@ -7,25 +7,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain.ServiceInfo) {
-	// first run hc at create entity
-	hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
-	hc.logging.Tracef("hc service: %v", hcService)
+func (hc *HealthcheckEntity) startFirstChecksForService(hcService *domain.ServiceInfo) {
+	timesForChecks := hcService.AliveThreshold * 2 // hardcoded
 	ticker := time.NewTicker(hcService.HelloTimer)
-	for {
+	for i := 1; i < timesForChecks; i++ {
 		select {
 		case <-hcService.HCStop:
 			hc.logging.Tracef("get stop checks command for service %v; send checks stoped and return", hcService.Address)
 			hcService.HCStopped <- struct{}{}
 			return
 		case <-ticker.C:
-			hc.CheckApplicationServersInService(hcService) // lock hc, hcService, dummy
+			hc.FirstChecksForService(hcService) // lock hc, hcService, dummy
 		}
 	}
+	go hc.startNormalHealthchecksForService(hcService)
 }
 
-// CheckApplicationServersInService ... TODO: !!! rename that. not only checks here, also set service state
-func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.ServiceInfo) {
+// FirstChecksForService ...
+func (hc *HealthcheckEntity) FirstChecksForService(hcService *domain.ServiceInfo) {
 	defer hcService.FailedApplicationServers.SetFailedApplicationServersToZero()
 	newID := hc.idGenerator.NewID()
 	for k := range hcService.ApplicationServers {
@@ -39,7 +38,7 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.S
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
 		"event id": newID,
-	}).Tracef("Heathcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
+	}).Tracef("Healthcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
 		hcService.Address,
 		hcService.FailedApplicationServers.Count,
 		len(hcService.ApplicationServers),
@@ -54,21 +53,80 @@ func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.S
 			"event id": newID,
 		}).Warnf("service %v is up now", hcService.Address)
 		hcService.IsUp = true
-		hc.annonceLogic(hcService.IP, hcService.IsUp, newID) // lock hc and dummy
+		// no announce logic at first checks
 	} else if hcService.IsUp && !isServiceUp {
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
 			"event id": newID,
 		}).Warnf("service %v is down now", hcService.Address)
 		hcService.IsUp = false
-		hc.annonceLogic(hcService.IP, hcService.IsUp, newID) // lock hc and dummy
+		// no announce logic at first checks
+	} else {
+		hc.logging.Tracef("service state not changed: is up: %v", hcService.IsUp)
+	}
+}
+
+func (hc *HealthcheckEntity) startNormalHealthchecksForService(hcService *domain.ServiceInfo) {
+	hc.CheckService(hcService) // lock hc, hcService, dummy
+	hc.logging.Tracef("hc service: %v", hcService)
+	ticker := time.NewTicker(hcService.HelloTimer)
+	for {
+		select {
+		case <-hcService.HCStop:
+			hc.logging.Tracef("get stop checks command for service %v; send checks stoped and return", hcService.Address)
+			hcService.HCStopped <- struct{}{}
+			return
+		case <-ticker.C:
+			hc.CheckService(hcService) // lock hc, hcService, dummy
+		}
+	}
+}
+
+// CheckService ...
+func (hc *HealthcheckEntity) CheckService(hcService *domain.ServiceInfo) {
+	defer hcService.FailedApplicationServers.SetFailedApplicationServersToZero()
+	newID := hc.idGenerator.NewID()
+	for k := range hcService.ApplicationServers {
+		hcService.FailedApplicationServers.Wg.Add(1)
+		go hc.checkApplicationServerInService(hcService,
+			k,
+			newID) // lock hcService
+	}
+	hcService.FailedApplicationServers.Wg.Wait()
+	percentageUp := percentageOfUp(len(hcService.ApplicationServers), hcService.FailedApplicationServers.Count)
+	hc.logging.WithFields(logrus.Fields{
+		"entity":   healthcheckName,
+		"event id": newID,
+	}).Tracef("Healthcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
+		hcService.Address,
+		hcService.FailedApplicationServers.Count,
+		len(hcService.ApplicationServers),
+		percentageUp,
+		hcService.Quorum)
+	isServiceUp := percentageOfDownBelowMPercentOfAlivedForUp(percentageUp, hcService.Quorum)
+	hc.logging.Tracef("Old service state %v. New service state %v", hcService.IsUp, isServiceUp)
+
+	if !hcService.IsUp && isServiceUp {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":   healthcheckName,
+			"event id": newID,
+		}).Warnf("service %v is up now", hcService.Address)
+		hcService.IsUp = true
+		hc.announceLogic(hcService.IP, hcService.IsUp, newID) // lock hc and dummy
+	} else if hcService.IsUp && !isServiceUp {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":   healthcheckName,
+			"event id": newID,
+		}).Warnf("service %v is down now", hcService.Address)
+		hcService.IsUp = false
+		hc.announceLogic(hcService.IP, hcService.IsUp, newID) // lock hc and dummy
 	} else {
 		hc.logging.Tracef("service state not changed: is up: %v", hcService.IsUp)
 	}
 	// hc.updateInStorage(hcService, newID)
 }
 
-func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.ServiceInfo,
+func (hc *HealthcheckEntity) checkApplicationServerInService(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) {
 	// TODO: still can be refactored
@@ -99,7 +157,7 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 					hc.logging.WithFields(logrus.Fields{
 						"entity":   healthcheckName,
 						"event id": id,
-					}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
+					}).Errorf("Healthcheck error: exclude application server from IPVS: %v", err)
 				}
 			}
 		}
@@ -121,14 +179,14 @@ func (hc *HeathcheckEntity) checkApplicationServerInService(hcService *domain.Se
 			hc.logging.WithFields(logrus.Fields{
 				"entity":   healthcheckName,
 				"event id": id,
-			}).Errorf("Heathcheck error: inclide application server in IPVS error: %v", err)
+			}).Errorf("Healthcheck error: inclide application server in IPVS error: %v", err)
 		}
 		return
 	}
 }
 
-// TODO: recaftor work for check address, at this moment it looks like magic
-func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceInfo,
+// TODO: refactor work for check address, at this moment it looks like magic
+func (hc *HealthcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) bool {
 	switch hcService.HealthcheckType {
@@ -165,15 +223,15 @@ func (hc *HeathcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceIn
 		hc.logging.WithFields(logrus.Fields{
 			"entity":   healthcheckName,
 			"event id": id,
-		}).Errorf("Heathcheck error: unknown healtcheck type: %v", hcService.HealthcheckType)
+		}).Errorf("Healthcheck error: unknown healtcheck type: %v", hcService.HealthcheckType)
 		return false // must never will bfe. all data already validated
 	}
 }
 
-func (hc *HeathcheckEntity) isApplicationServerUpAndStateChange(hcService *domain.ServiceInfo,
+func (hc *HealthcheckEntity) isApplicationServerUpAndStateChange(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) (bool, bool) {
-	//return isUp and isChagedState booleans
+	// return isUp and isChangedState booleans
 	hcService.Lock()
 	defer hcService.Unlock()
 	hc.logging.Tracef("real: %v, RetriesCounterForDown: %v", hcService.ApplicationServers[applicationServerInfoKey].Address, hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold)

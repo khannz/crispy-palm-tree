@@ -15,15 +15,15 @@ const facadeApplyName = "facade apply config"
 
 // T1OrchFacade struct
 type T1OrchFacade struct {
-	MemoryWorker     domain.MemoryWorker
-	TunnelWorker     domain.TunnelWorker
-	RouteWorker      domain.RouteWorker
-	IpRuleWorker     domain.IpRuleWorker
-	HeathcheckEntity *healthcheck.HeathcheckEntity
-	GracefulShutdown *domain.GracefulShutdown
-	IDgenerator      domain.IDgenerator
-	RuntimeServices  map[string]*domain.ServiceInfo
-	Logging          *logrus.Logger
+	MemoryWorker      domain.MemoryWorker
+	TunnelWorker      domain.TunnelWorker
+	RouteWorker       domain.RouteWorker
+	IpRuleWorker      domain.IpRuleWorker
+	HealthcheckEntity *healthcheck.HealthcheckEntity
+	GracefulShutdown  *domain.GracefulShutdown
+	IDgenerator       domain.IDgenerator
+	RuntimeServices   map[string]*domain.ServiceInfo
+	Logging           *logrus.Logger
 }
 
 // NewT1OrchFacade ...
@@ -31,21 +31,21 @@ func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
 	tunnelWorker domain.TunnelWorker,
 	routeWorker domain.RouteWorker,
 	ipRuleWorker domain.IpRuleWorker,
-	hc *healthcheck.HeathcheckEntity,
+	hc *healthcheck.HealthcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	idGenerator domain.IDgenerator,
 	logging *logrus.Logger) *T1OrchFacade {
 
 	return &T1OrchFacade{
-		MemoryWorker:     memoryWorker,
-		TunnelWorker:     tunnelWorker,
-		RouteWorker:      routeWorker,
-		IpRuleWorker:     ipRuleWorker,
-		HeathcheckEntity: hc,
-		GracefulShutdown: gracefulShutdown,
-		IDgenerator:      idGenerator,
-		RuntimeServices:  make(map[string]*domain.ServiceInfo),
-		Logging:          logging,
+		MemoryWorker:      memoryWorker,
+		TunnelWorker:      tunnelWorker,
+		RouteWorker:       routeWorker,
+		IpRuleWorker:      ipRuleWorker,
+		HealthcheckEntity: hc,
+		GracefulShutdown:  gracefulShutdown,
+		IDgenerator:       idGenerator,
+		RuntimeServices:   make(map[string]*domain.ServiceInfo),
+		Logging:           logging,
 	}
 }
 
@@ -128,7 +128,7 @@ func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*d
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
 		t1OrchFacade.IpRuleWorker,
-		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.HealthcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)
 	for _, serviceForCreate := range servicesForCreate {
@@ -145,7 +145,7 @@ func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*d
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
 		t1OrchFacade.IpRuleWorker,
-		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.HealthcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)
 	for _, serviceForRemove := range servicesForRemove {
@@ -162,7 +162,7 @@ func (t1OrchFacade *T1OrchFacade) UpdateServices(servicesForUpdate map[string]*d
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
 		t1OrchFacade.IpRuleWorker,
-		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.HealthcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)
 	for _, serviceForUpdate := range servicesForUpdate {
@@ -189,7 +189,7 @@ func (t1OrchFacade *T1OrchFacade) RemoveAllConfig() error {
 		t1OrchFacade.TunnelWorker,
 		t1OrchFacade.RouteWorker,
 		t1OrchFacade.IpRuleWorker,
-		t1OrchFacade.HeathcheckEntity,
+		t1OrchFacade.HealthcheckEntity,
 		t1OrchFacade.GracefulShutdown,
 		t1OrchFacade.Logging)
 	for _, serviceForRemove := range servicesForRemove {
