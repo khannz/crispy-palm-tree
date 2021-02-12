@@ -237,7 +237,7 @@ func (hc *HealthcheckEntity) isApplicationServerUpAndStateChange(hcService *doma
 	hc.logging.Tracef("real: %v, RetriesCounterForDown: %v", hcService.ApplicationServers[applicationServerInfoKey].Address, hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold)
 	hc.logging.Tracef("real: %v, RetriesCounterForUp: %v", hcService.ApplicationServers[applicationServerInfoKey].Address, hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold)
 
-	if hcService.ApplicationServers[applicationServerInfoKey].IsUp { // !!!
+	if hcService.ApplicationServers[applicationServerInfoKey].IsUp {
 		// check it not down
 		for _, isUp := range hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold {
 			if isUp {
