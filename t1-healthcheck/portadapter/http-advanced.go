@@ -44,7 +44,7 @@ func (httpAdvancedEntity *HttpAdvancedEntity) IsHttpAdvancedCheckOk(healthcheckT
 		httpAdvancedEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpAdvancedHealthcheckName,
 			"event id": id,
-		}).Errorf("Heathcheck error: http advanced check fail error: unknown check type: %v", healthcheckType)
+		}).Errorf("Healthcheck error: http advanced check fail error: unknown check type: %v", healthcheckType)
 		return false
 	}
 }
@@ -145,7 +145,7 @@ func httpAdvancedJSONCheckOk(healthcheckAddress string,
 		logging.WithFields(logrus.Fields{
 			"entity":   httpAdvancedHealthcheckName,
 			"event id": id,
-		}).Tracef("Heathcheck error: Read http response errror: %v", err)
+		}).Tracef("Healthcheck error: Read http response errror: %v", err)
 		return false
 	}
 
@@ -155,7 +155,7 @@ func httpAdvancedJSONCheckOk(healthcheckAddress string,
 			logging.WithFields(logrus.Fields{
 				"entity":   httpAdvancedHealthcheckName,
 				"event id": id,
-			}).Tracef("Heathcheck error: http advanced JSON check fail error: can't unmarshal response from: %v, error: %v",
+			}).Tracef("Healthcheck error: http advanced JSON check fail error: can't unmarshal response from: %v, error: %v",
 				healthcheckAddress,
 				err)
 			return false
@@ -166,7 +166,7 @@ func httpAdvancedJSONCheckOk(healthcheckAddress string,
 		logging.WithFields(logrus.Fields{
 			"entity":   httpAdvancedHealthcheckName,
 			"event id": id,
-		}).Tracef("Heathcheck error: http advanced JSON check fail error: response is nil from: %v", healthcheckAddress)
+		}).Tracef("Healthcheck error: http advanced JSON check fail error: response is nil from: %v", healthcheckAddress)
 		return false
 	}
 
@@ -218,13 +218,13 @@ func isFinderForNearFieldsModeFail(userSearchData map[string]string,
 		logging.WithFields(logrus.Fields{
 			"entity":   httpAdvancedHealthcheckName,
 			"event id": id,
-		}).Tracef("Heathcheck http advanded json for %v failed: not all required data finded", healthcheckAddres)
+		}).Tracef("Healthcheck http advanded json for %v failed: not all required data finded", healthcheckAddres)
 		return true
 	}
 	logging.WithFields(logrus.Fields{
 		"entity":   httpAdvancedHealthcheckName,
 		"event id": id,
-	}).Tracef("Heathcheck http advanded json for %v succes", healthcheckAddres)
+	}).Tracef("Healthcheck http advanded json for %v succes", healthcheckAddres)
 
 	return false
 }
@@ -257,14 +257,14 @@ func isFinderMapToMapFail(userSearchData map[string]string,
 		logging.WithFields(logrus.Fields{
 			"entity":   httpAdvancedHealthcheckName,
 			"event id": id,
-		}).Tracef("Heathcheck http advanded json for %v failed: not all required data finded", healthcheckAddres)
+		}).Tracef("Healthcheck http advanded json for %v failed: not all required data finded", healthcheckAddres)
 
 		return true
 	}
 	logging.WithFields(logrus.Fields{
 		"entity":   httpAdvancedHealthcheckName,
 		"event id": id,
-	}).Tracef("Heathcheck http advanded json for %v succes", healthcheckAddres)
+	}).Tracef("Healthcheck http advanded json for %v succes", healthcheckAddres)
 
 	return false
 }
