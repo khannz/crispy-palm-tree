@@ -3,7 +3,7 @@ package healthcheck
 import (
 	"time"
 
-	domain "github.com/khannz/crispy-palm-tree/t1-orch/domain"
+	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,7 +24,7 @@ func (hc *HeathcheckEntity) startHealthchecksForCurrentService(hcService *domain
 	}
 }
 
-// CheckApplicationServersInService ... TODO: rename that. not only checks here, also set service state
+// CheckApplicationServersInService ... TODO: !!! rename that. not only checks here, also set service state
 func (hc *HeathcheckEntity) CheckApplicationServersInService(hcService *domain.ServiceInfo) {
 	defer hcService.FailedApplicationServers.SetFailedApplicationServersToZero()
 	newID := hc.idGenerator.NewID()
