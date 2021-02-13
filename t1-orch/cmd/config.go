@@ -29,7 +29,8 @@ var (
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringP("config-file-path",
+	rootCmd.PersistentFlags().StringVarP(&cfgFile,
+		"config-file-path",
 		"c",
 		"/opt/lbost1ao/lbost1ao.yaml",
 		"Path to config file. Example value: '/opt/lbost1ao/lbost1ao.yaml'")
