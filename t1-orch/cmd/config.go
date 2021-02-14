@@ -29,10 +29,11 @@ var (
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringP("config-file-path",
+	rootCmd.PersistentFlags().StringVarP(&cfgFile,
+		"config-file-path",
 		"c",
-		"./lbost1ao.yaml",
-		"Path to config file. Example value: './lbost1ao.yaml'")
+		"/opt/lbost1ao/lbost1ao.yaml",
+		"Path to config file. Example value: '/opt/lbost1ao/lbost1ao.yaml'")
 	rootCmd.PersistentFlags().String("log-output",
 		"stdout",
 		"Log output. Example values: 'stdout',"+
