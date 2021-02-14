@@ -33,8 +33,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
 		"config-file-path",
 		"c",
-		"./lbost1ai.yaml",
-		"Path to config file. Example value: './lbost1ai.yaml'")
+		"/opt/lbost1ai/lbost1ai.yaml",
+		"Path to config file. Example value: '/opt/lbost1ai/lbost1ai.yaml'")
 	rootCmd.PersistentFlags().String("log-output",
 		"stdout",
 		"Log output. Example values: 'stdout',"+
