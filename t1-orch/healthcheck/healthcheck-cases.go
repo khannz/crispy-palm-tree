@@ -71,7 +71,7 @@ func (hc *HealthcheckEntity) NewServiceToHealthchecks(newHCService *domain.Servi
 	if err := hc.addServiceToIPVS(newHCService, id); err != nil {
 		return fmt.Errorf("can't add srvice to IPVS: %v", err)
 	}
-	go hc.startFirstChecksForService(newHCService)
+	go hc.startFirstChecksForService(newHCService, id)
 	return nil
 }
 
@@ -185,7 +185,7 @@ func (hc *HealthcheckEntity) UpdateServiceAtHealthchecks(updateHCService *domain
 	defer hc.Unlock()
 	hc.runningHealthchecks[updateHCService.Address] = updateHCService
 
-	go hc.startFirstChecksForService(updateHCService) // TODO can write it better. that will not remove announce at time
+	go hc.startFirstChecksForService(updateHCService, id) // TODO can write it better. that will not remove announce at time
 	return updateHCService, nil
 }
 

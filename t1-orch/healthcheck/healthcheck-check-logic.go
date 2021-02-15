@@ -7,7 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (hc *HealthcheckEntity) startFirstChecksForService(hcService *domain.ServiceInfo) {
+func (hc *HealthcheckEntity) startFirstChecksForService(hcService *domain.ServiceInfo, id string) {
+	hc.Lock()
+	oldIsUpState := hc.runningHealthchecks[hcService.Address].IsUp
+	hc.Unlock()
 	timesForChecks := hcService.AliveThreshold * 2 // hardcoded
 	ticker := time.NewTicker(hcService.HelloTimer)
 	for i := 1; i < timesForChecks; i++ {
@@ -20,6 +23,14 @@ func (hc *HealthcheckEntity) startFirstChecksForService(hcService *domain.Servic
 			hc.FirstChecksForService(hcService) // lock hc, hcService, dummy
 		}
 	}
+
+	// if service state changed after first checks need to announce logic
+	// we don't care here changes: up to down or down to up - that announce logic work
+	// also if service states down=>down - we don't remove announce
+	if oldIsUpState != hcService.IsUp {
+		hc.announceLogic(hcService.IP, hcService.IsUp, id)
+	}
+
 	go hc.startNormalHealthchecksForService(hcService)
 }
 
