@@ -25,6 +25,8 @@ type ServiceInfo struct {
 	AliveThreshold           int                           `json:"aliveThreshold"`
 	DeadThreshold            int                           `json:"deadThreshold"`
 	ApplicationServers       map[string]*ApplicationServer `json:"ApplicationServers"`
+	Uri                      string                        `json:"uri"`                // only for http(s) hc types
+	ValidResponseCodes       []int64                       `json:"validResponseCodes"` // only for http(s) hc types
 	FailedApplicationServers *FailedApplicationServers     `json:"-"`
 	HCStop                   chan struct{}                 `json:"-"`
 	HCStopped                chan struct{}                 `json:"-"`
@@ -73,7 +75,7 @@ func (applicationServer *ApplicationServer) String() string {
 
 // Release stringer interface for print/log data in []*ServiceInfo
 func (serviceInfo *ServiceInfo) String() string {
-	return fmt.Sprintf("Address: %v, IP: %v, Port: %v, IsUp: %v, BalanceType: %v, RoutingType: %v, Protocol: %v, Quorum: %v, HealthcheckType: %v, HelloTimer: %v, ResponseTimer: %v, HCNearFieldsMode: %v, HCUserDefinedData: %v, AliveThreshold: %v, DeadThreshold: %v, ApplicationServers: %v",
+	return fmt.Sprintf("Address: %v, IP: %v, Port: %v, IsUp: %v, BalanceType: %v, RoutingType: %v, Protocol: %v, Quorum: %v, HealthcheckType: %v, HelloTimer: %v, ResponseTimer: %v, HCNearFieldsMode: %v, HCUserDefinedData: %v, AliveThreshold: %v, DeadThreshold: %v, ApplicationServers: %v, Uri: %v, ValidResponseCodes: %v",
 		serviceInfo.Address,
 		serviceInfo.IP,
 		serviceInfo.Port,
@@ -89,7 +91,9 @@ func (serviceInfo *ServiceInfo) String() string {
 		serviceInfo.HCUserDefinedData,
 		serviceInfo.AliveThreshold,
 		serviceInfo.DeadThreshold,
-		serviceInfo.ApplicationServers)
+		serviceInfo.ApplicationServers,
+		serviceInfo.Uri,
+		serviceInfo.ValidResponseCodes)
 }
 
 type FailedApplicationServers struct {

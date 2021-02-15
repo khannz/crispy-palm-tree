@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -21,23 +22,31 @@ func NewHttpsAndHttpsEntity(logging *logrus.Logger) *HttpsAndHttpsEntity {
 }
 
 func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheckAddress string,
+	uri string,
+	validResponseCodes map[int]struct{},
 	timeout time.Duration,
 	fwmark int,
 	isHttpCheck bool,
 	id string) bool {
 	// method := "GET" // TODO: remove hardcode
-	request := "/index.html"
-	responseCodes := make(map[int]struct{})
-	responseCodes[200] = struct{}{}
-	responseCodes[301] = struct{}{}
-	responseCodes[307] = struct{}{}
-	responseCodes[308] = struct{}{}
 
 	var newHCAddress string
 	if isHttpCheck {
-		newHCAddress = "http://" + healthcheckAddress + request
+		newHCAddress = "http://" + healthcheckAddress + uri
 	} else {
-		newHCAddress = "https://" + healthcheckAddress + request
+		newHCAddress = "https://" + healthcheckAddress + uri
+	}
+
+	_, err := url.ParseRequestURI(newHCAddress)
+	if err != nil {
+		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
+			"entity":   httpsHealthcheckName,
+			"event id": id,
+		}).Errorf("invalid url address. uri: %v, healthcheck address %v, full address: %v. error: %v",
+			uri,
+			healthcheckAddress,
+			err)
+		return false
 	}
 
 	ip, port, err := net.SplitHostPort(healthcheckAddress)
@@ -95,8 +104,8 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 			if resp.Body != nil {
 				defer resp.Body.Close()
 			}
-			_, codeOk := responseCodes[resp.StatusCode]
-			return codeOk
+			_, isCodeOk := validResponseCodes[resp.StatusCode]
+			return isCodeOk
 		}
 		return false
 	}
@@ -111,7 +120,7 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 	// Check response code.
 	// var codeOk bool
 	// switch responseCodes // TODO:
-	_, codeOk := responseCodes[resp.StatusCode]
+	_, codeOk := validResponseCodes[resp.StatusCode]
 	// Check response body.
 	bodyOk := true
 

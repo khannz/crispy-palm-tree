@@ -77,8 +77,10 @@ func (gs *GrpcServer) IsHttpCheckOk(ctx context.Context, incomeHttpCheck *transp
 	}).Debugf("got job http check server %v", incomeHttpCheck)
 
 	timeout, _ := ptypes.Duration(incomeHttpCheck.Timeout)
-	isOk := gs.facade.IsHttpOrHttpsCheckOk(
-		incomeHttpCheck.HealthcheckAddress,
+	validResponseCodes := convertIncomeValidResponseCodes(incomeHttpCheck.ValidResponseCodes)
+	isOk := gs.facade.IsHttpOrHttpsCheckOk(incomeHttpCheck.HealthcheckAddress,
+		incomeHttpCheck.Uri,
+		validResponseCodes,
 		timeout,
 		int(incomeHttpCheck.Fwmark),
 		isHttpCheck,
@@ -105,8 +107,10 @@ func (gs *GrpcServer) IsHttpsCheckOk(ctx context.Context, incomeHttpsCheck *tran
 	}).Debugf("got job https check server %v", incomeHttpsCheck)
 
 	timeout, _ := ptypes.Duration(incomeHttpsCheck.Timeout)
-	isOk := gs.facade.IsHttpOrHttpsCheckOk(
-		incomeHttpsCheck.HealthcheckAddress,
+	validResponseCodes := convertIncomeValidResponseCodes(incomeHttpsCheck.ValidResponseCodes)
+	isOk := gs.facade.IsHttpOrHttpsCheckOk(incomeHttpsCheck.HealthcheckAddress,
+		incomeHttpsCheck.Uri,
+		validResponseCodes,
 		timeout,
 		int(incomeHttpsCheck.Fwmark),
 		isHttpCheck,
@@ -217,4 +221,12 @@ func (grpcServer *GrpcServer) Serve(lis net.Listener) {
 
 func (grpcServer *GrpcServer) CloseServer() {
 	grpcServer.grpcSrv.Stop()
+}
+
+func convertIncomeValidResponseCodes(incomeValidResponseCodes []int64) map[int]struct{} {
+	internalValidResponseCodes := make(map[int]struct{}, len(incomeValidResponseCodes))
+	for _, c := range incomeValidResponseCodes {
+		internalValidResponseCodes[int(c)] = struct{}{}
+	}
+	return internalValidResponseCodes
 }

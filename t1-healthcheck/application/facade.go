@@ -54,12 +54,16 @@ func (hcFacade *HCFacade) IsHttpAdvancedCheckOk(healthcheckType string,
 }
 
 func (hcFacade *HCFacade) IsHttpOrHttpsCheckOk(healthcheckAddress string,
+	uri string,
+	validResponseCodes map[int]struct{},
 	timeout time.Duration,
 	fwmark int,
 	isHttpCheck bool,
 	id string) bool {
 	newHttpOrHttpsCheckEntity := usecase.NewHttpOrHttpsCheckEntity(hcFacade.HTTPAndHTTPSWorker, hcFacade.Logging)
 	return newHttpOrHttpsCheckEntity.IsHttpOrHttpsCheckOk(healthcheckAddress,
+		uri,
+		validResponseCodes,
 		timeout,
 		fwmark,
 		isHttpCheck,

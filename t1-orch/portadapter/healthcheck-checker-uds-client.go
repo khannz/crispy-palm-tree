@@ -62,6 +62,8 @@ func (healthcheckChecker *HealthcheckChecker) IsTcpCheckOk(healthcheckAddress st
 }
 
 func (healthcheckChecker *HealthcheckChecker) IsHttpCheckOk(healthcheckAddress string,
+	uri string,
+	validResponseCodes []int64,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
@@ -70,6 +72,8 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpCheckOk(healthcheckAddress s
 
 	pbHttpData := &transport.HttpData{
 		HealthcheckAddress: healthcheckAddress,
+		Uri:                uri,
+		ValidResponseCodes: validResponseCodes,
 		Timeout:            ptypes.DurationProto(timeout),
 		Fwmark:             int64(fwmark),
 		Id:                 id,
@@ -86,6 +90,8 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpCheckOk(healthcheckAddress s
 }
 
 func (healthcheckChecker *HealthcheckChecker) IsHttpsCheckOk(healthcheckAddress string,
+	uri string,
+	validResponseCodes []int64,
 	timeout time.Duration,
 	fwmark int,
 	id string) bool {
@@ -94,6 +100,8 @@ func (healthcheckChecker *HealthcheckChecker) IsHttpsCheckOk(healthcheckAddress 
 
 	pbHttpsData := &transport.HttpsData{
 		HealthcheckAddress: healthcheckAddress,
+		Uri:                uri,
+		ValidResponseCodes: validResponseCodes,
 		Timeout:            ptypes.DurationProto(timeout),
 		Fwmark:             int64(fwmark),
 		Id:                 id,
