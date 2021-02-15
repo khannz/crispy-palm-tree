@@ -5,120 +5,191 @@ import (
 	"fmt"
 	"sync"
 
-	domain "github.com/khannz/crispy-palm-tree/t1-orch/domain"
+	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
 	"github.com/sirupsen/logrus"
 )
 
 const healthcheckName = "healthcheck"
 
-// HeathcheckEntity ...
-type HeathcheckEntity struct {
+// HealthcheckEntity ...
+type HealthcheckEntity struct {
 	sync.Mutex
-	runningHeathchecks map[string]*domain.ServiceInfo // TODO: map much better
+	runningHealthchecks map[string]*domain.ServiceInfo // TODO: map much better
 	// memoryWorker       domain.MemoryWorker
 	healthcheckChecker domain.HealthcheckChecker
 	ipvsadm            domain.IPVSWorker
 	dw                 domain.DummyWorker
 	idGenerator        domain.IDgenerator
 	logging            *logrus.Logger
-	announcedServices  map[string]int
+	dummyEntities      map[string]*dummyEntity
 }
 
-// NewHeathcheckEntity ...
-func NewHeathcheckEntity( // memoryWorker domain.MemoryWorker,
+type dummyEntity struct {
+	totalForDummy      int
+	announcedForDummy  int
+	isAnnouncedAtDummy bool
+}
+
+// NewHealthcheckEntity ...
+func NewHealthcheckEntity( // memoryWorker domain.MemoryWorker,
 	healthcheckChecker domain.HealthcheckChecker,
 	ipvsadm domain.IPVSWorker,
 	dw domain.DummyWorker,
 	idGenerator domain.IDgenerator,
-	logging *logrus.Logger) *HeathcheckEntity {
+	logging *logrus.Logger) *HealthcheckEntity {
 
-	return &HeathcheckEntity{
-		runningHeathchecks: map[string]*domain.ServiceInfo{}, // need for append
+	return &HealthcheckEntity{
+		runningHealthchecks: map[string]*domain.ServiceInfo{}, // need for append
 		// memoryWorker:       memoryWorker,
 		healthcheckChecker: healthcheckChecker,
 		ipvsadm:            ipvsadm,
 		dw:                 dw,
 		idGenerator:        idGenerator,
 		logging:            logging,
-		announcedServices:  make(map[string]int),
+		dummyEntities:      make(map[string]*dummyEntity),
 	}
 }
 
-// NewServiceToHealtchecks - add service for healthchecks
-func (hc *HeathcheckEntity) NewServiceToHealtchecks(hcService *domain.ServiceInfo, id string) error {
+// NewServiceToHealthchecks - add service for healthchecks
+func (hc *HealthcheckEntity) NewServiceToHealthchecks(newHCService *domain.ServiceInfo, id string) error {
 	hc.Lock()
 	defer hc.Unlock()
 
-	hc.runningHeathchecks[hcService.Address] = hcService
-	hc.addNewServiceToMayAnnouncedServices(hcService.IP) // hc must be locked
-	if err := hc.addServiceToIPVS(hcService, id); err != nil {
+	if _, inMap := hc.runningHealthchecks[newHCService.Address]; inMap {
+		return fmt.Errorf("new service to healthchecks error: service %v already exist, can't add it. Need to use update", newHCService.Address)
+	}
+	hc.runningHealthchecks[newHCService.Address] = newHCService
+
+	// check we have same service ip in dummy map
+	if _, inMap := hc.dummyEntities[newHCService.IP]; !inMap {
+		// that also set announcedForDummy to 0 and isAnnouncedAtDummy to false
+		hc.dummyEntities[newHCService.IP] = &dummyEntity{totalForDummy: 1}
+	} else {
+		hc.dummyEntities[newHCService.IP].totalForDummy++
+	}
+
+	if err := hc.addServiceToIPVS(newHCService, id); err != nil {
 		return fmt.Errorf("can't add srvice to IPVS: %v", err)
 	}
-	go hc.startHealthchecksForCurrentService(hcService)
+	go hc.startFirstChecksForService(newHCService, id)
 	return nil
 }
 
-// RemoveServiceFromHealtchecks will work until removed
-func (hc *HeathcheckEntity) RemoveServiceFromHealtchecks(hcService *domain.ServiceInfo, id string) error {
-	hc.Lock() // lock for find
-	if _, isFinded := hc.runningHeathchecks[hcService.Address]; isFinded {
-		hc.logging.Tracef("send stop checks for service %v", hcService.Address)
-		hc.runningHeathchecks[hcService.Address].HCStop <- struct{}{}
-		hc.Unlock() // unlock for find
-		<-hc.runningHeathchecks[hcService.Address].HCStopped
-		hc.annonceLogic(hcService.IP, false, id) // lock hc and dummy; may remove annonce
-		hc.removeServiceFromMayAnnouncedServices(hcService.IP)
-		hc.Lock() // lock for remove service
-		delete(hc.runningHeathchecks, hcService.Address)
-		hc.Unlock() // unlock for remove service
-		if err := hc.removeServiceFromIPVS(hcService, id); err != nil {
-			return fmt.Errorf("can't remove service from IPVS: %v", err)
-		}
-		hc.logging.Tracef("get checks stopped from service %v", hcService.Address)
-		return nil
-	}
-	hc.Unlock() // unlock if service not found
-
-	return fmt.Errorf("Heathcheck error: RemoveServiceFromHealtchecks error: service %v not found",
-		hcService.Address)
-}
-
-// UpdateServiceAtHealtchecks ...
-func (hc *HeathcheckEntity) UpdateServiceAtHealtchecks(hcService *domain.ServiceInfo, id string) (*domain.ServiceInfo, error) {
+// RemoveServiceFromHealthchecks will work until removed
+func (hc *HealthcheckEntity) RemoveServiceFromHealthchecks(removeHCService *domain.ServiceInfo, id string) error {
 	hc.Lock()
-	if _, isFinded := hc.runningHeathchecks[hcService.Address]; isFinded {
-		currentApplicationServers := getCopyOfApplicationServersFromService(hc.runningHeathchecks[hcService.Address]) // copy of current services
-		hc.logging.Tracef("get update service job, sending stop checks for service %v", hcService.Address)
-		hc.runningHeathchecks[hcService.Address].HCStop <- struct{}{}
+	if _, inMap := hc.runningHealthchecks[removeHCService.Address]; !inMap {
 		hc.Unlock()
-		<-hc.runningHeathchecks[hcService.Address].HCStopped
-		hc.logging.Tracef("healthchecks stopped for update service job %v", hcService.Address)
-		hc.enrichApplicationServersHealthchecks(hcService, currentApplicationServers, hc.runningHeathchecks[hcService.Address].IsUp) // lock hcService
-		_, _, applicationServersForRemove := formDiffApplicationServers(hcService.ApplicationServers, currentApplicationServers)
-		if len(applicationServersForRemove) != 0 {
-			for _, k := range applicationServersForRemove {
-				if err := hc.excludeApplicationServerFromIPVS(hcService, currentApplicationServers[k], id); err != nil {
-					hc.logging.WithFields(logrus.Fields{
-						"entity":   healthcheckName,
-						"event id": id,
-					}).Errorf("Heathcheck error: exclude application server from IPVS: %v", err)
-				}
+		return fmt.Errorf("critical error: somehow key %v not in map %v\n", removeHCService.Address, hc.runningHealthchecks)
+	}
+	hc.Unlock()
+	hc.runningHealthchecks[removeHCService.Address].HCStop <- struct{}{}
+	hc.logging.Tracef("send stop checks for service %v", removeHCService.Address)
+	<-hc.runningHealthchecks[removeHCService.Address].HCStopped
+	hc.Lock()
+	defer hc.Unlock()
+	// paranoid checks key start
+	if _, inMap := hc.dummyEntities[removeHCService.IP]; !inMap {
+		return fmt.Errorf("critical error: somehow key %v not in map %v", removeHCService.IP, hc.dummyEntities)
+	}
+	if _, inMap := hc.runningHealthchecks[removeHCService.Address]; !inMap {
+		return fmt.Errorf("critical error: somehow key %v not in map %v\n", removeHCService.Address, hc.runningHealthchecks)
+	}
+	// paranoid checks key end
+
+	// if last service in map
+	if hc.dummyEntities[removeHCService.IP].totalForDummy <= 1 {
+		if hc.dummyEntities[removeHCService.IP].isAnnouncedAtDummy {
+			if err := hc.dw.RemoveFromDummy(removeHCService.IP, id); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":   healthcheckName,
+					"event id": id,
+				}).Errorf("remove from dummy fail: %v", err)
+			} else {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":   healthcheckName,
+					"event id": id,
+				}).Infof("removed announce %v from dummy beacose service removed", removeHCService.IP)
 			}
 		}
-
-		hc.Lock()
-		hc.runningHeathchecks[hcService.Address] = hcService
-		go hc.startHealthchecksForCurrentService(hcService)
-		hc.Unlock()
-		return hcService, nil
+		delete(hc.dummyEntities, removeHCService.IP)
+		hc.logging.WithFields(logrus.Fields{
+			"entity":   healthcheckName,
+			"event id": id,
+		}).Infof("removed service %v from dummy entities beacose service removed", removeHCService.IP)
+	} else {
+		// if service up they in map ip announce to dummy
+		if hc.runningHealthchecks[removeHCService.Address].IsUp {
+			// don't remove announce here, or do some checks, because we do that only in announce logic func
+			hc.dummyEntities[removeHCService.IP].announcedForDummy--
+			hc.logging.WithFields(logrus.Fields{
+				"entity":   healthcheckName,
+				"event id": id,
+			}).Infof("decrease announced to dummy for %v\n", removeHCService.IP)
+		}
+		// service not last, so we decrease total values
+		hc.dummyEntities[removeHCService.IP].totalForDummy--
+		hc.logging.WithFields(logrus.Fields{
+			"entity":   healthcheckName,
+			"event id": id,
+		}).Infof("decrease total for dummy for %v\n", removeHCService.IP)
 	}
-	hc.Unlock() // unlock if not found
+	delete(hc.runningHealthchecks, removeHCService.Address)
+	hc.logging.WithFields(logrus.Fields{
+		"entity":   healthcheckName,
+		"event id": id,
+	}).Infof("remove %v from running healthchecks", removeHCService.Address)
 
-	return hcService, fmt.Errorf("Heathcheck error: UpdateServiceAtHealtchecks error: service %v not found",
-		hcService.Address)
+	if err := hc.removeServiceFromIPVS(removeHCService, id); err != nil {
+		return fmt.Errorf("can't remove service from IPVS: %v", err)
+	} else {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":   healthcheckName,
+			"event id": id,
+		}).Infof("remove %v from ipvs", removeHCService.Address)
+	}
+	hc.logging.Infof("get checks stopped from service %v", removeHCService.Address)
+	return nil
 }
 
-func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceInfo, oldApplicationServers map[string]*domain.ApplicationServer, oldIsUpState bool) {
+// UpdateServiceAtHealthchecks ...
+func (hc *HealthcheckEntity) UpdateServiceAtHealthchecks(updateHCService *domain.ServiceInfo, id string) (*domain.ServiceInfo, error) {
+	hc.Lock()
+	if _, inMap := hc.runningHealthchecks[updateHCService.Address]; !inMap {
+		hc.Unlock()
+		return nil, fmt.Errorf("critical error: somehow key %v not in map %v\n", updateHCService.Address, hc.runningHealthchecks)
+	}
+
+	currentApplicationServers := getCopyOfApplicationServersFromService(hc.runningHealthchecks[updateHCService.Address]) // copy of current services
+	hc.Unlock()
+
+	hc.logging.Tracef("get update service job, sending stop checks for service %v", updateHCService.Address)
+	hc.runningHealthchecks[updateHCService.Address].HCStop <- struct{}{}
+	<-hc.runningHealthchecks[updateHCService.Address].HCStopped
+	hc.logging.Tracef("healthchecks stopped for update service job %v", updateHCService.Address)
+	hc.Lock()
+	hc.enrichApplicationServersHealthchecks(updateHCService, currentApplicationServers, hc.runningHealthchecks[updateHCService.Address].IsUp) // lock updateHCService
+	hc.Unlock()
+	_, _, applicationServersForRemove := formDiffApplicationServers(updateHCService.ApplicationServers, currentApplicationServers)
+	if len(applicationServersForRemove) != 0 {
+		for _, k := range applicationServersForRemove {
+			if err := hc.excludeApplicationServerFromIPVS(updateHCService, currentApplicationServers[k], id); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":   healthcheckName,
+					"event id": id,
+				}).Errorf("Healthcheck error: exclude application server from IPVS: %v", err)
+			}
+		}
+	}
+	hc.Lock()
+	defer hc.Unlock()
+	hc.runningHealthchecks[updateHCService.Address] = updateHCService
+
+	go hc.startFirstChecksForService(updateHCService, id) // TODO can write it better. that will not remove announce at time
+	return updateHCService, nil
+}
+
+func (hc *HealthcheckEntity) enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceInfo, oldApplicationServers map[string]*domain.ApplicationServer, oldIsUpState bool) {
 	newServiceHealthcheck.Lock()
 	defer newServiceHealthcheck.Unlock()
 	newServiceHealthcheck.IsUp = oldIsUpState
@@ -137,7 +208,7 @@ func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealt
 		retriesCounterForUp := make([]bool, newServiceHealthcheck.AliveThreshold)
 		retriesCounterForDown := make([]bool, newServiceHealthcheck.DeadThreshold)
 
-		if _, isFinded := oldApplicationServers[k]; isFinded {
+		if _, isFunded := oldApplicationServers[k]; isFunded {
 			fillNewBooleanArray(retriesCounterForUp, oldApplicationServers[k].InternalHC.AliveThreshold)
 			fillNewBooleanArray(retriesCounterForDown, oldApplicationServers[k].InternalHC.DeadThreshold)
 			newServiceHealthcheck.ApplicationServers[k].InternalHC.AliveThreshold = retriesCounterForUp
@@ -153,10 +224,10 @@ func (hc *HeathcheckEntity) enrichApplicationServersHealthchecks(newServiceHealt
 	}
 }
 
-func (hc *HeathcheckEntity) GetServiceState(hcService *domain.ServiceInfo, id string) (*domain.ServiceInfo, error) {
+func (hc *HealthcheckEntity) GetServiceState(hcService *domain.ServiceInfo, id string) (*domain.ServiceInfo, error) {
 	hc.Lock()
 	defer hc.Unlock()
-	for _, runHC := range hc.runningHeathchecks {
+	for _, runHC := range hc.runningHealthchecks {
 		if runHC.Address == hcService.Address {
 			return copyServiceInfo(runHC), nil
 		}
@@ -164,14 +235,14 @@ func (hc *HeathcheckEntity) GetServiceState(hcService *domain.ServiceInfo, id st
 	return nil, fmt.Errorf("get service state fail: service %v not found in healthchecks", hcService.Address)
 }
 
-func (hc *HeathcheckEntity) GetServicesState(id string) (map[string]*domain.ServiceInfo, error) {
+func (hc *HealthcheckEntity) GetServicesState(id string) (map[string]*domain.ServiceInfo, error) {
 	hc.Lock()
 	defer hc.Unlock()
-	if len(hc.runningHeathchecks) == 0 {
-		return nil, fmt.Errorf("active hc services: %v", len(hc.runningHeathchecks))
+	if len(hc.runningHealthchecks) == 0 {
+		return nil, fmt.Errorf("active hc services: %v", len(hc.runningHealthchecks))
 	}
-	copyOfServiceInfos := make(map[string]*domain.ServiceInfo, len(hc.runningHeathchecks))
-	for i, runHC := range hc.runningHeathchecks {
+	copyOfServiceInfos := make(map[string]*domain.ServiceInfo, len(hc.runningHealthchecks))
+	for i, runHC := range hc.runningHealthchecks {
 		copyOfServiceInfos[i] = copyServiceInfo(runHC)
 	}
 	return copyOfServiceInfos, nil

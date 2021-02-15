@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"syscall"
 
-	domain "github.com/khannz/crispy-palm-tree/t1-orch/domain"
+	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
 )
 
 // PrepareDataForIPVS ...

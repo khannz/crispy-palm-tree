@@ -54,9 +54,9 @@ func init() {
 		true,
 		"Log event location (like python)")
 
-	rootCmd.PersistentFlags().String("t1-id",
-		"bad1",
-		"t1 orch id")
+	//rootCmd.PersistentFlags().String("t1-id",
+	//	"bad1",
+	//	"t1 orch id")
 
 	rootCmd.PersistentFlags().String("hlck-interface",
 		"",
@@ -169,9 +169,9 @@ func initLogger() {
 }
 
 func validateValues() {
-	if viper.GetString("t1-id") == "bad1" {
-		logging.Fatalf("t1 id must be set")
-	}
+	//if viper.GetString("t1-id") == "bad1" {
+	//	logging.Fatalf("t1 id must be set")
+	//}
 
 	switch viper.GetString("id-type") {
 	case "nanoid":

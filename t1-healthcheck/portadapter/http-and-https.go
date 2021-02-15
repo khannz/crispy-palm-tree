@@ -90,7 +90,7 @@ func (httpsAndhttpsEntity *HttpsAndHttpsEntity) IsHttpOrHttpsCheckOk(healthcheck
 		httpsAndhttpsEntity.logging.WithFields(logrus.Fields{
 			"entity":   httpsHealthcheckName,
 			"event id": id,
-		}).Tracef("Heathcheck error: Connecting http(https) error: %v", err)
+		}).Tracef("Healthcheck error: Connecting http(https) error: %v", err)
 		if resp != nil {
 			if resp.Body != nil {
 				defer resp.Body.Close()

@@ -16,7 +16,7 @@ type RemoveServiceEntity struct {
 	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
 	ipRuleWorker     domain.IpRuleWorker
-	hc               *healthcheck.HeathcheckEntity
+	hc               *healthcheck.HealthcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
 }
@@ -26,7 +26,7 @@ func NewRemoveServiceEntity(memoryWorker domain.MemoryWorker,
 	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
 	ipRuleWorker domain.IpRuleWorker,
-	hc *healthcheck.HeathcheckEntity,
+	hc *healthcheck.HealthcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *RemoveServiceEntity {
 	return &RemoveServiceEntity{
@@ -77,8 +77,8 @@ func (removeService *RemoveServiceEntity) RemoveService(serviceInfo *domain.Serv
 	removeService.logging.WithFields(logrus.Fields{
 		"entity":   removeServiceName,
 		"event id": removeServiceID,
-	}).Info("remove service from healtchecks")
-	if err := removeService.hc.RemoveServiceFromHealtchecks(serviceInfo, removeServiceID); err != nil {
+	}).Info("remove service from healthchecks")
+	if err := removeService.hc.RemoveServiceFromHealthchecks(serviceInfo, removeServiceID); err != nil {
 		return fmt.Errorf("error when remove service in healthcheck: %v", err)
 	}
 

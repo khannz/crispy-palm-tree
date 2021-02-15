@@ -39,7 +39,6 @@ var runCmd = &cobra.Command{
 			"log output":       viper.GetString("log-output"),
 			"syslog tag":       viper.GetString("syslog-tag"),
 
-			"t1 orch id":            viper.GetString("t1-id"),
 			"healthcheck interface": viper.GetString("hlck-interface"),
 
 			"orch address": viper.GetString("orch-addr"),
@@ -64,7 +63,7 @@ var runCmd = &cobra.Command{
 			"consul app servers path": viper.GetString("consul-app-servers-path"),
 			"consul service manifest": viper.GetString("consul-manifest-name"),
 
-			"t1 id": viper.GetString("t1-id"),
+			//"t1 id": viper.GetString("t1-id"),
 		}).Info("")
 
 		gracefulShutdown := &domain.GracefulShutdown{}
@@ -100,7 +99,7 @@ var runCmd = &cobra.Command{
 		}
 		defer healthcheckChecker.Conn.Close()
 
-		hc := healthcheck.NewHeathcheckEntity( // memoryWorker,
+		hc := healthcheck.NewHealthcheckEntity( // memoryWorker,
 			healthcheckChecker,
 			ipvsWorker,
 			dummyWorker,

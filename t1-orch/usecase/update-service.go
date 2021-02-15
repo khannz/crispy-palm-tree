@@ -16,7 +16,7 @@ type UpdateServiceEntity struct {
 	tunnelMaker      domain.TunnelWorker
 	routeMaker       domain.RouteWorker
 	ipRuleWorker     domain.IpRuleWorker
-	hc               *healthcheck.HeathcheckEntity
+	hc               *healthcheck.HealthcheckEntity
 	gracefulShutdown *domain.GracefulShutdown
 	logging          *logrus.Logger
 }
@@ -26,7 +26,7 @@ func NewUpdateServiceEntity(memoryWorker domain.MemoryWorker,
 	tunnelMaker domain.TunnelWorker,
 	routeMaker domain.RouteWorker,
 	ipRuleWorker domain.IpRuleWorker,
-	hc *healthcheck.HeathcheckEntity,
+	hc *healthcheck.HealthcheckEntity,
 	gracefulShutdown *domain.GracefulShutdown,
 	logging *logrus.Logger) *UpdateServiceEntity {
 	return &UpdateServiceEntity{
@@ -102,8 +102,8 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 	updateService.logging.WithFields(logrus.Fields{
 		"entity":   updateServiceName,
 		"event id": updateServiceID,
-	}).Infof("update service %v at healtchecks", serviceInfo.Address)
-	if _, err := updateService.hc.UpdateServiceAtHealtchecks(serviceInfo, updateServiceID); err != nil {
+	}).Infof("update service %v at healthchecks", serviceInfo.Address)
+	if _, err := updateService.hc.UpdateServiceAtHealthchecks(serviceInfo, updateServiceID); err != nil {
 		return fmt.Errorf("error when change service in healthcheck: %v", err)
 	}
 	return nil

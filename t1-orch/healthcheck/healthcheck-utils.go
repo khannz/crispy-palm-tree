@@ -1,6 +1,10 @@
 package healthcheck
 
-import domain "github.com/khannz/crispy-palm-tree/t1-orch/domain"
+import (
+	"fmt"
+
+	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
+)
 
 func percentageOfUp(rawTotal, rawDown int) float32 {
 	total := float32(rawTotal)
@@ -20,7 +24,7 @@ func percentageOfDownBelowMPercentOfAlivedForUp(pofUp float32, maxDownForUp int)
 
 func fillNewBooleanArray(newArray []bool, oldArray []bool) {
 	if len(newArray) > len(oldArray) {
-		reverceArrays(newArray, oldArray)
+		reverseArrays(newArray, oldArray)
 		for i := len(newArray) - 1; i >= 0; i-- {
 			if i >= len(oldArray) {
 				newArray[i] = false
@@ -28,24 +32,24 @@ func fillNewBooleanArray(newArray []bool, oldArray []bool) {
 				newArray[i] = oldArray[i]
 			}
 		}
-		reverceArrays(newArray, oldArray)
+		reverseArrays(newArray, oldArray)
 		return
 	} else if len(newArray) == len(oldArray) {
-		reverceArrays(newArray, oldArray)
+		reverseArrays(newArray, oldArray)
 		for i := range newArray {
 			newArray[i] = oldArray[i]
 		}
-		reverceArrays(newArray, oldArray)
+		reverseArrays(newArray, oldArray)
 		return
 	}
 
-	reverceArrays(newArray, oldArray)
+	reverseArrays(newArray, oldArray)
 	tmpOldArraySlice := oldArray[:len(newArray)]
 	copy(newArray, tmpOldArraySlice)
-	reverceArrays(newArray, oldArray)
+	reverseArrays(newArray, oldArray)
 }
 
-func reverceArrays(arOne, arTwo []bool) {
+func reverseArrays(arOne, arTwo []bool) {
 	reverceArray(arOne)
 	reverceArray(arTwo)
 }
@@ -53,27 +57,6 @@ func reverceArrays(arOne, arTwo []bool) {
 func reverceArray(ar []bool) {
 	for i, j := 0, len(ar)-1; i < j; i, j = i+1, j-1 {
 		ar[i], ar[j] = ar[j], ar[i]
-	}
-}
-
-func (hc *HeathcheckEntity) addNewServiceToMayAnnouncedServices(serviceIP string) {
-	if _, inMap := hc.announcedServices[serviceIP]; inMap {
-		hc.announcedServices[serviceIP]++
-		return
-	}
-	hc.announcedServices[serviceIP] = 0 // add new service to annonced pool
-}
-
-func (hc *HeathcheckEntity) removeServiceFromMayAnnouncedServices(serviceIP string) {
-	hc.Lock()
-	defer hc.Unlock()
-	_, isFinded := hc.announcedServices[serviceIP]
-	if isFinded {
-		if hc.announcedServices[serviceIP] == 0 {
-			delete(hc.announcedServices, serviceIP)
-			return
-		}
-		hc.announcedServices[serviceIP]--
 	}
 }
 
@@ -90,7 +73,7 @@ func formDiffApplicationServers(newApplicationServers map[string]*domain.Applica
 	}
 
 	for k := range oldApplicationServers {
-		if _, isFinded := newApplicationServers[k]; !isFinded {
+		if _, isFunded := newApplicationServers[k]; !isFunded {
 			applicationServersForRemove = append(applicationServersForRemove, k)
 		}
 	}
@@ -125,16 +108,7 @@ func getCopyOfApplicationServersFromService(serviceInfo *domain.ServiceInfo) map
 	return applicationServers
 }
 
-// TODO: rework or remove that
-// func (hc *HeathcheckEntity) updateInStorage(hcService *domain.ServiceInfo, id string) {
-// 	if err := hc.memoryWorker.UpdateService(hcService); err != nil {
-// 		hc.logging.Warnf("can't update service %v from healtchecks: %v",
-// 			hcService.Address,
-// 			err)
-// 	}
-// }
-
-func (hc *HeathcheckEntity) moveApplicationServerStateIndexes(hcService *domain.ServiceInfo, applicationServerInfoKey string, isUpNow bool) {
+func (hc *HealthcheckEntity) moveApplicationServerStateIndexes(hcService *domain.ServiceInfo, applicationServerInfoKey string, isUpNow bool) {
 	hcService.Lock()
 	defer hcService.Unlock()
 	hc.logging.Tracef("moveApplicationServerStateIndexes: app srv index: %v,isUpNow: %v, total app srv at service: %v, AliveThreshold array len: %v, DeadThreshold array len: %v",
@@ -179,4 +153,12 @@ func copyServiceInfo(hcService *domain.ServiceInfo) *domain.ServiceInfo {
 		HCStop:             make(chan struct{}, 1),
 		HCStopped:          make(chan struct{}, 1),
 	}
+}
+
+// Release stringer interface for print/log data in map[string]*dummyEntity
+func (dummyEntity *dummyEntity) String() string {
+	return fmt.Sprintf("Total for dummy: %v, announced for dummy: %v, is announced at dummy: %v",
+		dummyEntity.totalForDummy,
+		dummyEntity.announcedForDummy,
+		dummyEntity.isAnnouncedAtDummy)
 }

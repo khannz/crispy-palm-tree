@@ -7,52 +7,55 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (hc *HeathcheckEntity) annonceLogic(serviceIP string, newIsUpServiceState bool, id string) {
-	hc.Lock()
+func (hc *HealthcheckEntity) announceLogic(serviceIP string, newServiceStateIsUp bool, id string) {
+	hc.Lock() // TODO need lock only dummy map, not all HealthcheckEntity
 	defer hc.Unlock()
-	isServiceAnoncedNow := hc.announcedServices[serviceIP] > 0
-	//
-	if isServiceAnoncedNow {
-		if newIsUpServiceState {
-			hc.addNewServiceToMayAnnouncedServices(serviceIP)
-			// log error
-			return
-		}
-		// isServiceAnoncedNow && !newIsUpServiceState
-		if i, inMap := hc.announcedServices[serviceIP]; inMap {
-			hc.announcedServices[serviceIP] = i - 1
-			if hc.announcedServices[serviceIP] == 0 {
-				if err := hc.dw.RemoveFromDummy(serviceIP, id); err != nil {
+	// paranoid checks key start
+	if _, inMap := hc.dummyEntities[serviceIP]; !inMap {
+		hc.logging.WithFields(logrus.Fields{
+			"entity":   healthcheckName,
+			"event id": id,
+		}).Errorf("critical error: somehow key %v not in map %v", serviceIP, hc.dummyEntities)
+		return
+	}
+	// paranoid checks key end
+
+	if newServiceStateIsUp {
+		hc.dummyEntities[serviceIP].announcedForDummy++
+		if hc.dummyEntities[serviceIP].totalForDummy == hc.dummyEntities[serviceIP].announcedForDummy {
+			if !hc.dummyEntities[serviceIP].isAnnouncedAtDummy { // not announced yet
+				hc.dummyEntities[serviceIP].isAnnouncedAtDummy = true
+				if err := hc.dw.AddToDummy(serviceIP, id); err != nil {
 					hc.logging.WithFields(logrus.Fields{
 						"entity":   healthcheckName,
 						"event id": id,
-					}).Errorf("remove from dummy fail: %v", err)
+					}).Errorf("fail announce service %v: %v", serviceIP, err)
 				}
-				return
-			}
-		}
-		// log error
-		return
-	}
-	// !isServiceAnoncedNow
-	if newIsUpServiceState {
-		if i, inMap := hc.announcedServices[serviceIP]; inMap {
-			hc.announcedServices[serviceIP] = i + 1 // set 1, i=0 here
-			if err := hc.dw.AddToDummy(serviceIP, id); err != nil {
 				hc.logging.WithFields(logrus.Fields{
 					"entity":   healthcheckName,
 					"event id": id,
-				}).Errorf("add to dummy fail: %v", err)
+				}).Infof("service %v announced", serviceIP)
 			}
-			return
 		}
-		// log error
-		return
+	} else {
+		hc.dummyEntities[serviceIP].announcedForDummy--
+		if hc.dummyEntities[serviceIP].isAnnouncedAtDummy { // announced now
+			hc.dummyEntities[serviceIP].isAnnouncedAtDummy = false
+			if err := hc.dw.RemoveFromDummy(serviceIP, id); err != nil {
+				hc.logging.WithFields(logrus.Fields{
+					"entity":   healthcheckName,
+					"event id": id,
+				}).Errorf("fail remove announce for service %v: %v", serviceIP, err)
+			}
+			hc.logging.WithFields(logrus.Fields{
+				"entity":   healthcheckName,
+				"event id": id,
+			}).Infof("service %v stop announced", serviceIP)
+		}
 	}
-	// !isServiceAnoncedNow && !newIsUpServiceState return
 }
 
-func (hc *HeathcheckEntity) addServiceToIPVS(hcService *domain.ServiceInfo, id string) error {
+func (hc *HealthcheckEntity) addServiceToIPVS(hcService *domain.ServiceInfo, id string) error {
 	vip, port, routingType, balanceType, protocol, err := PrepareServiceForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -73,7 +76,7 @@ func (hc *HeathcheckEntity) addServiceToIPVS(hcService *domain.ServiceInfo, id s
 	return nil
 }
 
-func (hc *HeathcheckEntity) removeServiceFromIPVS(hcService *domain.ServiceInfo, id string) error {
+func (hc *HealthcheckEntity) removeServiceFromIPVS(hcService *domain.ServiceInfo, id string) error {
 	vip, port, _, _, protocol, err := PrepareServiceForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -91,7 +94,7 @@ func (hc *HeathcheckEntity) removeServiceFromIPVS(hcService *domain.ServiceInfo,
 	return nil
 }
 
-func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *domain.ServiceInfo,
+func (hc *HealthcheckEntity) inclideApplicationServerInIPVS(hcService *domain.ServiceInfo,
 	applicationServer *domain.ApplicationServer,
 	id string) error {
 	aS := map[string]*domain.ApplicationServer{applicationServer.IP + ":" + applicationServer.Port: applicationServer}
@@ -133,7 +136,7 @@ func (hc *HeathcheckEntity) inclideApplicationServerInIPVS(hcService *domain.Ser
 	return nil
 }
 
-func (hc *HeathcheckEntity) excludeApplicationServerFromIPVS(hcService *domain.ServiceInfo,
+func (hc *HealthcheckEntity) excludeApplicationServerFromIPVS(hcService *domain.ServiceInfo,
 	applicationServer *domain.ApplicationServer,
 	id string) error {
 	aS := map[string]*domain.ApplicationServer{applicationServer.IP + ":" + applicationServer.Port: applicationServer}
