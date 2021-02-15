@@ -28,16 +28,20 @@ message IcmpData {
 
 message HttpData {
   string healthcheckAddress = 1;
-  google.protobuf.Duration timeout = 2;
-  int64 fwmark = 3;
-  string id = 4;
+  string uri = 2;
+  repeated int64 validResponseCodes = 3;
+  google.protobuf.Duration timeout = 4;
+  int64 fwmark = 5;
+  string id = 6;
 }
 
 message HttpsData {
   string healthcheckAddress = 1;
-  google.protobuf.Duration timeout = 2;
-  int64 fwmark = 3;
-  string id = 4;
+  string uri = 2;
+  repeated int64 validResponseCodes = 3;
+  google.protobuf.Duration timeout = 4;
+  int64 fwmark = 5;
+  string id = 6;
 }
 
 message HttpAdvancedData {

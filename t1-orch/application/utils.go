@@ -67,6 +67,22 @@ func convertBalancingServicesTransportArrayToDomainModel(servicesTransport []*Se
 			HCStop:                   make(chan struct{}, 1),
 			HCStopped:                make(chan struct{}, 1),
 		}
+
+		if serviceTransport.HealthcheckType == "http" || serviceTransport.HealthcheckType == "https" {
+			if serviceTransport.Uri == "" {
+				serviceInfo.Uri = "/"
+			} else {
+				serviceInfo.Uri = serviceTransport.Uri
+			}
+			if len(serviceTransport.ValidResponseCodes) == 0 {
+				defaultResponseCode := make([]int64, 1, 1)
+				defaultResponseCode[0] = 200
+				serviceInfo.ValidResponseCodes = defaultResponseCode
+			} else {
+				serviceInfo.ValidResponseCodes = serviceTransport.ValidResponseCodes
+			}
+		}
+
 		servicesInfo[serviceInfo.Address] = serviceInfo
 	}
 

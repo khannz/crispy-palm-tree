@@ -15,6 +15,8 @@ type ServiceTransport struct {
 	Quorum          string `json:"quorum"`
 	// Hysteresis      string `json:"hysteresis"`
 	ApplicationServersTransport []*ApplicationServerTransport `json:"-"`
+	Uri                         string                        `json:"uri"`                // only for http(s) hc types
+	ValidResponseCodes          []int64                       `json:"validResponseCodes"` // only for http(s) hc types
 }
 
 // ApplicationServerTransport ...

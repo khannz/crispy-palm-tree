@@ -209,11 +209,15 @@ func (hc *HealthcheckEntity) isApplicationServerOkNow(hcService *domain.ServiceI
 
 	case "http":
 		return hc.healthcheckChecker.IsHttpCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress,
+			hcService.Uri,
+			hcService.ValidResponseCodes,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
 	case "https":
 		return hc.healthcheckChecker.IsHttpsCheckOk(hcService.ApplicationServers[applicationServerInfoKey].HealthcheckAddress,
+			hcService.Uri,
+			hcService.ValidResponseCodes,
 			hcService.ResponseTimer,
 			hcService.ApplicationServers[applicationServerInfoKey].InternalHC.Mark,
 			id)
