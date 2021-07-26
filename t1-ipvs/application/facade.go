@@ -5,24 +5,24 @@ import (
 
 	domain "github.com/khannz/crispy-palm-tree/lbost1a-ipvs/domain"
 	"github.com/khannz/crispy-palm-tree/lbost1a-ipvs/usecase"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 type IPVSFacade struct {
 	IPVSWorker         domain.IPVSWorker
 	OrchestratorWorker domain.OrchestratorWorker
-	Logging            *logrus.Logger
+	Logger             *zerolog.Logger
 }
 
 func NewIPVSFacade(
 	ipvsWorker domain.IPVSWorker,
 	orchestratorWorker domain.OrchestratorWorker,
-	logging *logrus.Logger) *IPVSFacade {
-
+	logger *zerolog.Logger,
+) *IPVSFacade {
 	return &IPVSFacade{
 		IPVSWorker:         ipvsWorker,
 		OrchestratorWorker: orchestratorWorker,
-		Logging:            logging,
+		Logger:             logger,
 	}
 }
 
@@ -107,32 +107,24 @@ func (ipvsFacade *IPVSFacade) GetIPVSRuntime(id string) (map[string]map[string]u
 	return newIsIPVSApplicationServerInService.GetIPVSRuntime(id)
 }
 
+// TODO Sleeps for real????
 func (ipvsFacade *IPVSFacade) TryToSendRuntimeConfig(id string) {
 	newGetRuntimeConfigEntity := usecase.NewGetIPVSRuntimeEntity(ipvsFacade.IPVSWorker)
 	newOrchestratorSenderEntity := usecase.NewOrchestratorSenderEntity(ipvsFacade.OrchestratorWorker)
 	for {
 		currentConfig, err := newGetRuntimeConfigEntity.GetIPVSRuntime(id)
 		if err != nil {
-			ipvsFacade.Logging.WithFields(logrus.Fields{
-				"entity":   sendRuntimeConfigName,
-				"event id": id,
-			}).Errorf("failed to get runtime config: %v", err)
-			time.Sleep(5 * time.Second)
+			ipvsFacade.Logger.Error().Err(err).Msg("failed to get runtime config")
+			time.Sleep(5 * time.Second) // FIXME
 			continue
 		}
 
 		if err := newOrchestratorSenderEntity.SendToOrch(currentConfig, id); err != nil {
-			ipvsFacade.Logging.WithFields(logrus.Fields{
-				"entity":   sendRuntimeConfigName,
-				"event id": id,
-			}).Debugf("failed to send runtime config: %v", err)
-			time.Sleep(5 * time.Second)
+			ipvsFacade.Logger.Error().Err(err).Msg("failed to send runtime config")
+			time.Sleep(5 * time.Second) // FIXME
 			continue
 		}
-		ipvsFacade.Logging.WithFields(logrus.Fields{
-			"entity":   sendRuntimeConfigName,
-			"event id": id,
-		}).Info("send runtime config to hc success")
+		ipvsFacade.Logger.Info().Msg("send runtime config to hc success")
 		break
 	}
 }

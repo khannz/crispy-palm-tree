@@ -6,15 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	logger "github.com/thevan4/logrus-wrapper"
 )
 
 // For builds with ldflags
 var (
-	logging *logrus.Logger
 	version   = "unknown" /* TBD @ ldflags */
 	buildTime = "unknown" /* TBD @ ldflags */
 	commit    = "unknown" /* TBD @ ldflags */
@@ -68,9 +66,11 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 }
 
+var logger *zerolog.Logger
+
 func initConfig() {
 	initEnv()
-	initLogger()
+	logger = initLogger()
 }
 
 func initEnv() {
@@ -78,18 +78,19 @@ func initEnv() {
 	viper.AutomaticEnv()
 }
 
-func initLogger() {
-	newLogger := &logger.Logger{
-		Output:           []string{viper.GetString("log-output")},
-		Level:            viper.GetString("log-level"),
-		Formatter:        viper.GetString("log-format"),
-		LogEventLocation: viper.GetBool("log-event-location"),
-	}
-	var err error
-	logging, err = logger.NewLogrusLogger(newLogger)
-	if err != nil {
-		fmt.Println("init log error:", err)
-		os.Exit(1)
-	}
-}
+func initLogger() *zerolog.Logger {
+	//newLogger := &logger.Logger{
+	//	Output:           []string{viper.GetString("log-output")},
+	//	Level:            viper.GetString("log-level"),
+	//	Formatter:        viper.GetString("log-format"),
+	//	LogEventLocation: viper.GetBool("log-event-location"),
+	//}
+	// TODO make it configurable
+	loggerCfg := zerolog.
+		New(os.Stdout).
+		With().
+		Caller().
+		//Str("logger", "good").
+		Logger()
+	return &loggerCfg
 }
