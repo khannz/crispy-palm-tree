@@ -1,51 +1,60 @@
-env:
-  - GO111MODULE=on
+project_name: lbost1ai
 before:
   hooks:
-    - go mod download
+    - go mod tidy
+    - go generate ./...
 builds:
-  - env:
-    - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-    targets:
-      - linux_amd64
-    main: .
-    binary: "lbost1ai"
+- env:
+  - CGO_ENABLED=0
+  - GO111MODULE=on
+  goos:
+  - linux
+  goarch:
+  - amd64
+  binary: lbost1ai
 
 nfpms:
-  -
-    id: 1
-    package_name: lbost1ai
-    file_name_template: "lbost1ai_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-
-    vendor: thevan4
-    homepage: https://github.com/khannz/crispy-palm-tree/lbost1a-ipvs
-    maintainer: SDN <sdn@*.com>
-    description: lbost1ai
-    license: Apache-2.0
-    formats:
-        - rpm
-    bindir: /opt/lbost1ai
-    overrides:
-      rpm:
-        replacements:
-          amd64: x86_64
-        dependencies:
-          - ipvsadm
-        files:
-          "bundle/rpm.lbost1ai.service": "/lib/systemd/system/lbost1ai.service"
-        # empty_folders:
-        #   - /bootflash/lbost1ai
-        scripts:
-          preinstall: "bundle/rpm.preinstall.sh"
-          postinstall: "bundle/rpm.postinstall.sh"
-          preremove: "bundle/rpm.preremove.sh"
-          postremove: "bundle/rpm.postremove.sh"
+- id: 1
+  package_name: lbost1ai
+  file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  vendor: Sber
+  homepage: https://github.com/khannz/crispy-palm-tree
+  maintainer: khannz <pavel.fiskovich@gmail.com>
+  description: Daemon that configures IPVS service
+  license: Apache-2.0
+  formats:
+  - rpm
+  dependencies:
+  - ipvsadm
+  bindir: /opt/lbost1ai
+  contents:
+  - src: "bundle/rpm.lbost1ai.service"
+    dst: "/lib/systemd/system/lbost1ai.service"
+  - dst: "/var/run/lbost1ai.sock"
+    type: ghost
+  scripts:
+    preinstall:  "bundle/rpm.preinstall.sh"
+    postinstall: "bundle/rpm.postinstall.sh"
+    preremove:   "bundle/rpm.preremove.sh"
+    postremove:  "bundle/rpm.postremove.sh"
+  overrides:
+    rpm:
+      replacements:
+        amd64: x86_64
+  rpm:
+    summary: LBaaS T1 IPVS daemon
+    group: Unspecified
+    compression: lzma
 
 archives:
-  - name_template: 'lbost1ai_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-    replacements:
-      amd64: x86_64
+- format: binary
+checksum:
+  name_template: 'checksums.txt'
+#snapshot:
+#  name_template: "{{ incpatch .Tag }}-next-{{ .ShortCommit }}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
