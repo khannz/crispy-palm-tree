@@ -10,18 +10,22 @@ func NewAddApplicationServersEntity(ipvs domain.IPVSWorker) *AddApplicationServe
 	return &AddApplicationServersEntity{ipvs: ipvs}
 }
 
-func (addApplicationServersEntity *AddApplicationServersEntity) AddIPVSApplicationServersForService(vip string,
+func (addApplicationServersEntity *AddApplicationServersEntity) AddIPVSApplicationServersForService(
+	vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	id string) error {
-	return addApplicationServersEntity.ipvs.AddIPVSApplicationServersForService(vip,
+	id string,
+) error {
+	return addApplicationServersEntity.ipvs.AddIPVSApplicationServersForService(
+		id,
+		balanceType,
+		vip,
+		protocol,
 		port,
 		routingType,
-		balanceType,
-		protocol,
 		applicationServers,
-		id)
+	)
 }

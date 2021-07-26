@@ -23,48 +23,17 @@ type GrpcServer struct {
 	transport.UnimplementedIPVSGetWorkerServer
 }
 
-func NewGrpcServer(addr string,
+func NewGrpcServer(
+	addr string,
 	facade *IPVSFacade,
 	logging *logrus.Logger) *GrpcServer {
 	return &GrpcServer{
-		addr:    addr,
-		facade:  facade,
 		logging: logging,
+		addr:   addr,
+		facade: facade,
 	}
 }
 
-func convertPbApplicationServersToInternal(pbApplicationServers map[string]uint32) map[string]uint16 {
-	internalApplicationServers := make(map[string]uint16, len(pbApplicationServers))
-	for k, v := range pbApplicationServers {
-		internalApplicationServers[k] = uint16(v)
-	}
-	return internalApplicationServers
-}
-
-func convertInternalToPbApplicationServers(internalApplicationServers map[string]uint16) map[string]uint32 {
-	pbApplicationServers := make(map[string]uint32, len(internalApplicationServers))
-	for k, v := range internalApplicationServers {
-		pbApplicationServers[k] = uint32(v)
-	}
-	return pbApplicationServers
-}
-
-func convertInternalServicesToPbServices(internalServices map[string]map[string]uint16, id string) *transport.PbGetIPVSRawServicesData {
-	pbServices := make(map[string]*transport.PbGetRawIPVSServiceData, len(internalServices))
-	for k, v := range internalServices {
-		applicationServers := &transport.PbGetRawIPVSServiceData{
-			RawServiceData: convertInternalToPbApplicationServers(v),
-		}
-		pbServices[k] = applicationServers
-	}
-
-	return &transport.PbGetIPVSRawServicesData{
-		RawServicesData: pbServices,
-		Id:              id,
-	}
-}
-
-// NewIPVSService implements portadapter.NewIPVSService
 func (gs *GrpcServer) NewIPVSService(ctx context.Context, incomeIPVSService *transport.PbGetIPVSServiceData) (*transport.EmptyGetIPVSData, error) {
 	gs.facade.Logging.WithFields(logrus.Fields{
 		"entity":   grpcIpvsName,
@@ -211,13 +180,13 @@ func (gs *GrpcServer) GetIPVSRuntime(ctx context.Context, emptyIPVSService *tran
 
 func (grpcServer *GrpcServer) StartServer() error {
 	if err := grpcServer.cleanup(); err != nil {
-		return fmt.Errorf("failed to cleanup socket info: %v", err)
+		return err
 	}
 
 	lis, err := net.Listen("unix", grpcServer.addr)
 	// lis, err := net.Listen("tcp", "127.0.0.1:9000")
 	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
+		return err
 	}
 	grpcServer.grpcSrv = grpc.NewServer()
 	transport.RegisterIPVSGetWorkerServer(grpcServer.grpcSrv, grpcServer)
@@ -247,4 +216,35 @@ func (grpcServer *GrpcServer) cleanup() error {
 		}
 	}
 	return nil
+}
+
+func convertPbApplicationServersToInternal(pbApplicationServers map[string]uint32) map[string]uint16 {
+	internalApplicationServers := make(map[string]uint16, len(pbApplicationServers))
+	for k, v := range pbApplicationServers {
+		internalApplicationServers[k] = uint16(v)
+	}
+	return internalApplicationServers
+}
+
+func convertInternalToPbApplicationServers(internalApplicationServers map[string]uint16) map[string]uint32 {
+	pbApplicationServers := make(map[string]uint32, len(internalApplicationServers))
+	for k, v := range internalApplicationServers {
+		pbApplicationServers[k] = uint32(v)
+	}
+	return pbApplicationServers
+}
+
+func convertInternalServicesToPbServices(internalServices map[string]map[string]uint16, id string) *transport.PbGetIPVSRawServicesData {
+	pbServices := make(map[string]*transport.PbGetRawIPVSServiceData, len(internalServices))
+	for k, v := range internalServices {
+		applicationServers := &transport.PbGetRawIPVSServiceData{
+			RawServiceData: convertInternalToPbApplicationServers(v),
+		}
+		pbServices[k] = applicationServers
+	}
+
+	return &transport.PbGetIPVSRawServicesData{
+		RawServicesData: pbServices,
+		Id:              id,
+	}
 }

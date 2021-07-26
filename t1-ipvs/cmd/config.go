@@ -12,66 +12,53 @@ import (
 	logger "github.com/thevan4/logrus-wrapper"
 )
 
-var cfgFile string
-
 // For builds with ldflags
 var (
-	version   = "unknown"
-	buildTime = "unknown"
-	// 	commit  = "TBD @ ldflags"
-	// 	branch  = "TBD @ ldflags"
-)
-
-var (
 	logging *logrus.Logger
+	version   = "unknown" /* TBD @ ldflags */
+	buildTime = "unknown" /* TBD @ ldflags */
+	commit    = "unknown" /* TBD @ ldflags */
+	branch    = "unknown" /* TBD @ ldflags */
 )
 
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// work with flags
-	rootCmd.PersistentFlags().StringVarP(&cfgFile,
-		"config-file-path",
-		"c",
-		"/opt/lbost1ai/lbost1ai.yaml",
-		"Path to config file. Example value: '/opt/lbost1ai/lbost1ai.yaml'")
-	rootCmd.PersistentFlags().String("log-output",
-		"stdout",
-		"Log output. Example values: 'stdout',"+
-			" 'syslog'")
-	rootCmd.PersistentFlags().String("log-level",
-		"info",
-		"Log level. Example values: 'info',"+
-			" 'debug',"+
-			" 'trace'")
-	rootCmd.PersistentFlags().String("log-format",
-		"text",
-		"Log format. Example values: 'text',"+
-			" 'json'")
-	rootCmd.PersistentFlags().String("syslog-tag",
-		"",
-		"Syslog tag. Example: 'trac-dgen'")
-	rootCmd.PersistentFlags().Bool("log-event-location",
-		true,
-		"Log event location (like python)")
-
-	rootCmd.PersistentFlags().String("orch-address",
+	//rootCmd.PersistentFlags().String(
+	//	"log-output",
+	//	"stdout",
+	//	"Log output. Example values: 'stdout', 'syslog'",
+	//)
+	//rootCmd.PersistentFlags().String(
+	//	"log-level",
+	//	"info",
+	//	"Log level. Example values: 'info', 'debug', 'trace'",
+	//)
+	//rootCmd.PersistentFlags().String(
+	//	"log-format",
+	//	"text",
+	//	"Log format. Example values: 'text', 'json'",
+	//)
+	rootCmd.PersistentFlags().String(
+		"orch-address",
 		"/var/run/lbost1ao.sock",
-		"hc address")
-	rootCmd.PersistentFlags().Duration("orch-timeout",
-		2*time.Second,
-		"hc timeout")
-
-	rootCmd.PersistentFlags().String("ipvs-address",
+		"hc address",
+	)
+	rootCmd.PersistentFlags().String(
+		"ipvs-address",
 		"/var/run/lbost1ai.sock",
-		"ipvs address")
-	rootCmd.PersistentFlags().Duration("ipvs-timeout",
+		"ipvs address",
+	)
+	rootCmd.PersistentFlags().Duration(
+		"orch-timeout",
 		2*time.Second,
-		"ipvs timeout")
-
-	rootCmd.PersistentFlags().String("id-type",
-		"nanoid",
-		"ID type(nanoid|uuid4)")
+		"hc timeout",
+	)
+	rootCmd.PersistentFlags().Duration(
+		"ipvs-timeout",
+		2*time.Second,
+		"ipvs timeout",
+	)
 
 	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		fmt.Println("Error:", err)
@@ -83,23 +70,12 @@ func init() {
 
 func initConfig() {
 	initEnv()
-	initCfgFile()
 	initLogger()
-	validateValues()
 }
 
 func initEnv() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
-}
-
-func initCfgFile() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	}
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("can't read config from file, error:", err)
-	}
 }
 
 func initLogger() {
@@ -116,12 +92,4 @@ func initLogger() {
 		os.Exit(1)
 	}
 }
-
-func validateValues() {
-	switch viper.GetString("id-type") {
-	case "nanoid":
-	case "uuid4":
-	default:
-		logging.Fatalf("unsuported id type: %v; supported types: nanoid|uuid4", viper.GetString("id-type"))
-	}
 }

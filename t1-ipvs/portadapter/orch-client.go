@@ -27,8 +27,10 @@ func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logg
 	}
 }
 
-func (orchestratorWorker *OrchestratorWorkerEntity) SendIPVSRuntime(runtimeConfig map[string]map[string]uint16,
-	id string) error {
+func (orchestratorWorker *OrchestratorWorkerEntity) SendIPVSRuntime(
+	runtimeConfig map[string]map[string]uint16,
+	id string,
+) error {
 	withContextDialer := makeDialer(orchestratorWorker.address, 2*time.Second)
 
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)

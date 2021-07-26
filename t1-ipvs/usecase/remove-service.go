@@ -14,8 +14,10 @@ func (removeIPVSServiceEntity *RemoveIPVSServiceEntity) RemoveIPVSService(vip st
 	port uint16,
 	protocol uint16,
 	id string) error {
-	return removeIPVSServiceEntity.ipvs.RemoveIPVSService(vip,
-		port,
+	return removeIPVSServiceEntity.ipvs.RemoveIPVSService(
+		id,
+		vip,
 		protocol,
-		id)
+		port,
+	)
 }

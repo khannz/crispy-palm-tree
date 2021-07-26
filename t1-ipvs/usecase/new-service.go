@@ -16,10 +16,12 @@ func (NewIPVSServiceEntity *NewIPVSServiceEntity) NewIPVSService(vip string,
 	balanceType string,
 	protocol uint16,
 	id string) error {
-	return NewIPVSServiceEntity.ipvs.NewIPVSService(vip,
+	return NewIPVSServiceEntity.ipvs.NewIPVSService(
+		id,
+		balanceType,
+		vip,
+		protocol,
 		port,
 		routingType,
-		balanceType,
-		protocol,
-		id)
+	)
 }
