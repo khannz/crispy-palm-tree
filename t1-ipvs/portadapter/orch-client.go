@@ -7,28 +7,30 @@ import (
 	"time"
 
 	transport "github.com/khannz/crispy-palm-tree/lbost1a-ipvs/grpc-orch"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 )
 
 type OrchestratorWorkerEntity struct {
 	address     string
 	grpcTimeout time.Duration // TODO: somehow use tickers?
+	logger      *zerolog.Logger
 	// conn          *grpc.ClientConn
 	// hcWokerClient transport.SendRuntimeClient
-	logging *logrus.Logger
 }
 
-func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logging *logrus.Logger) *OrchestratorWorkerEntity {
+func NewOrchestratorWorkerEntity(address string, grpcTimeout time.Duration, logger *zerolog.Logger) *OrchestratorWorkerEntity {
 	return &OrchestratorWorkerEntity{
 		address:     address,
 		grpcTimeout: grpcTimeout,
-		logging:     logging,
+		logger:      logger,
 	}
 }
 
-func (orchestratorWorker *OrchestratorWorkerEntity) SendIPVSRuntime(runtimeConfig map[string]map[string]uint16,
-	id string) error {
+func (orchestratorWorker *OrchestratorWorkerEntity) SendIPVSRuntime(
+	runtimeConfig map[string]map[string]uint16,
+	id string,
+) error {
 	withContextDialer := makeDialer(orchestratorWorker.address, 2*time.Second)
 
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -49,6 +51,7 @@ func (orchestratorWorker *OrchestratorWorkerEntity) SendIPVSRuntime(runtimeConfi
 }
 
 func makeDialer(addr string, t time.Duration) func(ctx context.Context, addr string) (net.Conn, error) {
+	// FIXME useless params
 	f := func(addr string, t time.Duration) (net.Conn, error) {
 		return net.Dial("unix", addr)
 	}

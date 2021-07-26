@@ -5,91 +5,101 @@ import (
 
 	domain "github.com/khannz/crispy-palm-tree/lbost1a-ipvs/domain"
 	"github.com/khannz/crispy-palm-tree/lbost1a-ipvs/usecase"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
-const sendRuntimeConfigName = "send runtime config"
-
-// IPVSFacade struct
 type IPVSFacade struct {
 	IPVSWorker         domain.IPVSWorker
 	OrchestratorWorker domain.OrchestratorWorker
-	IDgenerator        domain.IDgenerator
-	Logging            *logrus.Logger
+	Logger             *zerolog.Logger
 }
 
-// NewIPVSFacade ...
-func NewIPVSFacade(ipvsWorker domain.IPVSWorker,
+func NewIPVSFacade(
+	ipvsWorker domain.IPVSWorker,
 	orchestratorWorker domain.OrchestratorWorker,
-	idGenerator domain.IDgenerator,
-	logging *logrus.Logger) *IPVSFacade {
-
+	logger *zerolog.Logger,
+) *IPVSFacade {
 	return &IPVSFacade{
 		IPVSWorker:         ipvsWorker,
 		OrchestratorWorker: orchestratorWorker,
-		IDgenerator:        idGenerator,
-		Logging:            logging,
+		Logger:             logger,
 	}
 }
 
-func (ipvsFacade *IPVSFacade) NewIPVSService(vip string,
+func (ipvsFacade *IPVSFacade) NewIPVSService(
+	vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
-	id string) error {
+	id string,
+) error {
 	newNewIPVSServiceEntity := usecase.NewNewIPVSServiceEntity(ipvsFacade.IPVSWorker)
-	return newNewIPVSServiceEntity.NewIPVSService(vip,
+	return newNewIPVSServiceEntity.NewIPVSService(
+		vip,
 		port,
 		routingType,
 		balanceType,
 		protocol,
-		id)
+		id,
+	)
 }
 
-func (ipvsFacade *IPVSFacade) AddIPVSApplicationServersForService(vip string,
+func (ipvsFacade *IPVSFacade) AddIPVSApplicationServersForService(
+	vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	id string) error {
+	id string,
+) error {
 	newAddApplicationServersEntity := usecase.NewAddApplicationServersEntity(ipvsFacade.IPVSWorker)
-	return newAddApplicationServersEntity.AddIPVSApplicationServersForService(vip,
+	return newAddApplicationServersEntity.AddIPVSApplicationServersForService(
+		vip,
 		port,
 		routingType,
 		balanceType,
 		protocol,
 		applicationServers,
-		id)
+		id,
+	)
 }
 
-func (ipvsFacade *IPVSFacade) RemoveIPVSService(vip string,
+func (ipvsFacade *IPVSFacade) RemoveIPVSService(
+	vip string,
 	port uint16,
 	protocol uint16,
-	id string) error {
+	id string,
+) error {
 	newRemoveIPVSServiceEntity := usecase.NewRemoveIPVSServiceEntity(ipvsFacade.IPVSWorker)
-	return newRemoveIPVSServiceEntity.RemoveIPVSService(vip,
+	return newRemoveIPVSServiceEntity.RemoveIPVSService(
+		vip,
 		port,
 		protocol,
-		id)
+		id,
+	)
 }
 
-func (ipvsFacade *IPVSFacade) RemoveIPVSApplicationServersFromService(vip string,
+func (ipvsFacade *IPVSFacade) RemoveIPVSApplicationServersFromService(
+	vip string,
 	port uint16,
 	routingType uint32,
 	balanceType string,
 	protocol uint16,
 	applicationServers map[string]uint16,
-	id string) error {
+	id string,
+) error {
 	newRemoveIPVSApplicationServersFromServiceEntity := usecase.NewRemoveIPVSApplicationServersFromServiceEntity(ipvsFacade.IPVSWorker)
-	return newRemoveIPVSApplicationServersFromServiceEntity.RemoveIPVSApplicationServersFromService(vip,
+	return newRemoveIPVSApplicationServersFromServiceEntity.RemoveIPVSApplicationServersFromService(
+		vip,
 		port,
 		routingType,
 		balanceType,
 		protocol,
 		applicationServers,
-		id)
+		id,
+	)
 }
 
 func (ipvsFacade *IPVSFacade) GetIPVSRuntime(id string) (map[string]map[string]uint16, error) {
@@ -97,32 +107,24 @@ func (ipvsFacade *IPVSFacade) GetIPVSRuntime(id string) (map[string]map[string]u
 	return newIsIPVSApplicationServerInService.GetIPVSRuntime(id)
 }
 
+// TODO Sleeps for real????
 func (ipvsFacade *IPVSFacade) TryToSendRuntimeConfig(id string) {
 	newGetRuntimeConfigEntity := usecase.NewGetIPVSRuntimeEntity(ipvsFacade.IPVSWorker)
 	newOrchestratorSenderEntity := usecase.NewOrchestratorSenderEntity(ipvsFacade.OrchestratorWorker)
 	for {
 		currentConfig, err := newGetRuntimeConfigEntity.GetIPVSRuntime(id)
 		if err != nil {
-			ipvsFacade.Logging.WithFields(logrus.Fields{
-				"entity":   sendRuntimeConfigName,
-				"event id": id,
-			}).Errorf("failed to get runtime config: %v", err)
-			time.Sleep(5 * time.Second)
+			ipvsFacade.Logger.Error().Err(err).Msg("failed to get runtime config")
+			time.Sleep(5 * time.Second) // FIXME
 			continue
 		}
 
 		if err := newOrchestratorSenderEntity.SendToOrch(currentConfig, id); err != nil {
-			ipvsFacade.Logging.WithFields(logrus.Fields{
-				"entity":   sendRuntimeConfigName,
-				"event id": id,
-			}).Debugf("failed to send runtime config: %v", err)
-			time.Sleep(5 * time.Second)
+			ipvsFacade.Logger.Error().Err(err).Msg("failed to send runtime config")
+			time.Sleep(5 * time.Second) // FIXME
 			continue
 		}
-		ipvsFacade.Logging.WithFields(logrus.Fields{
-			"entity":   sendRuntimeConfigName,
-			"event id": id,
-		}).Info("send runtime config to hc success")
+		ipvsFacade.Logger.Info().Msg("send runtime config to hc success")
 		break
 	}
 }

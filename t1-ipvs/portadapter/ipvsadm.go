@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/tehnerd/gnl2go"
 )
 
@@ -14,293 +14,399 @@ const (
 	fallbackAndshPortFlags uint32 = 24 // Bitwise OR fallbackFlag(8) | shPortFlag(16)
 )
 
-const ipvsadmName = "ipvsadm"
-
-// IPVSADMEntity ...
-type IPVSADMEntity struct {
+type Entity struct {
 	sync.Mutex
-	logging *logrus.Logger
+	logger *zerolog.Logger
 }
 
-// NewIPVSADMEntity ...
-func NewIPVSADMEntity(logging *logrus.Logger) (*IPVSADMEntity, error) {
-	ipvs, err := ipvsInit()
-	if err != nil {
-		return nil, fmt.Errorf("got error when init ipvsadm: %v", err)
+func NewEntity(logger *zerolog.Logger) *Entity {
+	return &Entity{
+		logger: logger,
 	}
-	defer ipvs.Exit()
-	return &IPVSADMEntity{logging: logging}, nil
 }
 
-func ipvsInit() (*gnl2go.IpvsClient, error) {
-	ipvs := new(gnl2go.IpvsClient)
-	err := ipvs.Init()
-	if err != nil {
-		return ipvs, fmt.Errorf("cant initialize ipvs client, error is %v", err)
-	}
-	_, err = ipvs.GetPools()
-	if err != nil {
-		return ipvs, fmt.Errorf("error while running ipvs GetPools method %v", err)
-	}
-
-	return ipvs, nil
-}
-
-// NewIPVSService ...
-func (ipvsadmEntity *IPVSADMEntity) NewIPVSService(vip string,
-	port uint16,
+// TODO refactor types?
+func (e *Entity) NewIPVSService(
+	id, balanceType, vip string,
+	protocol, port uint16,
 	routingType uint32,
-	balanceType string,
-	protocol uint16,
-	id string) error {
-
-	isServiceExist, _, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
+) error {
+	e.logger.Info().Msg("starting ipvs service creation...")
+	isServiceExist, _, err := e.isServiceExist(vip, port, protocol) // lock inside
 	if err != nil {
-		return fmt.Errorf("can't check service at ipvsadm: %v", err)
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("existence check was failed")
+		return err
 	}
+
 	if isServiceExist {
+		e.logger.Info().
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("ipvsadm service already exists")
 		return nil
 	}
 
-	ipvsadmEntity.Lock()
-	defer ipvsadmEntity.Unlock()
-	ipvs, err := ipvsInit()
+	e.Lock()
+	defer e.Unlock()
+
+	ipvs, err := client(e.logger)
 	if err != nil {
-		return fmt.Errorf("can't ipvs Init: %v", err)
+		return err
 	}
 	defer ipvs.Exit()
 
-	newBalanceType, flags := chooseFlags(balanceType)
-	// AddService for IPv4
+	newBalanceType, flags := chooseFlags(balanceType, e.logger)
+	e.logger.Info().
+		Msg("ipvs service flags parsed")
+
 	err = ipvs.AddServiceWithFlags(vip, port, protocol, newBalanceType, flags)
 	if err != nil {
-		return fmt.Errorf("cant add ipv4 service AddService; err is : %v", err)
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Str("balance_type", newBalanceType).
+			Bytes("flags", flags).
+			Msg("can't add IPv4 service")
+		return err
 	}
 
 	return nil
 }
 
-// RemoveIPVSService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSService(vip string,
-	port uint16,
-	protocol uint16,
-	id string) error {
-
-	isServiceExist, _, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
-	if err != nil {
-		return fmt.Errorf("can't check service at ipvsadm: %v", err)
-	}
-	if !isServiceExist {
-		return nil
-	}
-
-	ipvsadmEntity.Lock()
-	defer ipvsadmEntity.Unlock()
-	ipvs, err := ipvsInit()
-	if err != nil {
-		return fmt.Errorf("can't ipvs Init: %v", err)
-	}
-	defer ipvs.Exit()
-
-	errDel := ipvs.DelService(vip, port, protocol)
-	if errDel != nil {
-		return fmt.Errorf("error while running DelService for ipv4: %v", errDel)
-	}
-
-	return nil
-}
-
-// AddIPVSApplicationServersForService ...
-func (ipvsadmEntity *IPVSADMEntity) AddIPVSApplicationServersForService(vip string,
-	port uint16,
+func (e *Entity) AddIPVSApplicationServersForService(
+	id, balanceType, vip string,
+	protocol, port uint16,
 	routingType uint32,
-	balanceType string,
-	protocol uint16,
 	applicationServers map[string]uint16,
-	id string) error {
+) error {
+	e.logger.Info().
+		Msg("starting to add reals into ipvs...")
 
-	isServiceExist, pool, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
+	// FIXME current tuple for isServiceExist doesn't include protocol
+	isServiceExist, pool, err := e.isServiceExist(vip, port, protocol) // lock inside
 	if err != nil {
-		return fmt.Errorf("can't check service at ipvsadm: %v", err)
-	}
-	if !isServiceExist {
-		return fmt.Errorf("service %v:%v not exist, can't add application servers", vip, port)
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("existence check for vip+port returned error")
+		return err
 	}
 
-	_, notExistingApplicationServers := ipvsadmEntity.diffApplicationServersInService(applicationServers, pool) // no lock
+	if !isServiceExist {
+		err := fmt.Errorf("service %v:%v not exist, can't add application servers", vip, port)
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("can't add reals for non-existing service")
+		return err
+	}
+
+	_, notExistingApplicationServers := e.diffApplicationServersInService(applicationServers, pool) // no lock
 	if len(notExistingApplicationServers) == 0 {
-		ipvsadmEntity.logging.WithFields(logrus.Fields{
-			"entity":   ipvsadmName,
-			"event id": id,
-		}).Infof("not new servers (at map %v) for add to service %v:%v", applicationServers, vip, port)
+		e.logger.Info().
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("no new reals found to add into vip")
 		return nil
 	}
 
-	if err = ipvsadmEntity.addApplicationServersToService(vip, port, protocol, routingType, notExistingApplicationServers); err != nil { // lock inside
-		return fmt.Errorf("cant add application server to service: %v", err)
+	for realAddr, realPort := range notExistingApplicationServers {
+		e.logger.Info().
+			Str("ip", realAddr).
+			Uint16("port", realPort).
+			Msgf("found new real to add into service %d_%s:%d", protocol, vip, port)
 	}
 
-	ipvsadmEntity.logging.WithFields(logrus.Fields{
-		"entity":   ipvsadmName,
-		"event id": id,
-	}).Infof("new servers (at map %v) at  service %v:%v", notExistingApplicationServers, vip, port)
+	if err = e.addApplicationServersToService(vip, port, protocol, routingType, notExistingApplicationServers); err != nil { // lock inside
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("can't add reals for vip")
+		return err
+	}
+
 	return nil
 }
 
-func (ipvsadmEntity *IPVSADMEntity) addApplicationServersToService(serviceIP string, servicePort uint16, protocol uint16, routingType uint32,
-	applicationServers map[string]uint16) error {
-	ipvsadmEntity.Lock()
-	defer ipvsadmEntity.Unlock()
-	ipvs, err := ipvsInit()
+func (e *Entity) RemoveIPVSService(
+	id, vip string,
+	protocol, port uint16,
+) error {
+	isServiceExist, _, err := e.isServiceExist(vip, port, protocol) // lock inside
 	if err != nil {
-		return fmt.Errorf("can't ipvs Init: %v", err)
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("existence check for service failed")
+		return err
+	}
+	if !isServiceExist {
+		e.logger.Debug().
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("deletion request ineffective since service does not exist")
+		return nil
+	}
+
+	e.Lock()
+	defer e.Unlock()
+
+	ipvs, err := client(e.logger)
+	if err != nil {
+		return err
 	}
 	defer ipvs.Exit()
 
-	for ip, port := range applicationServers {
-		err := ipvs.AddDestPort(serviceIP, servicePort, ip,
-			port, protocol, 10, routingType)
-		if err != nil {
-			return fmt.Errorf("cant add application server %v:%v to service %v:%v, protocol: %v, FWDMethod(routingType):%v",
-				ip,
-				port,
-				serviceIP,
-				servicePort,
-				protocol,
-				routingType)
-		}
+	if err := ipvs.DelService(vip, port, protocol); err != nil {
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("service deletion returned error")
+		return err
 	}
+
 	return nil
 }
 
-// RemoveIPVSApplicationServersFromService ...
-func (ipvsadmEntity *IPVSADMEntity) RemoveIPVSApplicationServersFromService(vip string,
-	port uint16,
+func (e *Entity) RemoveIPVSApplicationServersFromService(
+	id, balanceType, vip string,
+	protocol, port uint16,
 	routingType uint32,
-	balanceType string,
-	protocol uint16,
 	applicationServers map[string]uint16,
-	id string) error {
-	isServiceExist, pool, err := ipvsadmEntity.isServiceExist(vip, port) // lock inside
+) error {
+	isServiceExist, pool, err := e.isServiceExist(vip, port, protocol) // lock inside
 	if err != nil {
-		return fmt.Errorf("can't check service at ipvsadm: %v", err)
-	}
-	if !isServiceExist {
-		return fmt.Errorf("service %v:%v not exist, can't add application servers", vip, port)
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("existence check for vip+port returned error")
+		return err
 	}
 
-	existingApplicationServers, _ := ipvsadmEntity.diffApplicationServersInService(applicationServers, pool) // no lock
+	if !isServiceExist {
+		err := fmt.Errorf("service %v:%v not exist, can't add application servers", vip, port)
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("can't delete reals for non-existing service")
+		return err
+	}
+
+	existingApplicationServers, _ := e.diffApplicationServersInService(applicationServers, pool) // no lock
 	if len(existingApplicationServers) == 0 {
 		return nil
 	}
 
-	if err = ipvsadmEntity.removeIPVSApplicationServersFromService(vip, port, protocol, existingApplicationServers); err != nil { // lock inside
-		return fmt.Errorf("cant remove application servers from service: %v", err)
+	if err = e.removeIPVSApplicationServersFromService(vip, port, protocol, existingApplicationServers); err != nil { // lock inside
+		e.logger.Error().
+			Err(err).
+			Str("vip", vip).
+			Uint16("port", port).
+			Uint16("protocol", protocol).
+			Msg("can't delete reals for vip")
+		return err
 	}
 
 	return nil
 }
 
-func (ipvsadmEntity *IPVSADMEntity) removeIPVSApplicationServersFromService(serviceIP string, servicePort uint16, protocol uint16,
-	applicationServers map[string]uint16) error {
-	ipvsadmEntity.Lock()
-	defer ipvsadmEntity.Unlock()
-	ipvs, err := ipvsInit()
+func (e *Entity) GetIPVSRuntime(id string) (map[string]map[string]uint16, error) {
+	// FIXME I don't get why we need this reading? Result is not even used in any operation
+	pools, err := e.getPools() // lock inside
 	if err != nil {
-		return fmt.Errorf("can't ipvs Init: %v", err)
-	}
-	defer ipvs.Exit()
-
-	for ip, port := range applicationServers {
-		err := ipvs.DelDestPort(serviceIP, servicePort, ip,
-			port, protocol)
-		if err != nil {
-			return fmt.Errorf("cant remove application server %v:%v from service %v:%v, protocol: %v",
-				ip,
-				port,
-				serviceIP,
-				servicePort,
-				protocol)
-		}
-		ipvsadmEntity.logging.Debugf("at service %v:%v application server %v:%v removed from ipvs", serviceIP, servicePort, ip, port)
-	}
-	return nil
-}
-
-// GetIPVSRuntime ...
-func (ipvsadmEntity *IPVSADMEntity) GetIPVSRuntime(id string) (map[string]map[string]uint16, error) {
-	pools, err := ipvsadmEntity.getPools() // lock inside
-	if err != nil {
-		return nil, fmt.Errorf("can't read actual config: %v", err)
+		e.logger.Error().
+			Err(err).
+			Msg("can't read current ipvs state")
+		return nil, err
 	}
 
 	poolsMap := make(map[string]map[string]uint16, len(pools))
 	for _, pool := range pools {
-		applicationServers := make(map[string]uint16, len(pool.Dests))
+		reals := make(map[string]uint16, len(pool.Dests))
 		for _, dest := range pool.Dests {
-			applicationServers[dest.IP] = dest.Port
+			reals[dest.IP] = dest.Port
 		}
-		poolsMap[pool.Service.VIP+":"+strconv.Itoa(int(pool.Service.Port))] = applicationServers
+		poolsMap[pool.Service.VIP+":"+strconv.Itoa(int(pool.Service.Port))] = reals
 	}
+
 	return poolsMap, nil
 }
 
-func (ipvsadmEntity *IPVSADMEntity) getPools() ([]gnl2go.Pool, error) {
-	ipvsadmEntity.Lock()
-	defer ipvsadmEntity.Unlock()
-	ipvs, err := ipvsInit()
+func (e *Entity) addApplicationServersToService(
+	serviceIP string, servicePort uint16, protocol uint16, routingType uint32,
+	applicationServers map[string]uint16,
+) error {
+	// TODO refactor to accept only one real at once
+	e.Lock()
+	defer e.Unlock()
+
+	ipvs, err := client(e.logger)
 	if err != nil {
-		return nil, fmt.Errorf("can't ipvs Init: %v", err)
+		return err
 	}
 	defer ipvs.Exit()
+
+	for realAddr, realPort := range applicationServers {
+		err := ipvs.AddDestPort(serviceIP, servicePort, realAddr, realPort, protocol, 10, routingType)
+		if err != nil {
+			e.logger.Error().
+				Err(err).
+				Str("vip", serviceIP).
+				Uint16("port", servicePort).
+				Uint16("protocol", protocol).
+				Msgf("can't add real %s:%d", realAddr, realPort)
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *Entity) removeIPVSApplicationServersFromService(
+	serviceIP string, servicePort uint16, protocol uint16,
+	applicationServers map[string]uint16,
+) error {
+	e.Lock()
+	defer e.Unlock()
+
+	ipvs, err := client(e.logger)
+	if err != nil {
+		return err
+	}
+	defer ipvs.Exit()
+
+	for realAddr, realPort := range applicationServers {
+		err := ipvs.DelDestPort(serviceIP, servicePort, realAddr, realPort, protocol)
+		if err != nil {
+			e.logger.Error().
+				Err(err).
+				Str("vip", serviceIP).
+				Uint16("port", servicePort).
+				Uint16("protocol", protocol).
+				Msgf("can't remove real %s:%d", realAddr, realPort)
+			return err
+		}
+		e.logger.Info().
+			Str("vip", serviceIP).
+			Uint16("port", servicePort).
+			Uint16("protocol", protocol).
+			Msgf("successfully added real %s:%d", realAddr, realPort)
+	}
+	return nil
+}
+
+func (e *Entity) getPools() ([]gnl2go.Pool, error) {
+	e.Lock()
+	defer e.Unlock()
+
+	ipvs, err := client(e.logger)
+	if err != nil {
+		return nil, err
+	}
+	defer ipvs.Exit()
+
 	return ipvs.GetPools()
 }
 
-func chooseFlags(balanceType string) (string, []byte) {
+func chooseFlags(balanceType string, logger *zerolog.Logger) (string, []byte) {
 	switch balanceType {
 	case "mhf":
+		// TODO
+		logger.Info().
+			Bytes("current_flag", gnl2go.U32ToBinFlags(fallbackFlag)).
+			Bytes("lib_const", gnl2go.BIN_IP_VS_SVC_F_SCHED1).
+			Msg("flag values")
 		return "mh", gnl2go.U32ToBinFlags(fallbackFlag)
 	case "mhp":
+		// TODO
+		logger.Info().
+			Bytes("current_flag", gnl2go.U32ToBinFlags(fallbackAndshPortFlags)).
+			Bytes("lib_const", gnl2go.BIN_IP_VS_SVC_F_PERSISTENT).
+			Msg("flag values")
 		return "mh", gnl2go.U32ToBinFlags(fallbackAndshPortFlags)
 	default:
 		return balanceType, nil
 	}
 }
 
-func (ipvsadmEntity *IPVSADMEntity) isServiceExist(vip string, port uint16) (bool, gnl2go.Pool, error) {
+func (e *Entity) isServiceExist(vip string, port, proto uint16) (bool, gnl2go.Pool, error) {
+	// FIXME why does pool returning from purely bool func???
 	var pool gnl2go.Pool
-	pools, err := ipvsadmEntity.getPools() // lock inside
+	pools, err := e.getPools() // lock inside
 	if err != nil {
-		return false, pool, fmt.Errorf("can't read actual config: %v", err)
+		e.logger.Error().
+			Err(err).
+			Msg("can't read current ipvs state")
+		return false, pool, err
 	}
 
 	for _, pool := range pools {
-		if pool.Service.VIP == vip &&
-			pool.Service.Port == port {
+		if pool.Service.VIP == vip && pool.Service.Port == port && pool.Service.Proto == proto {
 			return true, pool, nil
 		}
 	}
 	return false, pool, nil
 }
 
-func (ipvsadmEntity *IPVSADMEntity) diffApplicationServersInService(applicationServers map[string]uint16, pool gnl2go.Pool) (map[string]uint16, map[string]uint16) {
-	existingApplicationServers := make(map[string]uint16)
-	notExistingApplicationServers := make(map[string]uint16)
+func (e *Entity) diffApplicationServersInService(reals map[string]uint16, pool gnl2go.Pool) (map[string]uint16, map[string]uint16) {
+	existingReals := make(map[string]uint16)
+	newReals := make(map[string]uint16)
 
-	for ip, port := range applicationServers {
-		var isAppSrvFound bool
+	for realAddr, realPort := range reals {
 		for _, dest := range pool.Dests {
-			if ip == dest.IP &&
-				port == dest.Port {
-				isAppSrvFound = true
-				existingApplicationServers[ip] = port
-				break
+			if realAddr == dest.IP && realPort == dest.Port {
+				//glog.Infoln("existing real with ip", ip, "and port", port) // TODO
+				existingReals[realAddr] = realPort
+			} else {
+				//glog.Infoln("new real with ip", ip, "and port", port) // TODO
+				newReals[realAddr] = realPort
 			}
-		}
-		if !isAppSrvFound {
-			notExistingApplicationServers[ip] = port
 		}
 	}
 
-	return existingApplicationServers, notExistingApplicationServers
+	return existingReals, newReals
+}
+
+// TODO what does it do?
+// looks like author does some braindead check... geez
+func client(logger *zerolog.Logger) (*gnl2go.IpvsClient, error) {
+	logger.Info().Msg("starting ipvs client init...")
+
+	client := new(gnl2go.IpvsClient)
+	err := client.Init()
+	if err != nil {
+		logger.Warn().Msg("ipvs client init failed")
+		return nil, err
+	}
+
+	//_, err = ipvs.GetPools()
+	//if err != nil {
+	//	return ipvs, fmt.Errorf("error while running ipvs GetPools method %v", err)
+	//}
+
+	logger.Info().Msg("ipvs client init finished")
+	return client, nil
 }

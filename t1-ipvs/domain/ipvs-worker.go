@@ -2,9 +2,9 @@ package domain
 
 // IPVSWorker ...
 type IPVSWorker interface {
-	NewIPVSService(string, uint16, uint32, string, uint16, string) error
-	AddIPVSApplicationServersForService(string, uint16, uint32, string, uint16, map[string]uint16, string) error
-	RemoveIPVSService(string, uint16, uint16, string) error
-	RemoveIPVSApplicationServersFromService(string, uint16, uint32, string, uint16, map[string]uint16, string) error
-	GetIPVSRuntime(string) (map[string]map[string]uint16, error)
+	NewIPVSService(id, balanceType, vip string, protocol, port uint16, routingType uint32) error
+	AddIPVSApplicationServersForService(id, balanceType, vip string, protocol, port uint16, routingType uint32, applicationServers map[string]uint16) error
+	RemoveIPVSService(id, vip string, protocol, port uint16) error
+	RemoveIPVSApplicationServersFromService(id, balanceType, vip string, protocol, port uint16, routingType uint32, applicationServers map[string]uint16) error
+	GetIPVSRuntime(id string) (map[string]map[string]uint16, error)
 }

@@ -17,11 +17,13 @@ func (removeIPVSApplicationServersFromServiceEntity *RemoveIPVSApplicationServer
 	protocol uint16,
 	applicationServers map[string]uint16,
 	id string) error {
-	return removeIPVSApplicationServersFromServiceEntity.ipvs.RemoveIPVSApplicationServersFromService(vip,
+	return removeIPVSApplicationServersFromServiceEntity.ipvs.RemoveIPVSApplicationServersFromService(
+		id,
+		balanceType,
+		vip,
+		protocol,
 		port,
 		routingType,
-		balanceType,
-		protocol,
 		applicationServers,
-		id)
+	)
 }
