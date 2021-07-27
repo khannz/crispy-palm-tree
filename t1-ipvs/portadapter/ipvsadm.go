@@ -392,22 +392,34 @@ func (e *Entity) isServiceExist(vip string, port, proto uint16) (bool, gnl2go.Po
 }
 
 func (e *Entity) diffApplicationServersInService(reals map[string]uint16, pool gnl2go.Pool) (map[string]uint16, map[string]uint16) {
-	existingReals := make(map[string]uint16)
-	newReals := make(map[string]uint16)
+	er := make(map[string]uint16) /* existing reals */
+	nr := make(map[string]uint16) /* new reals */
 
-	for realAddr, realPort := range reals {
-		for _, dest := range pool.Dests {
-			if realAddr == dest.IP && realPort == dest.Port {
-				//glog.Infoln("existing real with ip", ip, "and port", port) // TODO
-				existingReals[realAddr] = realPort
-			} else {
-				//glog.Infoln("new real with ip", ip, "and port", port) // TODO
-				newReals[realAddr] = realPort
+	e.logger.Debug().Msgf("reals: %v", reals)
+	e.logger.Debug().Msgf("pool: %v", pool)
+	e.logger.Debug().Msgf("dests: %v", pool.Dests)
+
+	for a, p := range reals {
+		switch d := len(pool.Dests); {
+		case d == 0:
+			e.logger.Debug().Msgf("new real: %s:%d", a, p)
+			nr[a] = p
+		default:
+			for _, dest := range pool.Dests {
+				e.logger.Debug().Msgf("dest: %v", dest)
+				if a == dest.IP && p == dest.Port {
+					e.logger.Debug().Msgf("existing real: %s:%d", a, p)
+					er[a] = p
+					break
+				} else {
+					e.logger.Debug().Msgf("new real: %s:%d", a, p)
+					nr[a] = p
+				}
 			}
 		}
 	}
 
-	return existingReals, newReals
+	return er, nr
 }
 
 // TODO what does it do?
