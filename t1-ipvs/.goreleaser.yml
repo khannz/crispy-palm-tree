@@ -33,7 +33,7 @@ nfpms:
   - dst: "/var/run/lbost1ai.sock"
     type: ghost
   scripts:
-    preinstall:  "bundle/rpm.preinstall.sh"
+#    preinstall:  "bundle/rpm.preinstall.sh"
     postinstall: "bundle/rpm.postinstall.sh"
     preremove:   "bundle/rpm.preremove.sh"
     postremove:  "bundle/rpm.postremove.sh"
