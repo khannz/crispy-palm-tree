@@ -89,7 +89,7 @@ func initLogger() *zerolog.Logger {
 	loggerCfg := zerolog.
 		New(os.Stdout).
 		With().
-		Caller().
+		//Caller().
 		//Str("logger", "good").
 		Logger()
 	return &loggerCfg
