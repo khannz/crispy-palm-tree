@@ -31,23 +31,23 @@ func (e *Entity) NewIPVSService(
 	protocol, port uint16,
 	routingType uint32,
 ) error {
-	e.logger.Info().Msg("starting ipvs service creation...")
+	e.logger.Trace().Msg("starting ipvs service creation...")
 	isServiceExist, _, err := e.isServiceExist(vip, port, protocol) // lock inside
 	if err != nil {
 		e.logger.Error().
 			Err(err).
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
 			Msg("existence check was failed")
 		return err
 	}
 
 	if isServiceExist {
 		e.logger.Info().
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
 			Msg("ipvsadm service already exists")
 		return nil
 	}
@@ -62,21 +62,77 @@ func (e *Entity) NewIPVSService(
 	defer ipvs.Exit()
 
 	newBalanceType, flags := chooseFlags(balanceType, e.logger)
-	e.logger.Info().
-		Msg("ipvs service flags parsed")
 
 	err = ipvs.AddServiceWithFlags(vip, port, protocol, newBalanceType, flags)
 	if err != nil {
 		e.logger.Error().
 			Err(err).
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
 			Str("balance_type", newBalanceType).
 			Bytes("flags", flags).
 			Msg("can't add IPv4 service")
 		return err
 	}
+
+	e.logger.Info().
+		Uint16("protocol", protocol).
+		Str("vip", vip).
+		Uint16("port", port).
+		Str("balanceType", newBalanceType).
+		Msg("vip created")
+
+	return nil
+}
+
+func (e *Entity) RemoveIPVSService(
+	id, vip string,
+	protocol, port uint16,
+) error {
+	isServiceExist, _, err := e.isServiceExist(vip, port, protocol) // lock inside
+	if err != nil {
+		e.logger.Error().
+			Err(err).
+			Uint16("protocol", protocol).
+			Str("vip", vip).
+			Uint16("port", port).
+			Msg("existence check for service failed")
+		return err
+	}
+	if !isServiceExist {
+		e.logger.Debug().
+			Uint16("protocol", protocol).
+			Str("vip", vip).
+			Uint16("port", port).
+			Msg("deletion request ineffective since service does not exist")
+		return nil
+	}
+
+	e.Lock()
+	defer e.Unlock()
+
+	ipvs, err := client(e.logger)
+	if err != nil {
+		return err
+	}
+	defer ipvs.Exit()
+
+	if err := ipvs.DelService(vip, port, protocol); err != nil {
+		e.logger.Error().
+			Err(err).
+			Uint16("protocol", protocol).
+			Str("vip", vip).
+			Uint16("port", port).
+			Msg("service deletion returned error")
+		return err
+	}
+
+	e.logger.Info().
+		Uint16("protocol", protocol).
+		Str("vip", vip).
+		Uint16("port", port).
+		Msg("vip removed")
 
 	return nil
 }
@@ -95,9 +151,9 @@ func (e *Entity) AddIPVSApplicationServersForService(
 	if err != nil {
 		e.logger.Error().
 			Err(err).
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
 			Msg("existence check for vip+port returned error")
 		return err
 	}
@@ -106,82 +162,37 @@ func (e *Entity) AddIPVSApplicationServersForService(
 		err := fmt.Errorf("service %v:%v not exist, can't add application servers", vip, port)
 		e.logger.Error().
 			Err(err).
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
 			Msg("can't add reals for non-existing service")
 		return err
 	}
 
 	_, notExistingApplicationServers := e.diffApplicationServersInService(applicationServers, pool) // no lock
 	if len(notExistingApplicationServers) == 0 {
-		e.logger.Info().
+		e.logger.Trace().
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
-			Msg("no new reals found to add into vip")
+			Msg("no new reals for vip")
 		return nil
 	}
 
 	for realAddr, realPort := range notExistingApplicationServers {
-		e.logger.Info().
+		e.logger.Trace().
 			Str("ip", realAddr).
 			Uint16("port", realPort).
-			Msgf("found new real to add into service %d_%s:%d", protocol, vip, port)
+			Msgf("got new real for vip %d_%s:%d", protocol, vip, port)
 	}
 
 	if err = e.addApplicationServersToService(vip, port, protocol, routingType, notExistingApplicationServers); err != nil { // lock inside
 		e.logger.Error().
 			Err(err).
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
 			Msg("can't add reals for vip")
-		return err
-	}
-
-	return nil
-}
-
-func (e *Entity) RemoveIPVSService(
-	id, vip string,
-	protocol, port uint16,
-) error {
-	isServiceExist, _, err := e.isServiceExist(vip, port, protocol) // lock inside
-	if err != nil {
-		e.logger.Error().
-			Err(err).
-			Str("vip", vip).
-			Uint16("port", port).
-			Uint16("protocol", protocol).
-			Msg("existence check for service failed")
-		return err
-	}
-	if !isServiceExist {
-		e.logger.Debug().
-			Str("vip", vip).
-			Uint16("port", port).
-			Uint16("protocol", protocol).
-			Msg("deletion request ineffective since service does not exist")
-		return nil
-	}
-
-	e.Lock()
-	defer e.Unlock()
-
-	ipvs, err := client(e.logger)
-	if err != nil {
-		return err
-	}
-	defer ipvs.Exit()
-
-	if err := ipvs.DelService(vip, port, protocol); err != nil {
-		e.logger.Error().
-			Err(err).
-			Str("vip", vip).
-			Uint16("port", port).
-			Uint16("protocol", protocol).
-			Msg("service deletion returned error")
 		return err
 	}
 
@@ -198,10 +209,10 @@ func (e *Entity) RemoveIPVSApplicationServersFromService(
 	if err != nil {
 		e.logger.Error().
 			Err(err).
+			Uint16("protocol", protocol).
 			Str("vip", vip).
 			Uint16("port", port).
-			Uint16("protocol", protocol).
-			Msg("existence check for vip+port returned error")
+			Msg("existence check for vip+port+protocol returned error")
 		return err
 	}
 
@@ -275,12 +286,17 @@ func (e *Entity) addApplicationServersToService(
 		if err != nil {
 			e.logger.Error().
 				Err(err).
+				Uint16("protocol", protocol).
 				Str("vip", serviceIP).
 				Uint16("port", servicePort).
-				Uint16("protocol", protocol).
 				Msgf("can't add real %s:%d", realAddr, realPort)
 			return err
 		}
+		e.logger.Info().
+			Uint16("protocol", protocol).
+			Str("vip", serviceIP).
+			Uint16("port", servicePort).
+			Msgf("added real %s:%d", realAddr, realPort)
 	}
 	return nil
 }
@@ -303,17 +319,17 @@ func (e *Entity) removeIPVSApplicationServersFromService(
 		if err != nil {
 			e.logger.Error().
 				Err(err).
+				Uint16("protocol", protocol).
 				Str("vip", serviceIP).
 				Uint16("port", servicePort).
-				Uint16("protocol", protocol).
 				Msgf("can't remove real %s:%d", realAddr, realPort)
 			return err
 		}
 		e.logger.Info().
+			Uint16("protocol", protocol).
 			Str("vip", serviceIP).
 			Uint16("port", servicePort).
-			Uint16("protocol", protocol).
-			Msgf("successfully added real %s:%d", realAddr, realPort)
+			Msgf("removed real %s:%d", realAddr, realPort)
 	}
 	return nil
 }
@@ -335,16 +351,14 @@ func chooseFlags(balanceType string, logger *zerolog.Logger) (string, []byte) {
 	switch balanceType {
 	case "mhf":
 		// TODO
-		logger.Info().
+		logger.Debug().
 			Bytes("current_flag", gnl2go.U32ToBinFlags(fallbackFlag)).
-			Bytes("lib_const", gnl2go.BIN_IP_VS_SVC_F_SCHED1).
 			Msg("flag values")
 		return "mh", gnl2go.U32ToBinFlags(fallbackFlag)
 	case "mhp":
 		// TODO
-		logger.Info().
+		logger.Debug().
 			Bytes("current_flag", gnl2go.U32ToBinFlags(fallbackAndshPortFlags)).
-			Bytes("lib_const", gnl2go.BIN_IP_VS_SVC_F_PERSISTENT).
 			Msg("flag values")
 		return "mh", gnl2go.U32ToBinFlags(fallbackAndshPortFlags)
 	default:
@@ -352,6 +366,7 @@ func chooseFlags(balanceType string, logger *zerolog.Logger) (string, []byte) {
 	}
 }
 
+// FIXME not working after tuple fix
 func (e *Entity) isServiceExist(vip string, port, proto uint16) (bool, gnl2go.Pool, error) {
 	// FIXME why does pool returning from purely bool func???
 	var pool gnl2go.Pool
@@ -363,8 +378,13 @@ func (e *Entity) isServiceExist(vip string, port, proto uint16) (bool, gnl2go.Po
 		return false, pool, err
 	}
 
+	e.logger.Debug().Msgf("all pools: %v", pools)
+	e.logger.Debug().
+		Msgf("looking for: %d_%s_%d", proto, vip, port)
 	for _, pool := range pools {
 		if pool.Service.VIP == vip && pool.Service.Port == port && pool.Service.Proto == proto {
+			e.logger.Debug().
+				Msgf("got match: %d_%s_%d", pool.Service.Proto, pool.Service.VIP, pool.Service.Port)
 			return true, pool, nil
 		}
 	}
@@ -393,10 +413,8 @@ func (e *Entity) diffApplicationServersInService(reals map[string]uint16, pool g
 // TODO what does it do?
 // looks like author does some braindead check... geez
 func client(logger *zerolog.Logger) (*gnl2go.IpvsClient, error) {
-	logger.Info().Msg("starting ipvs client init...")
-
-	client := new(gnl2go.IpvsClient)
-	err := client.Init()
+	c := new(gnl2go.IpvsClient)
+	err := c.Init()
 	if err != nil {
 		logger.Warn().Msg("ipvs client init failed")
 		return nil, err
@@ -406,7 +424,5 @@ func client(logger *zerolog.Logger) (*gnl2go.IpvsClient, error) {
 	//if err != nil {
 	//	return ipvs, fmt.Errorf("error while running ipvs GetPools method %v", err)
 	//}
-
-	logger.Info().Msg("ipvs client init finished")
-	return client, nil
+	return c, nil
 }
