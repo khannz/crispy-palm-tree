@@ -14,7 +14,7 @@ const healthcheckName = "healthcheck"
 // HealthcheckEntity ...
 type HealthcheckEntity struct {
 	sync.Mutex
-	runningHealthchecks map[string]*domain.ServiceInfo // TODO: map much better
+	runningHealthchecks domain.ServiceInfoConf // TODO: map much better
 	// memoryWorker       domain.MemoryWorker
 	healthcheckChecker domain.HealthcheckChecker
 	ipvsadm            domain.IPVSWorker
@@ -39,7 +39,7 @@ func NewHealthcheckEntity( // memoryWorker domain.MemoryWorker,
 	logging *logrus.Logger) *HealthcheckEntity {
 
 	return &HealthcheckEntity{
-		runningHealthchecks: map[string]*domain.ServiceInfo{}, // need for append
+		runningHealthchecks: domain.ServiceInfoConf{}, // need for append
 		// memoryWorker:       memoryWorker,
 		healthcheckChecker: healthcheckChecker,
 		ipvsadm:            ipvsadm,
@@ -189,7 +189,7 @@ func (hc *HealthcheckEntity) UpdateServiceAtHealthchecks(updateHCService *domain
 	return updateHCService, nil
 }
 
-func (hc *HealthcheckEntity) enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceInfo, oldApplicationServers map[string]*domain.ApplicationServer, oldIsUpState bool) {
+func (hc *HealthcheckEntity) enrichApplicationServersHealthchecks(newServiceHealthcheck *domain.ServiceInfo, oldApplicationServers domain.ApplicationServers, oldIsUpState bool) {
 	newServiceHealthcheck.Lock()
 	defer newServiceHealthcheck.Unlock()
 	newServiceHealthcheck.IsUp = oldIsUpState
@@ -235,13 +235,13 @@ func (hc *HealthcheckEntity) GetServiceState(hcService *domain.ServiceInfo, id s
 	return nil, fmt.Errorf("get service state fail: service %v not found in healthchecks", hcService.Address)
 }
 
-func (hc *HealthcheckEntity) GetServicesState(id string) (map[string]*domain.ServiceInfo, error) {
+func (hc *HealthcheckEntity) GetServicesState(id string) (domain.ServiceInfoConf, error) {
 	hc.Lock()
 	defer hc.Unlock()
 	if len(hc.runningHealthchecks) == 0 {
 		return nil, fmt.Errorf("active hc services: %v", len(hc.runningHealthchecks))
 	}
-	copyOfServiceInfos := make(map[string]*domain.ServiceInfo, len(hc.runningHealthchecks))
+	copyOfServiceInfos := make(domain.ServiceInfoConf, len(hc.runningHealthchecks))
 	for i, runHC := range hc.runningHealthchecks {
 		copyOfServiceInfos[i] = copyServiceInfo(runHC)
 	}

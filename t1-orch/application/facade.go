@@ -11,7 +11,7 @@ import (
 
 // TODO: agregate errors in facade
 
-const facadeApplyName = "facade apply config"
+const facadeApplyName = "facade.ApplyConfig"
 
 // T1OrchFacade struct
 type T1OrchFacade struct {
@@ -22,7 +22,7 @@ type T1OrchFacade struct {
 	HealthcheckEntity *healthcheck.HealthcheckEntity
 	GracefulShutdown  *domain.GracefulShutdown
 	IDgenerator       domain.IDgenerator
-	RuntimeServices   map[string]*domain.ServiceInfo
+	RuntimeServices   domain.ServiceInfoConf
 	Logging           *logrus.Logger
 }
 
@@ -44,16 +44,16 @@ func NewT1OrchFacade(memoryWorker domain.MemoryWorker,
 		HealthcheckEntity: hc,
 		GracefulShutdown:  gracefulShutdown,
 		IDgenerator:       idGenerator,
-		RuntimeServices:   make(map[string]*domain.ServiceInfo),
+		RuntimeServices:   make(domain.ServiceInfoConf),
 		Logging:           logging,
 	}
 }
 
-func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]*domain.ServiceInfo) error {
+func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo domain.ServiceInfoConf) error {
 	start := time.Now()
 	id := t1OrchFacade.IDgenerator.NewID()
 	// form diff for runtime config
-	servicesForCreate, servicesForUpdate, servicesForRemove := t1OrchFacade.formDiffForNewConfig(updatedServicesInfo)
+	servicesForCreate, servicesForUpdate, servicesForRemove := t1OrchFacade.makeDiff4Conf(updatedServicesInfo)
 	t1OrchFacade.Logging.WithFields(logrus.Fields{
 		"entity":   facadeApplyName,
 		"event id": id,
@@ -75,54 +75,54 @@ func (t1OrchFacade *T1OrchFacade) ApplyNewConfig(updatedServicesInfo map[string]
 
 	// TODO: usecases in gorutines
 	if len(servicesForCreate) != 0 {
-		if err := t1OrchFacade.CreateServices(servicesForCreate, id); err != nil {
+		if err := t1OrchFacade.createServices(servicesForCreate, id); err != nil {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
 				"entity":   facadeApplyName,
 				"event id": id,
 			}).Errorf("create services error: %v", err)
 		} else {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
-				"entity":                       consulWorkerName,
+
 				"duration for create services": time.Since(start),
 			}).Infof("create %v services done", len(servicesForCreate))
 		}
 	}
 
 	if len(servicesForUpdate) != 0 {
-		if err := t1OrchFacade.UpdateServices(servicesForUpdate, id); err != nil {
+		if err := t1OrchFacade.updateServices(servicesForUpdate, id); err != nil {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
 				"entity":   facadeApplyName,
 				"event id": id,
 			}).Errorf("update services error: %v", err)
 		} else {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
-				"entity":                       consulWorkerName,
+				"entity":                       facadeApplyName,
 				"duration for create services": time.Since(start),
 			}).Infof("update %v services done", len(servicesForUpdate))
 		}
 	}
 
 	if len(servicesForRemove) != 0 {
-		if err := t1OrchFacade.RemoveServices(servicesForRemove, id); err != nil {
+		if err := t1OrchFacade.removeServices(servicesForRemove, id); err != nil {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
 				"entity":   facadeApplyName,
 				"event id": id,
 			}).Errorf("remove services error: %v", err)
 		} else {
 			t1OrchFacade.Logging.WithFields(logrus.Fields{
-				"entity":                       consulWorkerName,
+				"entity":                       facadeApplyName,
 				"duration for create services": time.Since(start),
 			}).Infof("remove %v services done", len(servicesForRemove))
 		}
 	}
 	t1OrchFacade.Logging.WithFields(logrus.Fields{
-		"entity":                        consulWorkerName,
+		"entity":                        facadeApplyName,
 		"duration for apply new config": time.Since(start),
 	}).Info("apply config done")
 	return nil
 }
 
-func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*domain.ServiceInfo,
+func (t1OrchFacade *T1OrchFacade) createServices(servicesForCreate domain.ServiceInfoConf,
 	id string) error {
 	newNewServiceEntity := usecase.NewNewServiceEntity(t1OrchFacade.MemoryWorker,
 		t1OrchFacade.TunnelWorker,
@@ -139,7 +139,7 @@ func (t1OrchFacade *T1OrchFacade) CreateServices(servicesForCreate map[string]*d
 	return nil
 }
 
-func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*domain.ServiceInfo,
+func (t1OrchFacade *T1OrchFacade) removeServices(servicesForRemove domain.ServiceInfoConf,
 	id string) error {
 	newRemoveServiceEntity := usecase.NewRemoveServiceEntity(t1OrchFacade.MemoryWorker,
 		t1OrchFacade.TunnelWorker,
@@ -156,7 +156,7 @@ func (t1OrchFacade *T1OrchFacade) RemoveServices(servicesForRemove map[string]*d
 	return nil
 }
 
-func (t1OrchFacade *T1OrchFacade) UpdateServices(servicesForUpdate map[string]*domain.ServiceInfo,
+func (t1OrchFacade *T1OrchFacade) updateServices(servicesForUpdate domain.ServiceInfoConf,
 	id string) error {
 	newUpdateServiceEntity := usecase.NewUpdateServiceEntity(t1OrchFacade.MemoryWorker,
 		t1OrchFacade.TunnelWorker,
@@ -173,7 +173,7 @@ func (t1OrchFacade *T1OrchFacade) UpdateServices(servicesForUpdate map[string]*d
 	return nil
 }
 
-func (t1OrchFacade *T1OrchFacade) RemoveAllConfig() error {
+func (t1OrchFacade *T1OrchFacade) RemoveAllConfigs() error {
 	start := time.Now()
 	id := t1OrchFacade.IDgenerator.NewID()
 	servicesForRemove := t1OrchFacade.MemoryWorker.GetServices()
@@ -201,16 +201,16 @@ func (t1OrchFacade *T1OrchFacade) RemoveAllConfig() error {
 		}
 	}
 	t1OrchFacade.Logging.WithFields(logrus.Fields{
-		"entity":                        consulWorkerName,
+		"entity":                        facadeApplyName,
 		"duration for apply new config": time.Since(start),
 	}).Info("remove all services done")
 	return nil
 }
 
-func (t1OrchFacade *T1OrchFacade) formDiffForNewConfig(updatedServicesInfo map[string]*domain.ServiceInfo) (map[string]*domain.ServiceInfo, map[string]*domain.ServiceInfo, map[string]*domain.ServiceInfo) {
-	servicesForCreate := make(map[string]*domain.ServiceInfo)
-	servicesForUpdate := make(map[string]*domain.ServiceInfo)
-	servicesForRemove := make(map[string]*domain.ServiceInfo)
+func (t1OrchFacade *T1OrchFacade) makeDiff4Conf(updatedServicesInfo domain.ServiceInfoConf) (c domain.ServiceInfoConf, u domain.ServiceInfoConf, d domain.ServiceInfoConf) {
+	servicesForCreate := make(domain.ServiceInfoConf)
+	servicesForUpdate := make(domain.ServiceInfoConf)
+	servicesForRemove := make(domain.ServiceInfoConf)
 
 	currentServices := t1OrchFacade.MemoryWorker.GetServices()
 

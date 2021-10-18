@@ -14,7 +14,7 @@ func PrepareDataForIPVS(rawIP,
 	rawRoutingType,
 	rawBalanceType,
 	rawProtocol string,
-	rawApplicationServers map[string]*domain.ApplicationServer) (string,
+	rawApplicationServers domain.ApplicationServers) (string,
 	uint16,
 	uint32,
 	string,
@@ -91,7 +91,7 @@ func protocolToUINT16(protocol string) (uint16, error) {
 	}
 }
 
-func convertRawApplicationServers(rawApplicationServers map[string]*domain.ApplicationServer) (map[string]uint16, error) {
+func convertRawApplicationServers(rawApplicationServers domain.ApplicationServers) (map[string]uint16, error) {
 	applicationServers := map[string]uint16{}
 
 	for _, applicationServer := range rawApplicationServers {

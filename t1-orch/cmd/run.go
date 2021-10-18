@@ -2,16 +2,26 @@ package run
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	appJobs "github.com/gradusp/go-platform/app/jobs"
+	"github.com/gradusp/go-platform/pkg/backoff"
+	"github.com/gradusp/go-platform/pkg/functional"
+	"github.com/gradusp/go-platform/pkg/patterns/observer"
+	"github.com/gradusp/go-platform/pkg/scheduler"
+	"github.com/gradusp/go-platform/pkg/tm"
 	"github.com/khannz/crispy-palm-tree/t1-orch/application"
+	"github.com/khannz/crispy-palm-tree/t1-orch/application/jobs/consumers"
 	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
 	"github.com/khannz/crispy-palm-tree/t1-orch/healthcheck"
 	"github.com/khannz/crispy-palm-tree/t1-orch/portadapter"
+	consulProvider "github.com/khannz/crispy-palm-tree/t1-orch/providers/consul"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -29,7 +39,8 @@ var runCmd = &cobra.Command{
 		idForRootProcess := idGenerator.NewID()
 
 		// validate fields
-		logging.WithFields(logrus.Fields{
+
+		fields := logrus.Fields{
 			"version":          version,
 			"build time":       buildTime,
 			"event id":         idForRootProcess,
@@ -58,15 +69,23 @@ var runCmd = &cobra.Command{
 			"ipvs address":    viper.GetString("ipvs-addr"),
 			"ipvs timeout":    viper.GetDuration("ipvs-timeout"),
 
-			"consul address":          viper.GetString("consul-address"),
-			"consul subscribe path":   viper.GetString("consul-subscribe-path"),
-			"consul app servers path": viper.GetString("consul-app-servers-path"),
-			"consul service manifest": viper.GetString("consul-manifest-name"),
-
+			"use data provider": viper.GetString("source-provider"), //"consul"|"waddle"
 			//"t1 id": viper.GetString("t1-id"),
-		}).Info("")
+		}
 
-		gracefulShutdown := &domain.GracefulShutdown{}
+		if viper.GetString("source-provider") == ConsulDataProvider {
+			fields["consul address"] = viper.GetString("consul-address")
+			fields["consul subscribe path"] = viper.GetString("consul-subscribe-path")
+			fields["consul app servers path"] = viper.GetString("consul-app-servers-path")
+			fields["consul service manifest"] = viper.GetString("consul-manifest-name")
+		} else {
+			fields["waddle address"] = viper.GetString("waddle-address")
+			fields["waddle node IP"] = viper.GetString("waddle-node-ip")
+		}
+
+		logging.WithFields(fields).Info("")
+
+		gracefulShutdown := new(domain.GracefulShutdown)
 
 		// TODO: global locker. consul and get runtime may concurrent. if consul update => retake runtime after apply
 
@@ -88,7 +107,7 @@ var runCmd = &cobra.Command{
 
 		// mem init
 		memoryWorker := &portadapter.MemoryWorker{
-			Services:                     make(map[string]*domain.ServiceInfo),
+			Services:                     make(domain.ServiceInfoConf),
 			ApplicationServersTunnelInfo: make(map[string]int),
 		}
 
@@ -119,30 +138,67 @@ var runCmd = &cobra.Command{
 			idGenerator,
 			logging)
 
+		jobScheduleInterval := scheduler.NewConstIntervalScheduler(time.Minute) //TODO: может вынести в конфиг?
+		jc := &jobConstructor{
+			ctx:        context.Background(),
+			taskManger: tm.NewTaskManager(),
+			scheduler:  jobScheduleInterval,
+			backoff: backoff.ExponentialBackoffBuilder().
+				WithInitialInterval(500 * time.Millisecond).
+				WithMaxInterval(5 * time.Minute).
+				Build(),
+		}
+		jc.observers = append(jc.observers,
+			observer.NewObserver(func(evt observer.EventType) {
+				switch t := evt.(type) {
+				case appJobs.OnJobFinished:
+					e := t.FindError()
+					if e == nil {
+						break
+					}
+					isFatal := errors.Is(e, functional.ErrArgsNotMatched2Signature) ||
+						errors.Is(e, consulProvider.ErrDataNotFit2Model)
+
+					if isFatal {
+						logging.Fatalf("from job '%s' got fataL %v", t.JobID, e)
+					}
+				case appJobs.OnJobSchedulerStop:
+					logging.Fatalf("from job '%s' got fataL %v", t.JobID, t.Reason)
+				case appJobs.OnJobLog:
+					logging.Infof("%s", t)
+				}
+			}, false,
+				appJobs.OnJobLog{},
+				appJobs.OnJobFinished{},
+				appJobs.OnJobSchedulerStop{},
+			),
+		)
+
+		var sourceLoaderJob appJobs.JobScheduler
+		if viper.GetString("source-provider") == ConsulDataProvider {
+			sourceLoaderJob, err = jc.constructConsulJob()
+		} else {
+			sourceLoaderJob, err = jc.constructWaddleJob()
+		}
+		if err != nil {
+			logging.Fatal(err.Error())
+		}
+		consumerCloser := consumers.NewFacadeConsumer(sourceLoaderJob, facade, logging)
+
 		// TODO: unimplemented read runtime
 		grpcServer := application.NewGrpcServer(viper.GetString("orch-addr"), facade, logging) // gorutine inside
-		if err := grpcServer.StartServer(); err != nil {
+		if err = grpcServer.StartServer(); err != nil {
 			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("grpc server start error: %v", err)
 		}
-		defer grpcServer.CloseServer()
-
-		// consul worker start
-		consulWorker, err := application.NewConsulWorker(facade,
-			viper.GetString("consul-address"),
-			viper.GetString("consul-subscribe-path"),
-			viper.GetString("consul-app-servers-path"),
-			viper.GetString("consul-manifest-name"),
-			logging)
-		if err != nil {
-			logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Fatalf("connect to consul fail: %v", err)
-		}
-		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("connected to consul")
-		go consulWorker.ConsulConfigWatch()
-		go consulWorker.JobWorker()
-
-		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("orch is running")
+		sourceLoaderJob.Enable(true)
+		sourceLoaderJob.Schedule()
 
 		<-signalChan // shutdown signal
+
+		for _, c := range []io.Closer{consumerCloser, sourceLoaderJob, jobScheduleInterval} {
+			_ = c.Close()
+		}
+		grpcServer.CloseServer()
 
 		logging.WithFields(logrus.Fields{"event id": idForRootProcess}).Info("got shutdown signal")
 
@@ -166,7 +222,7 @@ func gracefulShutdownUsecases(gracefulShutdown *domain.GracefulShutdown, maxWait
 	gracefulShutdown.ShutdownNow = true
 	gracefulShutdown.Unlock()
 
-	ticker := time.NewTicker(time.Duration(100 * time.Millisecond)) // hardcode
+	ticker := time.NewTicker(100 * time.Millisecond) // hardcode
 	defer ticker.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), maxWaitTimeForJobsIsDone)
@@ -175,17 +231,17 @@ func gracefulShutdownUsecases(gracefulShutdown *domain.GracefulShutdown, maxWait
 		select {
 		case <-ticker.C:
 			gracefulShutdown.Lock()
-			if gracefulShutdown.UsecasesJobs <= 0 {
+			state := gracefulShutdown.UsecasesJobs
+			gracefulShutdown.Unlock()
+			if state <= 0 {
 				logging.Info("All jobs is done")
-				defer gracefulShutdown.Unlock()
 				return
 			}
-			gracefulShutdown.Unlock()
-			continue
 		case <-ctx.Done():
 			gracefulShutdown.Lock()
-			logging.Warnf("%v jobs is fail when program stop", gracefulShutdown.UsecasesJobs)
-			defer gracefulShutdown.Unlock()
+			state := gracefulShutdown.UsecasesJobs
+			gracefulShutdown.Unlock()
+			logging.Warnf("%v jobs is fail when program stop", state)
 			return
 		}
 	}

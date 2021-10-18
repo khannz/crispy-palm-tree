@@ -7,15 +7,10 @@ import (
 )
 
 func percentageOfUp(rawTotal, rawDown int) float32 {
-	total := float32(rawTotal)
-	down := float32(rawDown)
-	if down == total {
+	if rawTotal == 0 || rawTotal < rawDown {
 		return 0
 	}
-	if down == 0 {
-		return 100
-	}
-	return (total - down) * 100 / total
+	return float32(rawTotal-rawDown) * 100. / float32(rawTotal)
 }
 
 func percentageOfDownBelowMPercentOfAlivedForUp(pofUp float32, maxDownForUp int) bool {
@@ -60,7 +55,7 @@ func reverceArray(ar []bool) {
 	}
 }
 
-func formDiffApplicationServers(newApplicationServers map[string]*domain.ApplicationServer, oldApplicationServers map[string]*domain.ApplicationServer) ([]string, []string, []string) {
+func formDiffApplicationServers(newApplicationServers domain.ApplicationServers, oldApplicationServers domain.ApplicationServers) ([]string, []string, []string) {
 	applicationServersForAdd := make([]string, 0)
 	applicationServersForRemove := make([]string, 0)
 	applicationServersAlreadyIN := make([]string, 0)
@@ -81,8 +76,8 @@ func formDiffApplicationServers(newApplicationServers map[string]*domain.Applica
 	return applicationServersAlreadyIN, applicationServersForAdd, applicationServersForRemove
 }
 
-func getCopyOfApplicationServersFromService(serviceInfo *domain.ServiceInfo) map[string]*domain.ApplicationServer {
-	applicationServers := make(map[string]*domain.ApplicationServer, len(serviceInfo.ApplicationServers))
+func getCopyOfApplicationServersFromService(serviceInfo *domain.ServiceInfo) domain.ApplicationServers {
+	applicationServers := make(domain.ApplicationServers, len(serviceInfo.ApplicationServers))
 	for k, applicationServer := range serviceInfo.ApplicationServers {
 		tmpApplicationServerInternal := domain.InternalHC{
 			HealthcheckType:    applicationServer.InternalHC.HealthcheckType,
@@ -111,24 +106,30 @@ func getCopyOfApplicationServersFromService(serviceInfo *domain.ServiceInfo) map
 func (hc *HealthcheckEntity) moveApplicationServerStateIndexes(hcService *domain.ServiceInfo, applicationServerInfoKey string, isUpNow bool) {
 	hcService.Lock()
 	defer hcService.Unlock()
+	appServer := hcService.ApplicationServers[applicationServerInfoKey]
+	if appServer == nil {
+		return
+	}
+	internalHC := &appServer.InternalHC
+
 	hc.logging.Tracef("moveApplicationServerStateIndexes: app srv index: %v,isUpNow: %v, total app srv at service: %v, AliveThreshold array len: %v, DeadThreshold array len: %v",
 		applicationServerInfoKey,
 		isUpNow,
 		len(hcService.ApplicationServers),
-		len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold),
-		len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold))
+		len(internalHC.AliveThreshold),
+		len(internalHC.DeadThreshold))
 
-	if len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold) < hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive+1 {
-		hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive = 0
+	if len(internalHC.AliveThreshold) < internalHC.LastIndexForAlive+1 {
+		internalHC.LastIndexForAlive = 0
 	}
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.AliveThreshold[hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive] = isUpNow
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForAlive++
+	internalHC.AliveThreshold[internalHC.LastIndexForAlive] = isUpNow
+	internalHC.LastIndexForAlive++
 
-	if len(hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold) < hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead+1 {
-		hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead = 0
+	if len(internalHC.DeadThreshold) < internalHC.LastIndexForDead+1 {
+		appServer.InternalHC.LastIndexForDead = 0
 	}
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.DeadThreshold[hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead] = isUpNow
-	hcService.ApplicationServers[applicationServerInfoKey].InternalHC.LastIndexForDead++
+	internalHC.DeadThreshold[internalHC.LastIndexForDead] = isUpNow
+	internalHC.LastIndexForDead++
 }
 
 func copyServiceInfo(hcService *domain.ServiceInfo) *domain.ServiceInfo {

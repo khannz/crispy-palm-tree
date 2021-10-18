@@ -3,34 +3,38 @@ package domain
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // ServiceInfo ...
 type ServiceInfo struct {
 	sync.RWMutex             `json:"-"`
-	Address                  string                        `json:"address"`
-	IP                       string                        `json:"ip"`
-	Port                     string                        `json:"port"`
-	IsUp                     bool                          `json:"isUp"`
-	BalanceType              string                        `json:"balanceType"`
-	RoutingType              string                        `json:"routingType"`
-	Protocol                 string                        `json:"protocol"`
-	Quorum                   int                           `json:"quorum"`
-	HealthcheckType          string                        `json:"healthcheckType"`
-	HelloTimer               time.Duration                 `json:"helloTimer"`
-	ResponseTimer            time.Duration                 `json:"responseTimer"`
-	HCNearFieldsMode         bool                          `json:"hcNearFieldsMode,omitempty"`
-	HCUserDefinedData        map[string]string             `json:"hcUserDefinedData,omitempty"`
-	AliveThreshold           int                           `json:"aliveThreshold"`
-	DeadThreshold            int                           `json:"deadThreshold"`
-	ApplicationServers       map[string]*ApplicationServer `json:"ApplicationServers"`
-	Uri                      string                        `json:"uri"`                // only for http(s) hc types
-	ValidResponseCodes       []int64                       `json:"validResponseCodes"` // only for http(s) hc types
-	FailedApplicationServers *FailedApplicationServers     `json:"-"`
-	HCStop                   chan struct{}                 `json:"-"`
-	HCStopped                chan struct{}                 `json:"-"`
+	Address                  string                   `json:"address"`
+	IP                       string                   `json:"ip"`
+	Port                     string                   `json:"port"`
+	IsUp                     bool                     `json:"isUp"`
+	BalanceType              string                   `json:"balanceType"`
+	RoutingType              string                   `json:"routingType"`
+	Protocol                 string                   `json:"protocol"`
+	Quorum                   int                      `json:"quorum"`
+	HealthcheckType          string                   `json:"healthcheckType"`
+	HelloTimer               time.Duration            `json:"helloTimer"`
+	ResponseTimer            time.Duration            `json:"responseTimer"`
+	HCNearFieldsMode         bool                     `json:"hcNearFieldsMode,omitempty"`
+	HCUserDefinedData        map[string]string        `json:"hcUserDefinedData,omitempty"`
+	AliveThreshold           int                      `json:"aliveThreshold"`
+	DeadThreshold            int                      `json:"deadThreshold"`
+	ApplicationServers       ApplicationServers       `json:"ApplicationServers"`
+	Uri                      string                   `json:"uri"`                // only for http(s) hc types
+	ValidResponseCodes       []int64                  `json:"validResponseCodes"` // only for http(s) hc types
+	FailedApplicationServers FailedApplicationServers `json:"-"`
+	HCStop                   chan struct{}            `json:"-"`
+	HCStopped                chan struct{}            `json:"-"`
 }
+
+//ApplicationServers alias
+type ApplicationServers = map[string]*ApplicationServer
 
 // ApplicationServer ...
 type ApplicationServer struct {
@@ -97,20 +101,17 @@ func (serviceInfo *ServiceInfo) String() string {
 }
 
 type FailedApplicationServers struct {
-	sync.Mutex
-	Wg    *sync.WaitGroup
-	Count int
+	count int32
 }
 
-func NewFailedApplicationServers() *FailedApplicationServers {
-	return &FailedApplicationServers{
-		Wg:    new(sync.WaitGroup),
-		Count: 0,
-	}
+func (failedApplicationServers *FailedApplicationServers) Add(n int) {
+	atomic.AddInt32(&failedApplicationServers.count, int32(n))
 }
 
-func (failedApplicationServers *FailedApplicationServers) SetFailedApplicationServersToZero() {
-	failedApplicationServers.Lock()
-	defer failedApplicationServers.Unlock()
-	failedApplicationServers.Count = 0
+func (failedApplicationServers *FailedApplicationServers) Count() int {
+	return int(atomic.LoadInt32(&failedApplicationServers.count))
+}
+
+func (failedApplicationServers *FailedApplicationServers) Set2Zero() {
+	atomic.StoreInt32(&failedApplicationServers.count, 0)
 }
