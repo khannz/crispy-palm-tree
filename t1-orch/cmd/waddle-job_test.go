@@ -30,7 +30,7 @@ type (
 	//waddleServerMock mock-waddle сервис
 	waddleServerMock struct {
 		mock.Mock
-		waddleService.UnimplementedNodeInfoServer
+		waddleService.UnimplementedNodeServiceServer
 	}
 
 	//facadeMock mock-фасад Orch
@@ -43,95 +43,50 @@ var _ server.APIService = (*waddleServerMock)(nil)
 
 var payload = `
 {
-  "services": [
-    {
-      "reals": [
+    "services": [
         {
-          "id": "111",
-          "address": "2.2.2.2",
-          "port": 443
-        },
-        {
-          "id": "222",
-          "address": "3.3.3.3",
-          "port": 443
-        }
-      ],
-      "healthchecks": [
-        {
-          "id": "dc74f217-d59a-457b-be0f-96d8d609e296",
-          "hello_timer": 1000,
-          "response_timer": 800,
-          "alive_threshold": 5,
-          "dead_threshold": 3,
-          "quorum": 1,
-          "hysteresis": 5,
-          "address": "1.1.1.1",
-          "icmp": {
-            "packet_size": 512
-          }
-        },
-        {
-          "id": "dc74f217-d59a-457b-be0f-96d8d609e297",
-          "hello_timer": 1000,
-          "response_timer": 800,
-          "alive_threshold": 5,
-          "dead_threshold": 3,
-          "quorum": 1,
-          "hysteresis": 5,
-          "address": "8.8.8.8",
-          "tcp": {
-            "port": 443
-          }
-        },
-        {
-          "id": "dc74f217-d59a-457b-be0f-96d8d609e298",
-          "hello_timer": 1000,
-          "response_timer": 800,
-          "alive_threshold": 5,
-          "dead_threshold": 3,
-          "quorum": 1,
-          "hysteresis": 5,
-          "address": "1.1.2.2",
-          "http": {
-            "response_codes": [
-              200,
-              201,
-              302
+            "reals": [
+                {
+                    "id": "435a6d06-aa12-4bcb-aac7-5560ffbd4ebe",
+                    "address": "10.44.222.161/32",
+                    "port": 10013,
+                    "healthcheck": {
+                        "id": "074caade-ba45-4076-835c-fc8df9edda82",
+                        "hello_timer": 1000,
+                        "response_timer": 800,
+                        "alive_threshold": 5,
+                        "dead_threshold": 3,
+                        "quorum": 1,
+                        "hysteresis": 5,
+                        "address": "10.63.58.1",
+                        "port": 10013
+                    }
+                },
+                {
+                    "id": "5944ef57-78ce-4ec3-8c69-2b6f5f8d3480",
+                    "address": "10.63.38.234/32",
+                    "port": 10013,
+                    "healthcheck": {
+                        "id": "9c4a18c0-58c0-4bed-a325-aabad999e978",
+                        "hello_timer": 1000,
+                        "response_timer": 800,
+                        "alive_threshold": 5,
+                        "dead_threshold": 3,
+                        "quorum": 1,
+                        "hysteresis": 5,
+                        "address": "10.63.58.1",
+                        "port": 10013
+                    }
+                }
             ],
-            "port": 443,
-            "uri": "/healthz"
-          }
-        },
-        {
-          "id": "dc74f217-d59a-457b-be0f-96d8d609e298",
-          "hello_timer": 1000,
-          "response_timer": 800,
-          "alive_threshold": 5,
-          "dead_threshold": 3,
-          "quorum": 1,
-          "hysteresis": 5,
-          "address": "1.1.2.2",
-          "https": {
-            "response_codes": [
-              200,
-              201,
-              302
-            ],
-            "port": 443,
-            "uri": "/healthz",
-            "ssl_verify": false
-          }
+            "id": "b533006f-a879-4948-b2e7-7e36933fd52b",
+            "protocol": "TCP",
+            "address": "10.63.58.1",
+            "port": 10013,
+            "routing_type": "TUN_IPIP",
+            "balancing_type": "MAGLEV_HASH_PORT"
         }
-      ],
-      "id": "057cb217-ce30-49ed-a72a-b2466a64de52",
-      "protocol": "TCP",
-      "address": "10.46.220.129",
-      "port": 443,
-      "routing_type": "TUN_GRE",
-      "balancing_type": "MAGLEV_HASH_PORT"
-    }
-  ]
+    ]
 }
 `
 
@@ -172,11 +127,11 @@ func (srv *waddleServerMock) GetServices(_a0 context.Context, _a1 *waddleService
 }
 
 func (srv *waddleServerMock) Description() grpc.ServiceDesc {
-	return waddleService.NodeInfo_ServiceDesc
+	return waddleService.NodeService_ServiceDesc
 }
 
 func (srv *waddleServerMock) RegisterGRPC(_ context.Context, grpcServer *grpc.Server) error {
-	waddleService.RegisterNodeInfoServer(grpcServer, srv)
+	waddleService.RegisterNodeServiceServer(grpcServer, srv)
 	return nil
 }
 

@@ -6,8 +6,8 @@ require (
 	github.com/armon/go-metrics v0.3.8 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/golang/protobuf v1.5.2
-	github.com/gradusp/go-platform v0.0.2-dev
-	github.com/gradusp/protos v0.1.0
+	github.com/gradusp/go-platform v0.0.4-dev
+	github.com/gradusp/protos v1.0.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/consul/api v1.10.0
 	github.com/hashicorp/consul/sdk v0.8.0 // indirect

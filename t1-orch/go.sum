@@ -190,10 +190,10 @@ github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 h1:EGx4pi6eqNxGa
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/gradusp/go-platform v0.0.2-dev h1:utN975fbgCvmcBTmlCSBaFPi6cGpRgI7nJtsKvHD8Hk=
-github.com/gradusp/go-platform v0.0.2-dev/go.mod h1:65Mf8T7hGn2g1avQMD04hqQAErXIWSydT/f34JtpwS0=
-github.com/gradusp/protos v0.1.0 h1:0+r4pDh8QSW00Cl92rbE2PXQ92mKajBOqvnefoXCl64=
-github.com/gradusp/protos v0.1.0/go.mod h1:0XUy2NF3xyVljGExfgXpUBqDFYhZr5s/xZuRN9YgkVU=
+github.com/gradusp/go-platform v0.0.4-dev h1:xUF6CGQgG6fnRjahhw+nm3uyYjIwCu4GOlViON/eFBc=
+github.com/gradusp/go-platform v0.0.4-dev/go.mod h1:65Mf8T7hGn2g1avQMD04hqQAErXIWSydT/f34JtpwS0=
+github.com/gradusp/protos v1.0.0 h1:l+EKeGpl6NzL8BAkAkoje8VDVAVK0dI/GlIAmEGMwEo=
+github.com/gradusp/protos v1.0.0/go.mod h1:0XUy2NF3xyVljGExfgXpUBqDFYhZr5s/xZuRN9YgkVU=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.0/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
 github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 h1:+9834+KizmvFV7pXQGSXQTsaWhq2GjuNUt0aUU0YBYw=
 github.com/grpc-ecosystem/go-grpc-middleware v1.3.0/go.mod h1:z0ButlSOZa5vEBq9m2m2hlwIgKw+rp3sdCBRoJY+30Y=

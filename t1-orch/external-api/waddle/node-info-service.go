@@ -32,7 +32,7 @@ type (
 //NewNodeInfoServiceClient ...
 func NewNodeInfoServiceClient(_ context.Context, conn *grpc.ClientConn) (NodeInfoServiceClient, error) {
 	ret := &nodeInfoService{
-		NodeInfoClient: waddle.NewNodeInfoClient(conn),
+		NodeServiceClient: waddle.NewNodeServiceClient(conn),
 		closer: func() error {
 			return conn.Close()
 		},
@@ -43,7 +43,7 @@ func NewNodeInfoServiceClient(_ context.Context, conn *grpc.ClientConn) (NodeInf
 var _ NodeInfoServiceClient = (*nodeInfoService)(nil)
 
 type nodeInfoService struct {
-	waddle.NodeInfoClient
+	waddle.NodeServiceClient
 	closer func() error
 }
 
@@ -55,7 +55,7 @@ func (client *nodeInfoService) Close() error {
 func (client *nodeInfoService) GetServices(ctx context.Context, req GetServicesRequest, opts ...grpc.CallOption) (GetServicesResponse, error) {
 	const api = "NodeInfoClient/GetServices"
 	var resp GetServicesResponse
-	r, e := client.NodeInfoClient.GetServices(ctx, req.Node, opts...)
+	r, e := client.NodeServiceClient.GetServices(ctx, req.Node, opts...)
 	if e == nil {
 		resp.ServicesResponse = r
 	}
