@@ -7,7 +7,7 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/golang/protobuf v1.5.2
 	github.com/gradusp/go-platform v0.0.4-dev
-	github.com/gradusp/protos v1.0.0
+	github.com/gradusp/protos v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/consul/api v1.10.0
 	github.com/hashicorp/consul/sdk v0.8.0 // indirect

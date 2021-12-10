@@ -192,8 +192,8 @@ github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoA
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gradusp/go-platform v0.0.4-dev h1:xUF6CGQgG6fnRjahhw+nm3uyYjIwCu4GOlViON/eFBc=
 github.com/gradusp/go-platform v0.0.4-dev/go.mod h1:65Mf8T7hGn2g1avQMD04hqQAErXIWSydT/f34JtpwS0=
-github.com/gradusp/protos v1.0.0 h1:l+EKeGpl6NzL8BAkAkoje8VDVAVK0dI/GlIAmEGMwEo=
-github.com/gradusp/protos v1.0.0/go.mod h1:0XUy2NF3xyVljGExfgXpUBqDFYhZr5s/xZuRN9YgkVU=
+github.com/gradusp/protos v1.1.1 h1:C24BBhhYIPdbpWcbzkE/+AmDSlMgw3AWvDtOk5X61dQ=
+github.com/gradusp/protos v1.1.1/go.mod h1:0XUy2NF3xyVljGExfgXpUBqDFYhZr5s/xZuRN9YgkVU=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.0/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
 github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 h1:+9834+KizmvFV7pXQGSXQTsaWhq2GjuNUt0aUU0YBYw=
 github.com/grpc-ecosystem/go-grpc-middleware v1.3.0/go.mod h1:z0ButlSOZa5vEBq9m2m2hlwIgKw+rp3sdCBRoJY+30Y=
