@@ -10,7 +10,8 @@ import (
 // MemoryWorker ...
 type MemoryWorker struct {
 	sync.Mutex
-	Services                     map[string]*domain.ServiceInfo
+
+	Services                     domain.ServiceInfoConf
 	ApplicationServersTunnelInfo map[string]int
 }
 
@@ -50,10 +51,15 @@ func (memoryWorker *MemoryWorker) GetService(serviceAddress string) (*domain.Ser
 	return findedServiceInfo, nil
 }
 
-func (memoryWorker *MemoryWorker) GetServices() map[string]*domain.ServiceInfo {
+func (memoryWorker *MemoryWorker) GetServices() domain.ServiceInfoConf {
 	memoryWorker.Lock()
 	defer memoryWorker.Unlock()
-	return memoryWorker.Services
+
+	c := make(domain.ServiceInfoConf, len(memoryWorker.Services))
+	for k, v := range memoryWorker.Services {
+		c[k] = v
+	}
+	return c
 }
 
 func (memoryWorker *MemoryWorker) RemoveService(serviceInfo *domain.ServiceInfo) error {

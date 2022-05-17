@@ -97,7 +97,7 @@ func (hc *HealthcheckEntity) removeServiceFromIPVS(hcService *domain.ServiceInfo
 func (hc *HealthcheckEntity) inclideApplicationServerInIPVS(hcService *domain.ServiceInfo,
 	applicationServer *domain.ApplicationServer,
 	id string) error {
-	aS := map[string]*domain.ApplicationServer{applicationServer.IP + ":" + applicationServer.Port: applicationServer}
+	aS := domain.ApplicationServers{applicationServer.IP + ":" + applicationServer.Port: applicationServer}
 	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,
@@ -139,7 +139,7 @@ func (hc *HealthcheckEntity) inclideApplicationServerInIPVS(hcService *domain.Se
 func (hc *HealthcheckEntity) excludeApplicationServerFromIPVS(hcService *domain.ServiceInfo,
 	applicationServer *domain.ApplicationServer,
 	id string) error {
-	aS := map[string]*domain.ApplicationServer{applicationServer.IP + ":" + applicationServer.Port: applicationServer}
+	aS := domain.ApplicationServers{applicationServer.IP + ":" + applicationServer.Port: applicationServer}
 	vip, port, routingType, balanceType, protocol, applicationServers, err := PrepareDataForIPVS(hcService.IP,
 		hcService.Port,
 		hcService.RoutingType,

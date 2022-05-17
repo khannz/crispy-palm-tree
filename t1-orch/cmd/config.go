@@ -26,6 +26,14 @@ var (
 	logging *logrus.Logger
 )
 
+const (
+	//ConsulDataProvider ...
+	ConsulDataProvider = "consul"
+
+	//WaddleDataProvider ...
+	WaddleDataProvider = "waddle"
+)
+
 func init() {
 	cobra.OnInitialize(initConfig)
 
@@ -111,6 +119,16 @@ func init() {
 		2*time.Second,
 		"ipvs request timeout")
 
+	rootCmd.PersistentFlags().String("source-provider",
+		ConsulDataProvider,
+		"select data provider")
+	rootCmd.PersistentFlags().String("waddle-address",
+		"",
+		"waddle data provider address like tcp://127.0.0.1:9000 | unix:///var/run/waddle.sock")
+	rootCmd.PersistentFlags().String("waddle-node-ip",
+		"",
+		"waddle node IP")
+
 	rootCmd.PersistentFlags().String("consul-address",
 		"127.0.0.1:18700",
 		"consul address")
@@ -172,6 +190,20 @@ func validateValues() {
 	//if viper.GetString("t1-id") == "bad1" {
 	//	logging.Fatalf("t1 id must be set")
 	//}
+
+	switch v := viper.GetString("source-provider"); v {
+	case ConsulDataProvider:
+	case WaddleDataProvider:
+		if v := viper.GetString("waddle-address"); len(v) == 0 {
+			logging.Fatal("unknown 'waddle-address' should be provided")
+		}
+		if v := viper.GetString("waddle-node-ip"); len(v) == 0 {
+			logging.Fatal("unknown 'waddle-node-ip' should be provided")
+		}
+	default:
+		logging.Fatalf("unknown 'source-provider'('%v'); select one from of ['%s', '%s']",
+			v, ConsulDataProvider, WaddleDataProvider)
+	}
 
 	switch viper.GetString("id-type") {
 	case "nanoid":

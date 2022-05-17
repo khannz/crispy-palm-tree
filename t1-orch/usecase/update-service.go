@@ -110,12 +110,12 @@ func (updateService *UpdateServiceEntity) UpdateService(serviceInfo *domain.Serv
 }
 
 func (updateService *UpdateServiceEntity) formDiffForApplicationServersInfo(currentApplicationServers,
-	updatedApplicationServers map[string]*domain.ApplicationServer) (map[string]*domain.ApplicationServer,
-	map[string]*domain.ApplicationServer,
-	map[string]*domain.ApplicationServer) {
-	appServersForCreate := make(map[string]*domain.ApplicationServer)
-	appServersForUpdate := make(map[string]*domain.ApplicationServer)
-	appServersForRemove := make(map[string]*domain.ApplicationServer)
+	updatedApplicationServers domain.ApplicationServers) (domain.ApplicationServers,
+	domain.ApplicationServers,
+	domain.ApplicationServers) {
+	appServersForCreate := make(domain.ApplicationServers)
+	appServersForUpdate := make(domain.ApplicationServers)
+	appServersForRemove := make(domain.ApplicationServers)
 
 	for updatedAppServerInfoAddress, updatedAppServerInfo := range updatedApplicationServers {
 		if _, isAppSrvIn := currentApplicationServers[updatedAppServerInfoAddress]; isAppSrvIn {

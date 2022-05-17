@@ -1,8 +1,10 @@
 package healthcheck
 
 import (
+	"reflect"
 	"time"
 
+	"github.com/gradusp/go-platform/pkg/parallel"
 	"github.com/khannz/crispy-palm-tree/t1-orch/domain"
 	"github.com/sirupsen/logrus"
 )
@@ -36,22 +38,22 @@ func (hc *HealthcheckEntity) startFirstChecksForService(hcService *domain.Servic
 
 // FirstChecksForService ...
 func (hc *HealthcheckEntity) FirstChecksForService(hcService *domain.ServiceInfo) {
-	defer hcService.FailedApplicationServers.SetFailedApplicationServersToZero()
+	defer hcService.FailedApplicationServers.Set2Zero()
 	newID := hc.idGenerator.NewID()
-	for k := range hcService.ApplicationServers {
-		hcService.FailedApplicationServers.Wg.Add(1)
-		go hc.checkApplicationServerInService(hcService,
-			k,
-			newID) // lock hcService
-	}
-	hcService.FailedApplicationServers.Wg.Wait()
-	percentageUp := percentageOfUp(len(hcService.ApplicationServers), hcService.FailedApplicationServers.Count)
+
+	keys := reflect.ValueOf(hcService.ApplicationServers).MapKeys()
+	_ = parallel.ExecAbstract(len(keys), 10, func(i int) error {
+		k := keys[i].Interface().(string)
+		hc.checkApplicationServerInService(hcService, k, newID) // lock hcService
+		return nil
+	})
+	percentageUp := percentageOfUp(len(hcService.ApplicationServers), hcService.FailedApplicationServers.Count())
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
 		"event id": newID,
 	}).Tracef("Healthcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
 		hcService.Address,
-		hcService.FailedApplicationServers.Count,
+		hcService.FailedApplicationServers.Count(),
 		len(hcService.ApplicationServers),
 		percentageUp,
 		hcService.Quorum)
@@ -95,22 +97,22 @@ func (hc *HealthcheckEntity) startNormalHealthchecksForService(hcService *domain
 
 // CheckService ...
 func (hc *HealthcheckEntity) CheckService(hcService *domain.ServiceInfo) {
-	defer hcService.FailedApplicationServers.SetFailedApplicationServersToZero()
+	defer hcService.FailedApplicationServers.Set2Zero()
 	newID := hc.idGenerator.NewID()
-	for k := range hcService.ApplicationServers {
-		hcService.FailedApplicationServers.Wg.Add(1)
-		go hc.checkApplicationServerInService(hcService,
-			k,
-			newID) // lock hcService
-	}
-	hcService.FailedApplicationServers.Wg.Wait()
-	percentageUp := percentageOfUp(len(hcService.ApplicationServers), hcService.FailedApplicationServers.Count)
+
+	keys := reflect.ValueOf(hcService.ApplicationServers).MapKeys()
+	_ = parallel.ExecAbstract(len(keys), 10, func(i int) error {
+		k := keys[i].Interface().(string)
+		hc.checkApplicationServerInService(hcService, k, newID)
+		return nil
+	})
+	percentageUp := percentageOfUp(len(hcService.ApplicationServers), hcService.FailedApplicationServers.Count())
 	hc.logging.WithFields(logrus.Fields{
 		"entity":   healthcheckName,
 		"event id": newID,
 	}).Tracef("Healthcheck: in service %v failed services is %v of %v; %v up percent of %v max for this service",
 		hcService.Address,
-		hcService.FailedApplicationServers.Count,
+		hcService.FailedApplicationServers.Count(),
 		len(hcService.ApplicationServers),
 		percentageUp,
 		hcService.Quorum)
@@ -140,10 +142,8 @@ func (hc *HealthcheckEntity) CheckService(hcService *domain.ServiceInfo) {
 func (hc *HealthcheckEntity) checkApplicationServerInService(hcService *domain.ServiceInfo,
 	applicationServerInfoKey string,
 	id string) {
-	// TODO: still can be refactored
-	defer hcService.FailedApplicationServers.Wg.Done()
-	isCheckOk := hc.isApplicationServerOkNow(hcService, applicationServerInfoKey, id)
 
+	isCheckOk := hc.isApplicationServerOkNow(hcService, applicationServerInfoKey, id)
 	hc.moveApplicationServerStateIndexes(hcService, applicationServerInfoKey, isCheckOk)                                                     // lock hcService
 	isApplicationServerUp, isApplicationServerChangeState := hc.isApplicationServerUpAndStateChange(hcService, applicationServerInfoKey, id) // lock hcService
 	hc.logging.WithFields(logrus.Fields{
@@ -160,9 +160,7 @@ func (hc *HealthcheckEntity) checkApplicationServerInService(hcService *domain.S
 			isApplicationServerUp,
 			isApplicationServerChangeState)
 		if !isApplicationServerUp {
-			hcService.FailedApplicationServers.Lock()
-			hcService.FailedApplicationServers.Count++
-			hcService.FailedApplicationServers.Unlock()
+			hcService.FailedApplicationServers.Add(1)
 			if isApplicationServerChangeState {
 				if err := hc.excludeApplicationServerFromIPVS(hcService, hcService.ApplicationServers[applicationServerInfoKey], id); err != nil {
 					hc.logging.WithFields(logrus.Fields{
@@ -180,9 +178,7 @@ func (hc *HealthcheckEntity) checkApplicationServerInService(hcService *domain.S
 		isApplicationServerUp,
 		isApplicationServerChangeState)
 	if !isApplicationServerUp {
-		hcService.FailedApplicationServers.Lock()
-		hcService.FailedApplicationServers.Count++
-		hcService.FailedApplicationServers.Unlock()
+		hcService.FailedApplicationServers.Add(1)
 	}
 
 	if isApplicationServerUp && isApplicationServerChangeState {
